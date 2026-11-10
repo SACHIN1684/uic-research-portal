@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Existing Faculty Replacement — UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark portal-nav">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/portal">
+      <div class="brand-icon"><i class="fas fa-flask"></i></div>
+      <div>
+        <div class="brand-title">UIC Research Portal</div>
+        <div class="brand-sub">University Institute of Computing, Chandigarh University</div>
+      </div>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home me-1"></i>Home</a>
+      <a href="/portal" class="nav-link-btn"><i class="fas fa-th-large me-1"></i>Directory</a>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  <div class="container" style="max-width: 1050px;">
+
+    <div class="alert alert-warning border-warning shadow-sm rounded-3 p-4 mb-4">
+      <div class="d-flex align-items-start gap-3">
+        <i class="fas fa-exclamation-triangle fa-2x text-warning mt-1"></i>
+        <div>
+          <h4 class="fw-bold text-dark mb-1">Existing Faculty Detected in Uploaded File</h4>
+          <p class="mb-2 text-dark">
+            We checked both <strong>Faculty Name</strong> and <strong>Employee Code</strong> against the database.
+            <strong><%= duplicateRows.length %></strong> record(s) already exist, and <strong><%= newRows.length %></strong> record(s) are brand new.
+          </p>
+          <p class="mb-0 small text-muted">
+            Do you want to <strong>replace/update</strong> the existing faculty details with the new values from your Excel sheet, or <strong>skip</strong> existing entries and only add new faculty? (Existing publications will be preserved when replacing details.)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <form action="/faculty/upload-excel/confirm" method="POST">
+      <input type="hidden" name="new_rows_json" value="<%= newRowsJson %>">
+      <input type="hidden" name="duplicate_rows_json" value="<%= duplicateRowsJson %>">
+
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3 bg-light rounded-3">
+          <div class="d-flex gap-3">
+            <span class="badge bg-success fs-6 px-3 py-2"><i class="fas fa-plus-circle me-1"></i>New Records: <%= newRows.length %></span>
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="fas fa-sync-alt me-1"></i>Existing Matches: <%= duplicateRows.length %></span>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <a href="/portal" class="btn btn-outline-secondary">
+              <i class="fas fa-times me-1"></i>Cancel
+            </a>
+            <button type="submit" name="decision" value="skip" class="btn btn-primary fw-semibold">
+              <i class="fas fa-forward me-1"></i>Skip Existing & Add Only New (<%= newRows.length %>)
+            </button>
+            <button type="submit" name="decision" value="replace" class="btn btn-warning fw-bold text-dark shadow-sm">
+              <i class="fas fa-sync-alt me-1"></i>Yes, Replace Existing & Add New
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="fas fa-exchange-alt me-2 text-warning"></i>Matching Existing Records (<%= duplicateRows.length %>)
+          </h5>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Matched By</th>
+                <th>Current Database Record</th>
+                <th>New Uploaded Excel Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% duplicateRows.forEach((item, idx) => { %>
+                <tr>
+                  <td class="text-muted fw-bold"><%= idx + 1 %></td>
+                  <td>
+                    <% if (item.matchReason.includes('Both')) { %>
+                      <span class="badge bg-danger">Name & Emp Code</span>
+                    <% } else if (item.matchReason.includes('Code')) { %>
+                      <span class="badge bg-warning text-dark">Employee Code</span>
+                    <% } else { %>
+                      <span class="badge bg-info text-dark">Faculty Name</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark"><%= item.existing.name %></div>
+                    <div class="small text-muted">
+                      Code: <span class="font-monospace fw-semibold"><%= item.existing.employee_code %></span>
+                      <% if (item.existing.designation) { %> &bull; <%= item.existing.designation %><% } %>
+                      <% if (item.existing.department) { %> &bull; <%= item.existing.department %><% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-primary"><%= item.incoming.name %></div>
+                    <div class="small text-muted">
+                      Code: <span class="font-monospace fw-semibold"><%= item.incoming.employee_code %></span>
+                      <% if (item.incoming.designation) { %> &bull; <%= item.incoming.designation %><% } %>
+                      <% if (item.incoming.department) { %> &bull; <%= item.incoming.department %><% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</main>
+
+<footer class="portal-footer">
+  <div class="container-fluid px-4 text-center">
+    <span><i class="fas fa-university me-1"></i>UIC Research Portal &copy; <%= new Date().getFullYear() %> &mdash; University Institute of Computing, Chandigarh University</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

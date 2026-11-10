@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UIC Research Portal — University Institute of Computing, Chandigarh University</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    :root {
+      --cu-red: #c8102e;
+      --cu-red-dark: #960c22;
+      --cu-navy: #0b1f3f;
+      --cu-navy-light: #163665;
+      --cu-gold: #d4af37;
+      --accent-glow: rgba(200, 16, 46, 0.15);
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .display-font {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    /* Top Bar */
+    .cu-topbar {
+      background: var(--cu-navy);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.8rem;
+      padding: 6px 0;
+      border-bottom: 2px solid var(--cu-red);
+    }
+    /* Main Navbar */
+    .home-navbar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      transition: all 0.3s ease;
+    }
+    .brand-logo-badge {
+      background: linear-gradient(135deg, var(--cu-red), #e63946);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      padding: 8px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(200, 16, 46, 0.35);
+      letter-spacing: 0.5px;
+    }
+    /* Hero Section */
+    .hero-section {
+      position: relative;
+      background: linear-gradient(135deg, #07152b 0%, #0b1f3f 60%, #163665 100%);
+      color: white;
+      padding: 100px 0 110px;
+      overflow: hidden;
+    }
+    .hero-section::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(200, 16, 46, 0.25) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-section::after {
+      content: "";
+      position: absolute;
+      bottom: -40%;
+      left: -15%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #ffd166;
+      margin-bottom: 20px;
+    }
+    .hero-title {
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1px;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #ffffff 40%, #ffd166 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-stats-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
+    /* Leadership & Cards */
+    .leader-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      transition: all 0.35s ease;
+      border: 1px solid #edf2f7;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .leader-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(11, 31, 63, 0.12);
+      border-color: #cbd5e1;
+    }
+    .leader-img-wrapper {
+      position: relative;
+      height: 290px;
+      background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .leader-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      transition: transform 0.4s ease;
+    }
+    .leader-card:hover .leader-img {
+      transform: scale(1.04);
+    }
+    .leader-tag {
+      position: absolute;
+      bottom: 12px;
+      left: 14px;
+      background: rgba(11, 31, 63, 0.92);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(6px);
+    }
+    .leader-tag.tag-director {
+      background: rgba(200, 16, 46, 0.92);
+    }
+    .leader-tag.tag-coord {
+      background: rgba(212, 175, 55, 0.95);
+      color: #0b1f3f;
+    }
+    .section-title-wrap {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 50px;
+    }
+    .section-badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cu-red);
+      background: #fee2e2;
+      padding: 4px 14px;
+      border-radius: 30px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--cu-navy);
+      letter-spacing: -0.5px;
+    }
+    /* Campus Highlights */
+    .campus-feature-card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      border: 1px solid #edf2f7;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+    .campus-feature-card:hover {
+      border-color: var(--cu-red);
+      transform: translateY(-5px);
+      box-shadow: 0 16px 32px rgba(200, 16, 46, 0.08);
+    }
+    .feature-icon-box {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    .icon-red { background: #fee2e2; color: var(--cu-red); }
+    .icon-navy { background: #e0e7ff; color: var(--cu-navy); }
+    .icon-gold { background: #fef3c7; color: #b45309; }
+    .icon-green { background: #dcfce7; color: #15803d; }
+    /* CTA Box */
+    .cta-banner {
+      background: linear-gradient(135deg, var(--cu-navy) 0%, #163665 60%, var(--cu-red-dark) 100%);
+      border-radius: 24px;
+      padding: 60px 40px;
+      color: white;
+      box-shadow: 0 20px 45px rgba(11, 31, 63, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-portal-primary {
+      background: linear-gradient(135deg, #c8102e, #e63946);
+      color: white;
+      font-weight: 700;
+      padding: 13px 30px;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 8px 25px rgba(200, 16, 46, 0.4);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-size: 1rem;
+    }
+    .btn-portal-primary:hover {
+      background: linear-gradient(135deg, #a50d26, #c8102e);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(200, 16, 46, 0.5);
+    }
+    .btn-portal-outline {
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      font-weight: 600;
+      padding: 13px 26px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s;
+    }
+    .btn-portal-outline:hover {
+      background: white;
+      color: var(--cu-navy);
+    }
+    /* Footer */
+    .cu-footer {
+      background: #061122;
+      color: #94a3b8;
+      font-size: 0.88rem;
+      padding: 60px 0 25px;
+      border-top: 3px solid var(--cu-red);
+    }
+    .cu-footer h6 {
+      color: #ffffff;
+      font-weight: 700;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+    }
+    .cu-footer a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .cu-footer a:hover {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="cu-topbar">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <i class="fas fa-university me-1 text-danger"></i> Chandigarh University &bull; <strong>University Institute of Computing (UIC)</strong>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span><i class="fas fa-certificate text-warning me-1"></i> NAAC A+ Accredited</span>
+        <span class="d-none d-md-inline">&bull;</span>
+        <span><i class="fas fa-award text-info me-1"></i> QS World Ranked</span>
+        <span class="d-none d-md-inline">&bull;</span>
+        <a href="/portal" class="text-white fw-bold text-decoration-none">
+          <i class="fas fa-sign-in-alt me-1"></i> Enter Portal
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg home-navbar py-3">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-3" href="/">
+        <div class="brand-logo-badge">
+          <i class="fas fa-laptop-code me-1"></i> UIC
+        </div>
+        <div>
+          <div class="fw-bold fs-5 text-dark lh-1 display-font">UIC Research Portal</div>
+          <div class="text-muted" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+            University Institute of Computing &bull; Chandigarh University
+          </div>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#homeNavbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="homeNavbarNav">
+        <ul class="navbar-nav ms-auto align-items-center gap-2 gap-lg-3 my-3 my-lg-0">
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark active" href="#overview">Research Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-danger fw-bold" href="#monthly-ros">
+              <i class="fas fa-table me-1"></i>Monthly ROS (2026)
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark" href="#leadership">My Director & Heads</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark" href="#coordinator">Research Coordinator</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark" href="#campus">My Campus</a>
+          </li>
+          <li class="nav-item ms-lg-1">
+            <a href="/portal" class="btn btn-portal-primary py-2 px-3">
+              <i class="fas fa-database me-1"></i> Go to Research Portal
+            </a>
+          </li>
+          <li class="nav-item">
+            <% if (isAdmin) { %>
+              <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-success btn-sm fw-semibold py-2 px-2" data-bs-toggle="modal" data-bs-target="#adminSettingsModal" title="Admin Settings">
+                  <i class="fas fa-user-shield me-1"></i>Admin
+                </button>
+                <form action="/admin/logout" method="POST" class="d-inline">
+                  <input type="hidden" name="return_to" value="/">
+                  <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold py-2 px-2" title="Logout Admin">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </button>
+                </form>
+              </div>
+            <% } else { %>
+              <button type="button" class="btn btn-outline-danger btn-sm fw-bold py-2 px-3" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
+                <i class="fas fa-user-shield me-1"></i> Admin Login
+              </button>
+            <% } %>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <% if (typeof query !== 'undefined' && (query.login_err || query.admin_logged_in || query.admin_logged_out || query.admin_login_required || query.cred_updated || query.cred_err)) { %>
+    <div class="container mt-3">
+      <% if (query.login_err) { %>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i><strong>Login Failed:</strong> <%= query.login_err %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.admin_login_required) { %>
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-lock me-2"></i><strong>Admin Access Required:</strong> Please log in as Admin to edit, add, upload, or delete records.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.admin_logged_in) { %>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-check-circle me-2"></i><strong>Welcome Admin (<%= adminUsername %>)!</strong> Full editing rights are now enabled across the <a href="/portal" class="alert-link">Research Portal</a>.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.admin_logged_out) { %>
+        <div class="alert alert-info alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-info-circle me-2"></i>Logged out of Admin mode. Portal is now in read-only visitor mode.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.cred_updated) { %>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-key me-2"></i><strong>Admin Credentials Updated!</strong> Username and password saved.
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.cred_err) { %>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-0" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i><strong>Credential Update Failed:</strong> <%= query.cred_err %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container position-relative" style="z-index: 2;">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-7">
+          <div class="hero-badge">
+            <i class="fas fa-atom"></i> Center of Excellence in Computing & AI Research
+          </div>
+          <h1 class="hero-title display-font mb-4">
+            Empowering Breakthrough <span>Computing Research</span> at UIC
+          </h1>
+          <p class="lead text-light opacity-90 mb-4" style="font-size: 1.15rem; line-height: 1.6;">
+            Welcome to the <strong>UIC Research Portal</strong> of the <strong>University Institute of Computing, Chandigarh University</strong>. Tracking cutting-edge faculty research publications, Scopus-indexed Q1-Q4 journals, patents, and month-wise performance metrics.
+          </p>
+          <div class="d-flex flex-wrap gap-3 pt-2">
+            <a href="/portal" class="btn-portal-primary">
+              <i class="fas fa-search me-1"></i> Explore Faculty Profiles & ROS
+              <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+            <a href="#leadership" class="btn-portal-outline">
+              <i class="fas fa-user-tie me-1"></i> Meet Our Leadership
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="hero-stats-card">
+            <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between text-white">
+              <span><i class="fas fa-chart-pie me-2 text-warning"></i> UIC Research Footprint</span>
+              <span class="badge bg-danger rounded-pill px-3 py-1 small">Live Analytics</span>
+            </h5>
+            <div class="row g-3 text-center mb-4">
+              <div class="col-6">
+                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="display-6 fw-bold text-warning display-font"><%= totalFaculty %></div>
+                  <div class="small text-light opacity-75">Faculty Members</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="display-6 fw-bold text-info display-font"><%= totalPubs %></div>
+                  <div class="small text-light opacity-75">Research Publications</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="display-6 fw-bold text-success display-font"><%= q1Count %></div>
+                  <div class="small text-light opacity-75">Scopus Q1 Journals</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="display-6 fw-bold text-danger display-font"><%= activeCount %></div>
+                  <div class="small text-light opacity-75">Active Researchers</div>
+                </div>
+              </div>
+            </div>
+            <div class="border-top border-light border-opacity-25 pt-3">
+              <div class="d-flex justify-content-between align-items-center text-light small">
+                <span><i class="fas fa-award text-warning me-1"></i> Average Dept ROS:</span>
+                <span class="fw-bold fs-6 text-white"><%= avgROS %> Points</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Pillars / About UIC Research -->
+  <section id="overview" class="py-5 my-4">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-lightbulb me-1"></i> Innovation & Discovery</span>
+        <h2 class="section-title display-font">Research at University Institute of Computing</h2>
+        <p class="text-muted">
+          UIC is dedicated to high-impact computing research spanning Artificial Intelligence, Cybersecurity, Cloud Systems, Data Engineering, and Interdisciplinary Sciences.
+        </p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+          <div class="campus-feature-card">
+            <div class="feature-icon-box icon-red">
+              <i class="fas fa-brain"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Artificial Intelligence & ML</h5>
+            <p class="text-muted small mb-0">
+              Pioneering neural architectures, transformer models, computer vision applications, and cognitive compute systems for societal challenges.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="campus-feature-card">
+            <div class="feature-icon-box icon-navy">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Cybersecurity & Forensics</h5>
+            <p class="text-muted small mb-0">
+              Advanced threat detection, cryptographic protocol engineering, zero-trust network models, and vulnerability assessment frameworks.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="campus-feature-card">
+            <div class="feature-icon-box icon-gold">
+              <i class="fas fa-cloud"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Cloud & Edge Computing</h5>
+            <p class="text-muted small mb-0">
+              High-throughput distributed systems, edge intelligence, energy-efficient data routing, and IoT microservices optimization.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="campus-feature-card">
+            <div class="feature-icon-box icon-green">
+              <i class="fas fa-dna"></i>
+            </div>
+            <h5 class="fw-bold text-dark">Bioinformatics & Agri-Tech</h5>
+            <p class="text-muted small mb-0">
+              Computational genomics, precision agriculture models, biosurfactant optimization, and data-driven ecological management.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Output Score (ROS) of UIC Department — Month-wise -->
+  <section id="monthly-ros" class="py-5 bg-white border-top border-bottom">
+    <div class="container">
+      <div class="section-title-wrap mb-4">
+        <span class="section-badge"><i class="fas fa-calendar-alt me-1"></i> Department Research Metric</span>
+        <h2 class="section-title display-font">Research Output Score (ROS) of the UIC Department</h2>
+        <p class="text-muted">
+          Month-wise distribution and performance tracking across Scopus Journal Quartiles (Q1–Q4), total publications, and aggregate Research Output Score (ROS).
+        </p>
+      </div>
+
+      <!-- Dropdown Menu for Monthly ROS Reporting Year -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 p-3 rounded-3 bg-light border shadow-sm">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-primary px-3 py-2 fs-6 shadow-sm">
+            <i class="fas fa-calendar-alt me-1"></i> Reporting Period
+          </span>
+          <span class="text-muted small fw-semibold">Select calendar year to update month-wise ROS metrics:</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label for="reportingYearSelect" class="fw-bold text-dark text-nowrap mb-0 small">
+            <i class="fas fa-filter text-secondary me-1"></i>Academic Year:
+          </label>
+          <select id="reportingYearSelect" class="form-select form-select-sm fw-bold border-primary shadow-sm" style="min-width: 220px; font-size: 0.95rem; cursor: pointer;">
+            <% [2024, 2025, 2026, 2027, 2028, 2029, 2030].forEach(y => { %>
+              <option value="<%= y %>" <%= selectedYear === y ? 'selected' : '' %>>Jan – Dec <%= y %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Summary Metric Badges -->
+      <div class="row g-3 mb-4 justify-content-center">
+        <div class="col-6 col-md-3">
+          <div class="p-3 text-center rounded-3 bg-light border shadow-sm h-100">
+            <div class="small text-muted fw-semibold">
+              <i class="fas fa-layer-group text-success me-1"></i><span id="metricYearQ1Label"><%= selectedYear %></span> Q1 Papers
+            </div>
+            <div class="fs-3 fw-bold text-success mt-1" id="metricQ1Val"><%= monthlyROS.totals.q1 %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-3 text-center rounded-3 bg-light border shadow-sm h-100">
+            <div class="small text-muted fw-semibold">
+              <i class="fas fa-file-alt text-primary me-1"></i><span id="metricYearTotalLabel"><%= selectedYear %></span> Total Papers
+            </div>
+            <div class="fs-3 fw-bold text-primary mt-1" id="metricTotalVal"><%= monthlyROS.totals.total %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-3 text-center rounded-3 bg-light border shadow-sm h-100">
+            <div class="small text-muted fw-semibold">
+              <i class="fas fa-star text-danger me-1"></i><span id="metricYearRosLabel"><%= selectedYear %></span> Dept ROS Score
+            </div>
+            <div class="fs-3 fw-bold text-danger mt-1" id="metricRosVal"><%= monthlyROS.totals.ros.toFixed(2) %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-3 text-center rounded-3 bg-light border shadow-sm h-100">
+            <div class="small text-muted fw-semibold"><i class="fas fa-calendar-check text-dark me-1"></i>Reporting Year</div>
+            <div class="fs-4 fw-bold text-dark mt-1" id="metricPeriodVal">Jan – Dec <%= selectedYear %></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screenshot-Matching Table: Cluster replaced with Month, Jan-Dec Year, Q1-Q4, Total, Research Output Score (ROS) -->
+      <div class="card border shadow-sm rounded-3 overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle mb-0 text-center" style="border-color: #9ac2e8;">
+            <thead>
+              <!-- Top Banner Matching the User Screenshot -->
+              <tr style="background-color: #bfe3fa; color: #0b1f3f;">
+                <th colspan="7" class="py-2 fs-6 fw-bold text-center text-uppercase" style="letter-spacing: 0.5px;" id="tableYearBanner">
+                  Research Output Score (ROS) of the UIC Department &bull; Calendar Year <%= selectedYear %>
+                </th>
+              </tr>
+              <!-- Columns Header Row -->
+              <tr style="background-color: #cfe2ff; color: #0b1f3f;">
+                <th class="text-start ps-4 py-3 fw-bold" style="width: 24%; min-width: 165px;">
+                  <i class="fas fa-calendar-day me-1 text-primary"></i> Month
+                </th>
+                <th class="py-3 fw-bold" style="width: 12%; background-color: #dff0d8;">Q1</th>
+                <th class="py-3 fw-bold" style="width: 12%;">Q2</th>
+                <th class="py-3 fw-bold" style="width: 12%;">Q3</th>
+                <th class="py-3 fw-bold" style="width: 12%;">Q4</th>
+                <th class="py-3 fw-bold bg-light" style="width: 12%;">Total</th>
+                <th class="py-3 fw-bold pe-4" style="width: 16%; background-color: #fff3cd; color: #856404;">
+                  <i class="fas fa-award me-1 text-warning"></i> Research Output Score (ROS)
+                </th>
+              </tr>
+            </thead>
+            <tbody id="monthlyRosTableBody">
+              <% monthlyROS.rows.forEach(function(row, idx) { %>
+                <tr style="<%= row.total > 0 ? 'background-color: #f0fdf4;' : (idx % 2 === 1 ? 'background-color: #fafbfc;' : 'background-color: #ffffff;') %>">
+                  <td class="text-start ps-4 fw-semibold text-dark">
+                    <span class="d-inline-flex align-items-center gap-2">
+                      <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;"><%= idx + 1 %></span>
+                      <strong><%= row.month %></strong>
+                    </span>
+                  </td>
+                  <td>
+                    <% if (row.q1 > 0 || row.q1_ros > 0) { %>
+                      <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q2 > 0 || row.q2_ros > 0) { %>
+                      <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q3 > 0 || row.q3_ros > 0) { %>
+                      <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q4 > 0 || row.q4_ros > 0) { %>
+                      <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td class="fw-bold fs-6 <%= row.total > 0 ? 'text-primary' : 'text-muted' %>">
+                    <%= row.total %>
+                    <% if (row.total > 0) { %>
+                      <div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>
+                    <% } %>
+                  </td>
+                  <td class="pe-4 fw-bold fs-6">
+                    <% if (row.ros > 0) { %>
+                      <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+            <tfoot>
+              <!-- Grand Total Summary Row -->
+              <tr style="background-color: #e2e8f0; font-size: 1.05rem;" class="border-top-2 border-primary">
+                <td class="text-start ps-4 fw-bold text-dark py-3" id="tableFooterLabel">
+                  <i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec <%= selectedYear %>)
+                </td>
+                <td class="fw-bold text-success py-3 fs-5" id="footQ1">
+                  <%= monthlyROS.totals.q1_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q1 %> papers)</div>
+                </td>
+                <td class="fw-bold text-primary py-3 fs-5" id="footQ2">
+                  <%= monthlyROS.totals.q2_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q2 %> papers)</div>
+                </td>
+                <td class="fw-bold text-info py-3 fs-5" id="footQ3">
+                  <%= monthlyROS.totals.q3_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q3 %> papers)</div>
+                </td>
+                <td class="fw-bold text-warning text-dark py-3 fs-5" id="footQ4">
+                  <%= monthlyROS.totals.q4_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q4 %> papers)</div>
+                </td>
+                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="footTotal"><%= monthlyROS.totals.total %></td>
+                <td class="pe-4 fw-bold text-danger py-3 fs-5 bg-light">
+                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="footRos"><%= monthlyROS.totals.ros.toFixed(2) %> Points</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="small text-muted">
+            <i class="fas fa-info-circle me-1 text-primary"></i>
+            Each <strong>Q1–Q4</strong> cell shows the total <strong>ROS</strong> points of all authors matching that <strong>Quartile</strong> column (with paper count below). Conference papers without a quartile (N/A) default to <strong>Q4</strong>.
+          </div>
+          <div class="d-flex gap-2">
+            <a href="/portal" class="btn btn-outline-primary btn-sm fw-semibold">
+              <i class="fas fa-users me-1"></i> View Faculty Directory
+            </a>
+            <a href="/export/excel" class="btn btn-success btn-sm fw-semibold">
+              <i class="fas fa-file-excel me-1"></i> Export Excel Sheet
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- My Director & Leadership Section -->
+  <section id="leadership" class="py-5 bg-white border-top border-bottom">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-crown me-1"></i> Academic Leadership</span>
+        <h2 class="section-title display-font">My Director & Department Heads</h2>
+        <p class="text-muted">
+          Visionary leadership driving research excellence, innovation culture, and academic distinction across the University Institute of Computing.
+        </p>
+      </div>
+
+      <div class="row g-4 justify-content-center">
+        <!-- Executive Director Card -->
+        <div class="col-md-6 col-lg-4">
+          <div class="leader-card">
+            <div class="leader-img-wrapper">
+              <img src="/images/director_uic.jpg" alt="Executive Director UIC — Dr. Gurpreet Singh" class="leader-img" style="object-position: center top;">
+              <span class="leader-tag tag-director"><i class="fas fa-star me-1"></i> Executive Director, UIC</span>
+            </div>
+            <div class="p-4 d-flex flex-column flex-grow-1">
+              <h4 class="fw-bold text-dark mb-1">Dr. Gurpreet Singh</h4>
+              <div class="text-danger fw-semibold small mb-3">Executive Director — University Institute of Computing</div>
+              <p class="text-muted small mb-4 flex-grow-1">
+                Leading the academic and research initiatives of UIC. Champion of faculty innovation, international research collaborations, patents, and high-impact Q1 journal publications.
+              </p>
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
+                <span><i class="fas fa-envelope text-primary me-1"></i> director.uic@cumail.in</span>
+                <span><i class="fas fa-building text-secondary me-1"></i> Block E2 - North Campus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Head MCA -->
+        <div class="col-md-6 col-lg-4">
+          <div class="leader-card">
+            <div class="leader-img-wrapper">
+              <img src="/images/head_mca.png" alt="Dr. Amanpreet Kaur Sandhu — Head MCA" class="leader-img" style="object-position: center 12%;">
+              <span class="leader-tag"><i class="fas fa-user-tie me-1"></i> Head - MCA</span>
+            </div>
+            <div class="p-4 d-flex flex-column flex-grow-1">
+              <h4 class="fw-bold text-dark mb-1">Dr. Amanpreet Kaur Sandhu</h4>
+              <div class="text-primary fw-semibold small mb-3">Head MCA — University Institute of Computing</div>
+              <p class="text-muted small mb-4 flex-grow-1">
+                Oversees postgraduate Master of Computer Applications (MCA) programs, curriculum alignment with emerging technologies, and graduate research initiatives.
+              </p>
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
+                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:hod.mca@cumail.in" class="text-muted text-decoration-none">hod.mca@cumail.in</a></span>
+                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Head BCA -->
+        <div class="col-md-6 col-lg-4">
+          <div class="leader-card">
+            <div class="leader-img-wrapper">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80" alt="Dr. Arun Kumar — Head-BCA" class="leader-img">
+              <span class="leader-tag"><i class="fas fa-graduation-cap me-1"></i> Head - BCA</span>
+            </div>
+            <div class="p-4 d-flex flex-column flex-grow-1">
+              <h4 class="fw-bold text-dark mb-1">Dr. Arun Kumar</h4>
+              <div class="text-primary fw-semibold small mb-3">Head-BCA — University Institute of Computing</div>
+              <p class="text-muted small mb-4 flex-grow-1">
+                Leads undergraduate Bachelor of Computer Applications (BCA) programs, outcome-based education, student-faculty mentoring, and academic innovation.
+              </p>
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
+                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:head.bca@cumail.in" class="text-muted text-decoration-none">head.bca@cumail.in</a></span>
+                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Coordinator Details Section -->
+  <section id="coordinator" class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-microscope me-1"></i> Department Research Operations</span>
+        <h2 class="section-title display-font">Research Coordinator Office</h2>
+        <p class="text-muted">
+          Your key liaison for research project facilitation, Scopus verification, ROS tracking, patent filing assistance, and research grant compliance.
+        </p>
+      </div>
+
+      <div class="row align-items-center justify-content-center">
+        <div class="col-lg-10">
+          <div class="card border-0 rounded-4 shadow-lg overflow-hidden" style="background: white;">
+            <div class="row g-0">
+              <div class="col-md-5 position-relative bg-dark" style="min-height: 380px;">
+                <img src="/images/research_coordinator.png" alt="Research Coordinator Dr. Sachin Chawla" class="w-100 h-100 object-fit-cover" style="object-position: center 10%;">
+                <div class="position-absolute bottom-0 start-0 w-100 p-3 text-white" style="background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);">
+                  <span class="badge bg-warning text-dark fw-bold mb-1"><i class="fas fa-star me-1"></i> Research Coordinator</span>
+                  <div class="fw-bold fs-5">Dr. Sachin Chawla</div>
+                  <div class="small text-light opacity-90">Research Coordinator — UIC</div>
+                </div>
+              </div>
+              <div class="col-md-7 p-4 p-lg-5 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">Department Research Lead</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">ROS Office</span>
+                  </div>
+                  <h3 class="fw-bold text-dark display-font mb-2">Dr. Sachin Chawla</h3>
+                  <div class="text-primary fw-semibold small mb-3">Research Coordinator &bull; University Institute of Computing</div>
+                  <p class="text-muted mb-4" style="line-height: 1.6;">
+                    The Research Coordinator oversees the verification of Scopus / Web of Science indexed journal papers (Q1–Q4), conferences, book chapters, and patents. The Coordinator ensures transparent calculation of ROS scores, coordinates monthly faculty output audits, and drives research workshops.
+                  </p>
+                  
+                  <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-envelope text-danger fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Official Email</div>
+                          <div class="fw-bold small text-dark"><a href="mailto:researchcoordinator.uic@cumail.in" class="text-dark text-decoration-none">researchcoordinator.uic@cumail.in</a></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-phone-alt text-success fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Phone Number</div>
+                          <div class="fw-bold small text-dark"><a href="tel:9034388155" class="text-dark text-decoration-none">+91 9034388155</a></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-map-marker-alt text-primary fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Office Location</div>
+                          <div class="fw-bold small text-dark">North Campus, E2-212 Lab, UIC Department, Chandigarh University</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-clock text-warning fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Consultation Hours</div>
+                          <div class="fw-bold small text-dark">9:30 AM to 4:30 PM (Mon to Sat)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                  <a href="/portal" class="btn btn-portal-primary py-2 px-3 small">
+                    <i class="fas fa-tachometer-alt me-1"></i> Access Portal Records
+                  </a>
+                  <a href="/download-master-publications-template" class="btn btn-outline-secondary py-2 px-3 small">
+                    <i class="fas fa-download me-1"></i> Download Excel Format
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- My Campus Section -->
+  <section id="campus" class="py-5 bg-white border-top">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-map-marked-alt me-1"></i> World-Class Infrastructure</span>
+        <h2 class="section-title display-font">My Campus — Chandigarh University</h2>
+        <p class="text-muted">
+          A lush green, digitally-enabled 200+ acre campus offering cutting-edge computing laboratories, high-performance GPU clusters, and modern innovation incubators.
+        </p>
+      </div>
+
+      <div class="row g-4 mb-5">
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Main Academic Block" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-primary mb-2">Central Landmark</span>
+              <h5 class="fw-bold text-dark">Academic & Research Blocks</h5>
+              <p class="text-muted small mb-0">
+                Spacious smart classrooms, seminar auditoriums, high-speed Wi-Fi, and specialized digital innovation suites for computing research scholars.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Computing Labs" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-danger mb-2">State-of-the-Art</span>
+              <h5 class="fw-bold text-dark">Advanced Computing & AI Labs</h5>
+              <p class="text-muted small mb-0">
+                Equipped with NVIDIA DGX Supercomputing stations, cloud testbeds, IoT sensor kits, and robotic workstations for graduate and faculty research.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Digital Library" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-success mb-2">Resource Center</span>
+              <h5 class="fw-bold text-dark">Central Knowledge Resource Center</h5>
+              <p class="text-muted small mb-0">
+                Full-text subscription to IEEE Xplore, ScienceDirect, ACM Digital Library, Scopus, SpringerLink, and Web of Science repositories.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Call to Action Banner -->
+      <div class="cta-banner">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-8">
+            <div class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2">
+              <i class="fas fa-database me-1"></i> Ready to Manage or Track Output?
+            </div>
+            <h3 class="display-font fw-bold text-white mb-2" style="font-size: 2rem;">
+              Access the UIC Research Record Portal
+            </h3>
+            <p class="text-light opacity-90 mb-0">
+              Directly view faculty research profiles, upload publication spreadsheets by author names, track zero-publication alerts, and export Excel reports.
+            </p>
+          </div>
+          <div class="col-lg-4 text-lg-end">
+            <a href="/portal" class="btn btn-light btn-lg px-4 py-3 fw-bold text-primary shadow">
+              <i class="fas fa-sign-in-alt me-1"></i> Open Faculty Portal
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modern Footer -->
+  <footer class="cu-footer">
+    <div class="container">
+      <div class="row g-4 pb-4">
+        <div class="col-lg-4 col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="brand-logo-badge py-1 px-3 fs-6">UIC</div>
+            <span class="fw-bold text-white fs-5 display-font">UIC Research Portal</span>
+          </div>
+          <p class="small text-muted mb-3">
+            Official faculty research repository and output performance evaluation system for the <strong>University Institute of Computing</strong>, Chandigarh University, Mohali, Punjab, India.
+          </p>
+          <div class="d-flex gap-2">
+            <a href="#" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="btn btn-sm btn-outline-secondary rounded-circle" style="width:36px;height:36px;"><i class="fab fa-youtube"></i></a>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-6">
+          <h6>Quick Links</h6>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="/portal"><i class="fas fa-angle-right me-1 text-danger"></i> Research Portal</a></li>
+            <li><a href="/portal?view=list"><i class="fas fa-angle-right me-1 text-danger"></i> Faculty List View</a></li>
+            <li><a href="/export/excel"><i class="fas fa-angle-right me-1 text-danger"></i> Export Excel</a></li>
+            <li><a href="/download-master-publications-template"><i class="fas fa-angle-right me-1 text-danger"></i> Excel Template</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <h6>Academic Sections</h6>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="#overview"><i class="fas fa-angle-right me-1 text-danger"></i> Research Overview</a></li>
+            <li><a href="#leadership"><i class="fas fa-angle-right me-1 text-danger"></i> My Director & Heads</a></li>
+            <li><a href="#coordinator"><i class="fas fa-angle-right me-1 text-danger"></i> Research Coordinator</a></li>
+            <li><a href="#campus"><i class="fas fa-angle-right me-1 text-danger"></i> My Campus Infrastructure</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <h6>University Address</h6>
+          <div class="small d-flex flex-column gap-2">
+            <div><i class="fas fa-map-marker-alt text-danger me-2"></i> NH-95, Chandigarh-Ludhiana Highway, Mohali, Punjab 140413</div>
+            <div><i class="fas fa-envelope text-primary me-2"></i> info@cuchd.in | research.uic@cumail.in</div>
+            <div><i class="fas fa-globe text-success me-2"></i> www.cuchd.in</div>
+          </div>
+        </div>
+      </div>
+      <div class="border-top border-secondary border-opacity-25 pt-3 text-center small">
+        <span>&copy; <%= new Date().getFullYear() %> <strong>University Institute of Computing (UIC), Chandigarh University</strong>. All Rights Reserved &bull; Research Management & ROS Tracking System</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script id="allYearsDataJson" type="application/json">
+    <%- JSON.stringify(allYearsROS) %>
+  </script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const allYearsData = JSON.parse(document.getElementById('allYearsDataJson').textContent);
+    const yearSelect = document.getElementById('reportingYearSelect');
+    if (!yearSelect) return;
+
+    function updateYearView(year) {
+      const fallbackMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const data = allYearsData[year] || {
+        year: year,
+        rows: fallbackMonths.map(m => ({
+          month: m + ' ' + year, q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0
+        })),
+        totals: { q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0 }
+      };
+
+      // Update metric cards
+      const q1Lbl = document.getElementById('metricYearQ1Label');
+      const totLbl = document.getElementById('metricYearTotalLabel');
+      const rosLbl = document.getElementById('metricYearRosLabel');
+      if (q1Lbl) q1Lbl.textContent = year;
+      if (totLbl) totLbl.textContent = year;
+      if (rosLbl) rosLbl.textContent = year;
+
+      const q1Val = document.getElementById('metricQ1Val');
+      const totVal = document.getElementById('metricTotalVal');
+      const rosVal = document.getElementById('metricRosVal');
+      const periodVal = document.getElementById('metricPeriodVal');
+      if (q1Val) q1Val.textContent = data.totals.q1;
+      if (totVal) totVal.textContent = data.totals.total;
+      if (rosVal) rosVal.textContent = data.totals.ros.toFixed(2);
+      if (periodVal) periodVal.textContent = 'Jan – Dec ' + year;
+
+      // Update table banner
+      const banner = document.getElementById('tableYearBanner');
+      if (banner) {
+        banner.innerHTML = 'Research Output Score (ROS) of the UIC Department &bull; Calendar Year ' + year;
+      }
+
+      function renderQuartCell(rosVal, countVal, badgeCls) {
+        if (countVal > 0 || rosVal > 0) {
+          const pWord = countVal === 1 ? 'paper' : 'papers';
+          return `<span class="badge ${badgeCls} px-2 py-1 fs-6">${rosVal.toFixed(2)}</span><div class="text-muted mt-1" style="font-size: 0.7rem;">(${countVal} ${pWord})</div>`;
+        }
+        return `<span class="text-muted">0.00</span>`;
+      }
+
+      // Update table rows
+      const tbody = document.getElementById('monthlyRosTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        data.rows.forEach((row, idx) => {
+          const tr = document.createElement('tr');
+          if (row.total > 0) {
+            tr.style.backgroundColor = '#f0fdf4';
+          } else if (idx % 2 === 1) {
+            tr.style.backgroundColor = '#fafbfc';
+          } else {
+            tr.style.backgroundColor = '#ffffff';
+          }
+
+          const q1Badge = renderQuartCell(row.q1_ros || 0, row.q1 || 0, 'bg-success');
+          const q2Badge = renderQuartCell(row.q2_ros || 0, row.q2 || 0, 'bg-primary');
+          const q3Badge = renderQuartCell(row.q3_ros || 0, row.q3 || 0, 'bg-info text-dark');
+          const q4Badge = renderQuartCell(row.q4_ros || 0, row.q4 || 0, 'bg-warning text-dark');
+          const totalClass = row.total > 0 ? 'text-primary' : 'text-muted';
+          const totalCell = row.total > 0
+            ? `${row.total}<div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>`
+            : `0`;
+          const rosBadge = row.ros > 0 ? `<span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm">${row.ros.toFixed(2)}</span>` : `<span class="text-muted">0.00</span>`;
+
+          tr.innerHTML = `
+            <td class="text-start ps-4 fw-semibold text-dark">
+              <span class="d-inline-flex align-items-center gap-2">
+                <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;">${idx + 1}</span>
+                <strong>${row.month}</strong>
+              </span>
+            </td>
+            <td>${q1Badge}</td>
+            <td>${q2Badge}</td>
+            <td>${q3Badge}</td>
+            <td>${q4Badge}</td>
+            <td class="fw-bold fs-6 ${totalClass}">${totalCell}</td>
+            <td class="pe-4 fw-bold fs-6">${rosBadge}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Update footer
+      const footLbl = document.getElementById('tableFooterLabel');
+      if (footLbl) footLbl.innerHTML = `<i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec ${year})`;
+      const fQ1 = document.getElementById('footQ1');
+      const fQ2 = document.getElementById('footQ2');
+      const fQ3 = document.getElementById('footQ3');
+      const fQ4 = document.getElementById('footQ4');
+      const fTot = document.getElementById('footTotal');
+      const fRos = document.getElementById('footRos');
+      if (fQ1) fQ1.innerHTML = `${(data.totals.q1_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q1} papers)</div>`;
+      if (fQ2) fQ2.innerHTML = `${(data.totals.q2_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q2} papers)</div>`;
+      if (fQ3) fQ3.innerHTML = `${(data.totals.q3_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q3} papers)</div>`;
+      if (fQ4) fQ4.innerHTML = `${(data.totals.q4_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q4} papers)</div>`;
+      if (fTot) fTot.textContent = data.totals.total;
+      if (fRos) fRos.textContent = data.totals.ros.toFixed(2) + ' Points';
+
+      // Update URL hash/param
+      if (window.history && window.history.replaceState) {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('year', year);
+        newUrl.hash = 'monthly-ros';
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+
+    yearSelect.addEventListener('change', function() {
+      updateYearView(parseInt(this.value, 10));
+    });
+
+    // Auto-open Admin Login modal if requested via query param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin_login_required') === '1' || urlParams.get('login_err')) {
+      const loginModalEl = document.getElementById('adminLoginModal');
+      if (loginModalEl) new bootstrap.Modal(loginModalEl).show();
+    }
+  });
+  </script>
+
+  <!-- Admin Login Modal -->
+  <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <form action="/admin/login" method="POST">
+          <div class="modal-header text-white" style="background: var(--cu-navy);">
+            <h5 class="modal-title fw-bold" id="adminLoginModalLabel">
+              <i class="fas fa-user-shield me-2 text-warning"></i>Admin Login — UIC Research Portal
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="small text-muted mb-3">
+              Enter your Admin credentials to unlock editing rights (add, edit, upload, and delete faculty or publications).
+            </p>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Username</label>
+              <input type="text" name="username" class="form-control" placeholder="Enter admin username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Password</label>
+              <input type="password" name="password" class="form-control" placeholder="Enter admin password" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">After Login Go To:</label>
+              <select name="return_to" class="form-select form-select-sm">
+                <option value="/portal">Research Portal Directory (Editing Mode)</option>
+                <option value="/">Home Page</option>
+              </select>
+            </div>
+            <div class="alert alert-light border small text-muted mb-0 py-2">
+              <i class="fas fa-info-circle text-primary me-1"></i>
+              Default credentials: Username <code>admin</code> &bull; Password <code>uic@2026</code> (you can change these after logging in).
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger fw-bold"><i class="fas fa-sign-in-alt me-1"></i>Login as Admin</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <% if (isAdmin) { %>
+  <!-- Admin Settings Modal (Change Username & Password) -->
+  <div class="modal fade" id="adminSettingsModal" tabindex="-1" aria-labelledby="adminSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <form action="/admin/update-credentials" method="POST">
+          <input type="hidden" name="return_to" value="/">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title fw-bold" id="adminSettingsModalLabel">
+              <i class="fas fa-key me-2"></i>Update Admin Username & Password
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Current Password <span class="text-danger">*</span></label>
+              <input type="password" name="current_password" class="form-control" placeholder="Verify current password" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">New Username <span class="text-danger">*</span></label>
+              <input type="text" name="new_username" class="form-control" value="<%= adminUsername %>" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">New Password</label>
+              <input type="password" name="new_password" class="form-control" placeholder="Leave blank to keep existing password">
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success fw-bold"><i class="fas fa-save me-1"></i>Save Credentials</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <% } %>
+</body>
+</html>

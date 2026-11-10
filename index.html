@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:#1a3a5c; --primary-light:#1e4a76; --accent:#c9a84c; --accent-light:#e5c97a;
+      --bg:#f0f4f8; --card-bg:#fff; --text:#1e293b; --text-muted:#64748b;
+      --border:#e2e8f0; --shadow:0 2px 12px rgba(26,58,92,0.08);
+      --shadow-hover:0 8px 32px rgba(26,58,92,0.18); --radius:12px;
+    }
+    *{box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    /* NAV */
+    .portal-nav{background:linear-gradient(135deg,var(--primary) 0%,#0f2744 100%);border-bottom:3px solid var(--accent);padding:.75rem 1.5rem;position:sticky;top:0;z-index:1000;box-shadow:0 2px 20px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:space-between;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;}
+    .brand-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--primary);}
+    .brand-title{font-size:1.1rem;font-weight:700;color:#fff;line-height:1.2;}
+    .brand-sub{font-size:.65rem;color:rgba(255,255,255,.6);}
+    .nav-actions{display:flex;align-items:center;gap:10px;}
+    .btn-nav{color:rgba(255,255,255,.85);background:none;border:none;font-size:.88rem;padding:6px 14px;border-radius:6px;cursor:pointer;transition:.2s;}
+    .btn-nav:hover{background:rgba(255,255,255,.12);color:#fff;}
+    .btn-add-nav{background:linear-gradient(135deg,var(--accent),#b8942e);color:var(--primary);font-weight:600;font-size:.88rem;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;transition:.2s;}
+    .btn-add-nav:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,168,76,.4);}
+    /* PAGES */
+    .page{display:none;padding:2rem 1.5rem;min-height:calc(100vh - 70px);}
+    .page.active{display:block;}
+    /* STATS */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+    .stat-card{background:var(--card-bg);border-radius:var(--radius);padding:1.2rem 1.4rem;box-shadow:var(--shadow);border-left:5px solid;display:flex;flex-direction:column;}
+    .stat-total{border-color:var(--primary)}.stat-avg{border-color:#16a34a}.stat-zero{border-color:#dc2626}.stat-active{border-color:var(--accent)}
+    .stat-icon{font-size:1.3rem;margin-bottom:4px;}
+    .stat-total .stat-icon{color:var(--primary)}.stat-avg .stat-icon{color:#16a34a}.stat-zero .stat-icon{color:#dc2626}.stat-active .stat-icon{color:var(--accent)}
+    .stat-num{font-size:2rem;font-weight:800;color:var(--text);line-height:1;}
+    .stat-label{font-size:.75rem;color:var(--text-muted);font-weight:500;}
+    /* FILTER */
+    .filter-bar{background:var(--card-bg);border-radius:var(--radius);padding:1rem 1.2rem;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:1.5rem;}
+    .filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;}
+    .filter-label{font-size:.82rem;font-weight:600;color:var(--text-muted);}
+    .filter-btn{background:#f8fafc;border:1.5px solid var(--border);color:var(--text);font-size:.8rem;font-weight:500;padding:5px 13px;border-radius:20px;cursor:pointer;transition:.2s;}
+    .filter-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+    .filter-btn.f-zero.active{background:#dc2626;border-color:#dc2626;}
+    .filter-btn.f-low.active{background:#d97706;border-color:#d97706;}
+    .filter-btn.f-moderate.active{background:#0891b2;border-color:#0891b2;}
+    .filter-btn.f-good.active{background:#16a34a;border-color:#16a34a;}
+    .search-wrap{position:relative;display:inline-flex;align-items:center;width:100%;max-width:380px;}
+    .search-icon{position:absolute;left:12px;color:var(--text-muted);font-size:.82rem;pointer-events:none;}
+    .search-input{width:100%;padding:7px 32px 7px 32px;border:1.5px solid var(--border);border-radius:20px;font-size:.85rem;outline:none;}
+    .search-input:focus{border-color:var(--primary);}
+    /* GRID */
+    .faculty-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
+    .faculty-card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border);transition:.25s;display:flex;flex-direction:column;}
+    .faculty-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-3px);border-color:var(--accent);}
+    .card-accent{height:4px;background:linear-gradient(90deg,var(--primary),var(--accent));}
+    .card-body-inner{padding:1.1rem;flex:1;display:flex;flex-direction:column;}
+    .faculty-header{display:flex;gap:.9rem;margin-bottom:.9rem;}
+    .photo-wrap{position:relative;flex-shrink:0;}
+    .fac-photo,.fac-initials{width:70px;height:70px;border-radius:50%;border:3px solid var(--border);object-fit:cover;}
+    .fac-initials{background:linear-gradient(135deg,var(--primary),var(--primary-light));display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#fff;}
+    .ros-badge{position:absolute;bottom:-3px;right:-3px;font-size:.62rem;font-weight:700;padding:2px 5px;border-radius:10px;color:#fff;border:2px solid var(--card-bg);}
+    .rb-danger{background:#dc2626}.rb-warning{background:#d97706}.rb-info{background:#0891b2}.rb-success{background:#16a34a}
+    .fac-info{flex:1;min-width:0;}
+    .fac-name{font-size:.95rem;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:3px;}
+    .emp-code{display:inline-block;background:#eef2f8;color:var(--primary);font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid #c8d6e5;margin-bottom:3px;}
+    .fac-desig{font-size:.75rem;color:var(--text-muted);}
+    .fac-dept{font-size:.72rem;color:var(--text-muted);}
+    .ros-section{margin-bottom:.8rem;}
+    .ros-row{display:flex;justify-content:space-between;margin-bottom:3px;}
+    .ros-title{font-size:.72rem;font-weight:600;color:var(--text-muted);}
+    .ros-val{font-size:.78rem;font-weight:700;}
+    .ros-bar-bg{background:#e9ecef;border-radius:10px;height:7px;overflow:hidden;}
+    .ros-bar-bg.large{height:13px;}
+    .ros-bar-fill{height:100%;border-radius:10px;transition:width .5s;}
+    .rf-danger{background:linear-gradient(90deg,#dc2626,#ef4444)}.rf-warning{background:linear-gradient(90deg,#d97706,#f59e0b)}.rf-info{background:linear-gradient(90deg,#0891b2,#22d3ee)}.rf-success{background:linear-gradient(90deg,#16a34a,#22c55e)}
+    .c-danger{color:#dc2626}.c-warning{color:#d97706}.c-info{color:#0891b2}.c-success{color:#16a34a}
+    .pub-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.8rem;flex:1;}
+    .pub-badge{font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:10px;color:#fff;}
+    .pb-q1{background:#7c3aed}.pb-q2{background:#2563eb}.pb-q3{background:#0891b2}.pb-q4{background:#64748b}.pb-conf{background:#ea580c}.pb-book{background:#16a34a}.pb-patent{background:#dc2626}.pb-none{background:#94a3b8}
+    .card-actions{display:flex;gap:6px;margin-top:auto;padding-top:.6rem;}
+    .btn-view{flex:1;background:var(--primary);color:#fff;border:none;border-radius:7px;padding:6px;font-size:.78rem;font-weight:600;cursor:pointer;transition:.2s;}
+    .btn-view:hover{background:var(--primary-light);}
+    .btn-icon{width:30px;height:30px;border-radius:7px;border:none;cursor:pointer;font-size:.72rem;transition:.2s;display:flex;align-items:center;justify-content:center;}
+    .btn-edit-ic{background:#f0f9ff;color:#0891b2}.btn-edit-ic:hover{background:#0891b2;color:#fff}
+    .btn-del-ic{background:#fff5f5;color:#dc2626}.btn-del-ic:hover{background:#dc2626;color:#fff}
+    /* FORM */
+    .form-container{max-width:820px;margin:0 auto;}
+    .form-section{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:1.5rem;border:1px solid var(--border);overflow:hidden;}
+    .form-section-hdr{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;font-size:.93rem;font-weight:600;padding:.85rem 1.3rem;}
+    .form-section-body{padding:1.3rem;}
+    .portal-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:'Inter',sans-serif;outline:none;transition:.2s;}
+    .portal-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,58,92,.1);}
+    .form-label{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:4px;display:block;}
+    .form-group{margin-bottom:.9rem;}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    .row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;}
+    .row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;}
+    .photo-upload-row{display:flex;align-items:center;gap:1.5rem;margin-bottom:1.2rem;}
+    .photo-preview-circle{width:100px;height:100px;border-radius:50%;border:3px dashed var(--border);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s;background:#f8fafc;}
+    .photo-preview-circle:hover{border-color:var(--primary);}
+    .photo-ph-text{font-size:.72rem;color:var(--text-muted);text-align:center;}
+    .photo-preview-img{width:100%;height:100%;object-fit:cover;}
+    .pub-label{font-size:.78rem;font-weight:700;display:block;margin-bottom:2px;}
+    .pub-label-q1{color:#7c3aed}.pub-label-q2{color:#2563eb}.pub-label-q3{color:#0891b2}.pub-label-q4{color:#64748b}.pub-label-conf{color:#ea580c}.pub-label-book{color:#16a34a}.pub-label-patent{color:#dc2626}
+    .pub-group{background:#f8fafc;border-radius:8px;padding:1rem;border:1px solid var(--border);margin-bottom:1rem;}
+    .pub-group-label{font-size:.75rem;font-weight:700;color:var(--text-muted);margin-bottom:.6rem;text-transform:uppercase;}
+    .small-label{font-size:.72rem;color:var(--text-muted);}
+    /* ROS MANUAL */
+    .ros-manual-hdr{background:linear-gradient(135deg,#1e3a5c,#2d5986)!important;}
+    .ros-number-input{font-size:1.5rem!important;font-weight:800!important;text-align:center;letter-spacing:1px;color:var(--primary)!important;padding:10px 14px!important;border:2px solid var(--primary)!important;}
+    .ros-number-input:focus{border-color:var(--accent)!important;box-shadow:0 0 0 4px rgba(201,168,76,.2)!important;}
+    .ros-range-hint{display:block;font-size:.72rem;color:var(--text-muted);text-align:center;margin-top:4px;}
+    .ros-display-badge{font-size:.82rem;font-weight:700;padding:4px 14px;border-radius:20px;color:#fff;}
+    .badge-danger{background:#dc2626}.badge-warning{background:#d97706}.badge-info{background:#0891b2}.badge-success{background:#16a34a}
+    .ros-slider{width:100%;height:8px;border-radius:10px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,#dc2626,#d97706 30%,#0891b2 60%,#16a34a);outline:none;cursor:pointer;margin:6px 0;}
+    .ros-slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:grab;}
+    .ros-scale-row{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);}
+    .ros-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+    .legend-chip{font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:20px;color:#fff;}
+    .legend-none{background:#94a3b8}.legend-low{background:#d97706}.legend-moderate{background:#0891b2}.legend-good{background:#16a34a}.legend-excellent{background:#065f46}
+    /* FORM ACTIONS */
+    .form-actions{display:flex;gap:10px;justify-content:flex-end;padding-bottom:2rem;}
+    .btn-cancel{background:#f1f5f9;color:var(--text-muted);border:1.5px solid var(--border);border-radius:8px;padding:10px 24px;font-weight:600;font-size:.88rem;cursor:pointer;}
+    .btn-cancel:hover{background:#e2e8f0;}
+    .btn-submit{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border:none;border-radius:8px;padding:10px 28px;font-weight:600;font-size:.88rem;cursor:pointer;}
+    .btn-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,58,92,.3);}
+    /* DETAIL */
+    .profile-hero{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:2rem;display:flex;gap:2rem;align-items:flex-start;position:relative;overflow:hidden;margin-bottom:1.5rem;}
+    .profile-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--primary),var(--accent));}
+    .profile-photo-lg,.profile-ph-lg{width:120px;height:120px;border-radius:50%;flex-shrink:0;border:4px solid var(--border);object-fit:cover;}
+    .profile-ph-lg{background:linear-gradient(135deg,var(--primary),var(--primary-light));display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:800;color:#fff;}
+    .profile-name{font-size:1.7rem;font-weight:800;color:var(--primary);margin-bottom:10px;}
+    .profile-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1.2rem;}
+    .meta-chip{background:#f0f4f8;color:var(--text);font-size:.8rem;padding:4px 12px;border-radius:20px;border:1px solid var(--border);}
+    .profile-ros-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+    .profile-ros-num{font-size:1.8rem;font-weight:800;}
+    .ros-status-chip{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;color:#fff;}
+    .rc-danger{background:#dc2626}.rc-warning{background:#d97706}.rc-info{background:#0891b2}.rc-success{background:#16a34a}
+    .ros-scale{display:flex;justify-content:space-between;font-size:.68rem;color:var(--text-muted);margin-top:2px;}
+    .detail-table th{background:#f8fafc;font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;}
+    .detail-table td{font-size:.85rem;vertical-align:middle;}
+    .mini-bar{background:#e9ecef;border-radius:4px;height:5px;}
+    .mini-fill{height:100%;border-radius:4px;}
+    .detail-actions{display:flex;gap:10px;align-items:center;padding-bottom:2rem;}
+    .btn-back{background:#f1f5f9;color:var(--text-muted);border:1.5px solid var(--border);border-radius:8px;padding:9px 20px;font-size:.85rem;font-weight:600;cursor:pointer;}
+    .btn-edit-det{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:.85rem;font-weight:600;cursor:pointer;}
+    .btn-del-det{background:#dc2626;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:.85rem;cursor:pointer;}
+    .page-title{font-size:1.5rem;font-weight:700;color:var(--primary);margin-bottom:2px;}
+    .page-sub{font-size:.88rem;color:var(--text-muted);}
+    .page-hdr{margin-bottom:1.4rem;}
+    .alert-err{background:#fff5f5;border:1.5px solid #fca5a5;color:#991b1b;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:.88rem;display:none;}
+    .alert-err.show{display:flex;align-items:center;gap:8px;}
+    .empty-state{text-align:center;padding:4rem 2rem;color:var(--text-muted);}
+    .toast-container{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+    .toast{background:#1a3a5c;color:#fff;padding:12px 16px;border-radius:8px;font-size:.85rem;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:240px;display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;}
+    @keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;}
+    .modal-overlay.active{display:flex;}
+    .modal-box{background:#fff;border-radius:var(--radius);padding:2rem;max-width:400px;width:90%;text-align:center;}
+    .modal-actions{display:flex;gap:10px;justify-content:center;margin-top:1.2rem;}
+    footer{background:var(--primary);color:rgba(255,255,255,.65);font-size:.78rem;padding:1rem 1.5rem;text-align:center;margin-top:2rem;}
+    @media(max-width:900px){.faculty-grid{grid-template-columns:repeat(2,1fr)}.stats-row{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.faculty-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(2,1fr)}.row-4,.row-3{grid-template-columns:1fr 1fr}.profile-hero{flex-direction:column;align-items:center;text-align:center}}
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="portal-nav">
+  <a class="brand" href="#" onclick="showPage('dashboard');return false;">
+    <div class="brand-icon"><i class="fas fa-flask"></i></div>
+    <div>
+      <div class="brand-title">UIC Research Portal</div>
+      <div class="brand-sub">Department Research Management System</div>
+    </div>
+  </a>
+  <div class="nav-actions">
+    <button class="btn-nav" onclick="showPage('dashboard')"><i class="fas fa-home me-1"></i>Dashboard</button>
+    <button class="btn-add-nav" onclick="showAddForm()"><i class="fas fa-user-plus me-1"></i>Add Faculty</button>
+  </div>
+</nav>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color:#dc2626"></i>
+    <h5>Delete Faculty Record?</h5>
+    <p class="text-muted" id="deleteModalName"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-del-det" onclick="confirmDelete()"><i class="fas fa-trash me-1"></i>Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="page-hdr">
+    <h1 class="page-title"><i class="fas fa-users me-2"></i>Faculty Research Directory</h1>
+    <p class="page-sub">Research output tracking for all department faculty members</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card stat-total"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Faculty</div></div>
+    <div class="stat-card stat-avg"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-num" id="statAvg">0.00</div><div class="stat-label">Avg ROS Score</div></div>
+    <div class="stat-card stat-zero"><div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div><div class="stat-num" id="statZero">0</div><div class="stat-label">Zero Publications</div></div>
+    <div class="stat-card stat-active"><div class="stat-icon"><i class="fas fa-award"></i></div><div class="stat-num" id="statActive">0</div><div class="stat-label">Active Researchers</div></div>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-row">
+      <span class="filter-label"><i class="fas fa-filter me-1"></i>Filter:</span>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')"><i class="fas fa-th me-1"></i>All Faculty</button>
+      <button class="filter-btn f-zero" data-filter="zero" onclick="setFilter(this,'zero')"><i class="fas fa-times-circle me-1"></i>Zero ROS / No Publications</button>
+      <button class="filter-btn f-low" data-filter="low" onclick="setFilter(this,'low')"><i class="fas fa-arrow-down me-1"></i>Low ROS &lt; 0.3</button>
+      <button class="filter-btn f-moderate" data-filter="moderate" onclick="setFilter(this,'moderate')"><i class="fas fa-minus me-1"></i>Moderate 0.3–0.6</button>
+      <button class="filter-btn f-good" data-filter="good" onclick="setFilter(this,'good')"><i class="fas fa-arrow-up me-1"></i>Good &gt; 0.6</button>
+    </div>
+    <div class="search-wrap">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by name or employee code..." oninput="applyFilters()">
+    </div>
+  </div>
+  <div class="faculty-grid" id="facultyGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <i class="fas fa-user-slash fa-4x mb-3" style="opacity:.2"></i>
+    <h5>No faculty records found</h5>
+    <p>Try a different filter or <button class="btn-add-nav" onclick="showAddForm()" style="display:inline-block;padding:5px 14px">Add Faculty</button></p>
+  </div>
+</div>
+
+<!-- ═══════════════ ADD / EDIT FORM ═══════════════ -->
+<div class="page" id="page-form">
+  <div class="form-container">
+    <div class="page-hdr">
+      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:4px">
+        <span style="cursor:pointer;color:var(--accent)" onclick="showPage('dashboard')">Dashboard</span> &rsaquo; <span id="formBreadcrumb">Add Faculty</span>
+      </div>
+      <h1 class="page-title" id="formPageTitle"><i class="fas fa-user-plus me-2"></i>Add New Faculty</h1>
+      <p class="page-sub" id="formPageSub">Create a new faculty research profile</p>
+    </div>
+    <div class="alert-err" id="formError"><i class="fas fa-exclamation-triangle"></i><span id="formErrorMsg"></span></div>
+
+    <!-- Personal Info -->
+    <div class="form-section">
+      <div class="form-section-hdr"><i class="fas fa-id-card me-2"></i>Personal Information</div>
+      <div class="form-section-body">
+        <div class="photo-upload-row">
+          <div class="photo-preview-circle" onclick="document.getElementById('photoInput').click()" id="photoCircle">
+            <div id="photoPlaceholder"><i class="fas fa-camera fa-2x" style="color:var(--text-muted)"></i><div class="photo-ph-text">Click to upload</div></div>
+            <img id="photoPreviewImg" class="photo-preview-img" src="" alt="" style="display:none">
+          </div>
+          <div>
+            <button type="button" class="btn-cancel" onclick="document.getElementById('photoInput').click()" style="font-size:.82rem;padding:6px 14px"><i class="fas fa-upload me-1"></i>Choose Photo</button>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+            <div style="font-size:.75rem;color:var(--text-muted);margin-top:5px">JPG, PNG — stored locally in browser.</div>
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="form-group"><label class="form-label">Full Name <span style="color:#dc2626">*</span></label><input type="text" id="inpName" class="portal-input" placeholder="e.g. Dr. John Smith"></div>
+          <div class="form-group"><label class="form-label">Employee Code <span style="color:#dc2626">*</span></label><input type="text" id="inpCode" class="portal-input" placeholder="e.g. EMP007"></div>
+          <div class="form-group">
+            <label class="form-label">Designation</label>
+            <select id="inpDesig" class="portal-input"><option value="">Select Designation</option><option>Professor</option><option>Associate Professor</option><option>Assistant Professor</option><option>Lecturer</option><option>Research Fellow</option><option>Visiting Faculty</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Department</label><input type="text" id="inpDept" class="portal-input" placeholder="e.g. Computer Science"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Publications -->
+    <div class="form-section">
+      <div class="form-section-hdr"><i class="fas fa-book-open me-2"></i>Research Publications Record</div>
+      <div class="form-section-body">
+        <div class="pub-group">
+          <div class="pub-group-label"><i class="fas fa-journal-whills me-1"></i>Journal Publications</div>
+          <div class="row-4">
+            <div class="form-group"><label class="pub-label pub-label-q1">Q1 Journals</label><input type="number" id="inpQ1" class="portal-input" min="0" value="0"></div>
+            <div class="form-group"><label class="pub-label pub-label-q2">Q2 Journals</label><input type="number" id="inpQ2" class="portal-input" min="0" value="0"></div>
+            <div class="form-group"><label class="pub-label pub-label-q3">Q3 Journals</label><input type="number" id="inpQ3" class="portal-input" min="0" value="0"></div>
+            <div class="form-group"><label class="pub-label pub-label-q4">Q4 Journals</label><input type="number" id="inpQ4" class="portal-input" min="0" value="0"></div>
+          </div>
+        </div>
+        <div class="pub-group">
+          <div class="pub-group-label"><i class="fas fa-layer-group me-1"></i>Other Research Output</div>
+          <div class="row-3">
+            <div class="form-group"><label class="pub-label pub-label-conf">Conference Papers</label><input type="number" id="inpConf" class="portal-input" min="0" value="0"></div>
+            <div class="form-group"><label class="pub-label pub-label-book">Book Chapters</label><input type="number" id="inpBook" class="portal-input" min="0" value="0"></div>
+            <div class="form-group"><label class="pub-label pub-label-patent">Patents</label><input type="number" id="inpPatent" class="portal-input" min="0" value="0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROS Manual Entry -->
+    <div class="form-section">
+      <div class="form-section-hdr ros-manual-hdr"><i class="fas fa-tachometer-alt me-2"></i>ROS Score (Research Output Score)</div>
+      <div class="form-section-body">
+        <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.5rem;align-items:start">
+          <div>
+            <label class="form-label" style="font-size:.95rem;font-weight:700">Enter ROS Value <span style="color:#dc2626">*</span></label>
+            <input type="number" id="inpRos" class="portal-input ros-number-input" min="0" max="1" step="0.01" value="0" placeholder="0.00" oninput="updateROSDisplayForm(this.value)" required>
+            <span class="ros-range-hint">Range: 0.00 – 1.00</span>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:600">ROS Preview</label>
+            <div class="ros-bar-bg large" style="margin-bottom:6px"><div id="rosBarFillForm" class="ros-bar-fill rf-danger" style="width:0%"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:.72rem;color:var(--text-muted);font-weight:600">0.0</span>
+              <span id="rosDisplayBadgeForm" class="ros-display-badge badge-danger">0.00 — No Publications</span>
+              <span style="font-size:.72rem;color:var(--text-muted);font-weight:600">1.0</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1rem">
+          <label class="form-label" style="font-weight:600;font-size:.85rem">Or drag the slider:</label>
+          <input type="range" id="rosSliderForm" min="0" max="1" step="0.01" value="0" class="ros-slider" oninput="syncSliderForm(this.value)">
+          <div class="ros-scale-row">
+            <span>0.0 <small style="color:#dc2626">None</small></span>
+            <span>0.3 <small style="color:#d97706">Low</small></span>
+            <span>0.6 <small style="color:#0891b2">Moderate</small></span>
+            <span>1.0 <small style="color:#16a34a">Excellent</small></span>
+          </div>
+        </div>
+        <div class="ros-legend">
+          <span class="legend-chip legend-none">0.0 — No Publications</span>
+          <span class="legend-chip legend-low">0.01–0.29 — Low</span>
+          <span class="legend-chip legend-moderate">0.30–0.59 — Moderate</span>
+          <span class="legend-chip legend-good">0.60–0.79 — Good</span>
+          <span class="legend-chip legend-excellent">0.80–1.0 — Excellent</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="showPage('dashboard')"><i class="fas fa-times me-1"></i>Cancel</button>
+      <button class="btn-submit" id="formSubmitBtn" onclick="submitForm()"><i class="fas fa-save me-1"></i>Add Faculty Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DETAIL VIEW ═══════════════ -->
+<div class="page" id="page-detail">
+  <div style="max-width:900px;margin:0 auto">
+    <div class="page-hdr">
+      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:6px">
+        <span style="cursor:pointer;color:var(--accent)" onclick="showPage('dashboard')">Dashboard</span> &rsaquo; <span id="detailBreadcrumb">Faculty Profile</span>
+      </div>
+    </div>
+    <div class="profile-hero" id="detailHero"></div>
+    <div class="form-section">
+      <div class="form-section-hdr"><i class="fas fa-table me-2"></i>Publication Breakdown</div>
+      <div style="overflow-x:auto">
+        <table class="detail-table" style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f8fafc">
+              <th style="padding:10px 14px;text-align:left;font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase">Category</th>
+              <th style="padding:10px;text-align:center;font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase">Count</th>
+            </tr>
+          </thead>
+          <tbody id="detailTableBody"></tbody>
+          <tfoot id="detailTableFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn-back" onclick="showPage('dashboard')"><i class="fas fa-arrow-left me-1"></i>Back</button>
+      <button class="btn-edit-det" id="detailEditBtn"><i class="fas fa-edit me-1"></i>Edit Profile</button>
+      <button class="btn-del-det" id="detailDeleteBtn"><i class="fas fa-trash me-1"></i>Delete</button>
+    </div>
+  </div>
+</div>
+
+<footer><i class="fas fa-university me-1"></i>UIC Research Portal &copy; <span id="footerYear"></span> &mdash; Department Research Management System</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  DATA STORE
+// ══════════════════════════════════════════════════════════
+const STORE_KEY = 'uic_faculty_v2';
+let faculty = [], editingId = null, deleteTargetId = null, currentFilter = 'all', photoDataURL = null;
+
+function loadData() {
+  try { faculty = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch { faculty = []; }
+  if (faculty.length === 0) seedData();
+}
+function saveData() { localStorage.setItem(STORE_KEY, JSON.stringify(faculty)); }
+
+function seedData() {
+  faculty = [
+    { id:1, name:'Dr. Sarah Ahmed',    code:'EMP001', desig:'Professor',           dept:'Computer Science', photo:null, q1:3, q2:1, q3:0, q4:0, conf:2, book:0, patent:1, ros:0.75 },
+    { id:2, name:'Dr. Khalid Mehmood', code:'EMP002', desig:'Associate Professor', dept:'Mathematics',      photo:null, q1:0, q2:0, q3:0, q4:0, conf:0, book:0, patent:0, ros:0.00 },
+    { id:3, name:'Dr. Fatima Noor',    code:'EMP003', desig:'Assistant Professor', dept:'Physics',          photo:null, q1:0, q2:2, q3:1, q4:0, conf:0, book:2, patent:0, ros:0.42 },
+    { id:4, name:'Dr. Imran Butt',     code:'EMP004', desig:'Associate Professor', dept:'Chemistry',        photo:null, q1:1, q2:0, q3:1, q4:0, conf:0, book:0, patent:2, ros:0.55 },
+    { id:5, name:'Dr. Zara Khan',      code:'EMP005', desig:'Professor',           dept:'Biology',          photo:null, q1:5, q2:3, q3:0, q4:0, conf:4, book:1, patent:2, ros:0.90 },
+    { id:6, name:'Mr. Ali Hassan',     code:'EMP006', desig:'Lecturer',            dept:'Computer Science', photo:null, q1:0, q2:0, q3:0, q4:1, conf:0, book:0, patent:0, ros:0.10 },
+  ];
+  saveData();
+}
+
+function getROS(f) { const r=parseFloat(f.ros); return isNaN(r)?0:Math.min(Math.max(r,0),1); }
+function rosColor(r) { if(r<=0)return'danger'; if(r<0.3)return'warning'; if(r<0.6)return'info'; return'success'; }
+function rosLabel(r) { if(r<=0)return'No Publications'; if(r<0.3)return'Low'; if(r<0.6)return'Moderate'; if(r<0.8)return'Good'; return'Excellent'; }
+function totalPubs(f) { return f.q1+f.q2+f.q3+f.q4+f.conf+f.book+f.patent; }
+function initials(n) { return n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function nextId() { return faculty.length?Math.max(...faculty.map(f=>f.id))+1:1; }
+
+// ══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(name==='dashboard') renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const facList = faculty.map(f=>({...f, ros:getROS(f)}));
+  const total = facList.length;
+  const avg = total?(facList.reduce((s,f)=>s+f.ros,0)/total).toFixed(2):'0.00';
+  const zeros = facList.filter(f=>f.ros===0).length;
+  const active = facList.filter(f=>f.ros>0).length;
+  document.getElementById('statTotal').textContent=total;
+  document.getElementById('statAvg').textContent=avg;
+  document.getElementById('statZero').textContent=zeros;
+  document.getElementById('statActive').textContent=active;
+  document.querySelectorAll('.filter-btn').forEach(b=>{if(b.dataset.filter==='zero')b.innerHTML=`<i class="fas fa-times-circle me-1"></i>Zero ROS / No Publications (${zeros})`;});
+  renderGrid(facList);
+}
+
+function renderGrid(facList) {
+  const grid=document.getElementById('facultyGrid');
+  const empty=document.getElementById('emptyState');
+  const search=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  let filtered=facList.filter(f=>{
+    const r=f.ros;
+    let rosOk=true;
+    if(currentFilter==='zero')rosOk=r===0;
+    else if(currentFilter==='low')rosOk=r>0&&r<0.3;
+    else if(currentFilter==='moderate')rosOk=r>=0.3&&r<0.6;
+    else if(currentFilter==='good')rosOk=r>=0.6;
+    const sOk=!search||f.name.toLowerCase().includes(search)||f.code.toLowerCase().includes(search);
+    return rosOk&&sOk;
+  });
+  if(filtered.length===0){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  grid.innerHTML=filtered.map(f=>{
+    const r=f.ros, rc=rosColor(r), rl=rosLabel(r), pct=Math.round(r*100), pubs=totalPubs(f), ini=initials(f.name);
+    const photoHtml=f.photo?`<img src="${f.photo}" class="fac-photo" alt="${f.name}">`:`<div class="fac-initials">${ini}</div>`;
+    let badges='';
+    if(f.q1>0)badges+=`<span class="pub-badge pb-q1"><i class="fas fa-star"></i> Q1 ×${f.q1}</span>`;
+    if(f.q2>0)badges+=`<span class="pub-badge pb-q2"> Q2 ×${f.q2}</span>`;
+    if(f.q3>0)badges+=`<span class="pub-badge pb-q3"> Q3 ×${f.q3}</span>`;
+    if(f.q4>0)badges+=`<span class="pub-badge pb-q4"> Q4 ×${f.q4}</span>`;
+    if(f.conf>0)badges+=`<span class="pub-badge pb-conf"><i class="fas fa-microphone-alt"></i> Conf ×${f.conf}</span>`;
+    if(f.book>0)badges+=`<span class="pub-badge pb-book"><i class="fas fa-book-open"></i> Book ×${f.book}</span>`;
+    if(f.patent>0)badges+=`<span class="pub-badge pb-patent"><i class="fas fa-certificate"></i> Patent ×${f.patent}</span>`;
+    if(pubs===0)badges=`<span class="pub-badge pb-none"><i class="fas fa-ban"></i> No Publications</span>`;
+    return `<div class="faculty-card">
+      <div class="card-accent"></div>
+      <div class="card-body-inner">
+        <div class="faculty-header">
+          <div class="photo-wrap">${photoHtml}<div class="ros-badge rb-${rc}">${r.toFixed(2)}</div></div>
+          <div class="fac-info">
+            <div class="fac-name">${f.name}</div>
+            <div class="emp-code"><i class="fas fa-id-card me-1"></i>${f.code}</div>
+            ${f.desig?`<div class="fac-desig">${f.desig}</div>`:''}
+            ${f.dept?`<div class="fac-dept"><i class="fas fa-building me-1"></i>${f.dept}</div>`:''}
+          </div>
+        </div>
+        <div class="ros-section">
+          <div class="ros-row"><span class="ros-title">ROS Score</span><span class="ros-val c-${rc}">${r.toFixed(2)} <span style="font-size:.64rem;font-weight:400;color:var(--text-muted)">${rl}</span></span></div>
+          <div class="ros-bar-bg"><div class="ros-bar-fill rf-${rc}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="pub-badges">${badges}</div>
+        <div class="card-actions">
+          <button class="btn-view" onclick="showDetail(${f.id})"><i class="fas fa-eye me-1"></i>View Profile</button>
+          <button class="btn-icon btn-edit-ic" onclick="showEditForm(${f.id})" title="Edit"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon btn-del-ic" onclick="askDelete(${f.id})" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(btn,filter) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter=filter;
+  applyFilters();
+}
+function applyFilters() { renderGrid(faculty.map(f=>({...f,ros:getROS(f)}))); }
+
+// ══════════════════════════════════════════════════════════
+//  DETAIL VIEW
+// ══════════════════════════════════════════════════════════
+function showDetail(id) {
+  const f=faculty.find(x=>x.id===id); if(!f)return;
+  const ros=getROS(f), rc=rosColor(ros), rl=rosLabel(ros), pct=Math.round(ros*100), pubs=totalPubs(f), ini=initials(f.name);
+  document.getElementById('detailBreadcrumb').textContent=f.name;
+  const photoHtml=f.photo?`<img src="${f.photo}" class="profile-photo-lg" alt="${f.name}">`:`<div class="profile-ph-lg">${ini}</div>`;
+  document.getElementById('detailHero').innerHTML=`
+    ${photoHtml}
+    <div style="flex:1">
+      <div class="profile-name">${f.name}</div>
+      <div class="profile-meta">
+        <span class="meta-chip" style="background:#eef2f8;color:var(--primary);font-weight:600"><i class="fas fa-id-card me-1"></i>${f.code}</span>
+        ${f.desig?`<span class="meta-chip"><i class="fas fa-graduation-cap me-1"></i>${f.desig}</span>`:''}
+        ${f.dept?`<span class="meta-chip"><i class="fas fa-building me-1"></i>${f.dept}</span>`:''}
+      </div>
+      <div class="profile-ros-row">
+        <span style="font-size:.88rem;font-weight:600">Research Output Score (ROS)</span>
+        <span class="profile-ros-num c-${rc}">${ros.toFixed(2)}</span>
+        <span class="ros-status-chip rc-${rc}">${rl}</span>
+      </div>
+      <div class="ros-bar-bg large" style="margin-bottom:3px"><div class="ros-bar-fill rf-${rc}" style="width:${pct}%"></div></div>
+      <div class="ros-scale"><span>0.0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span></div>
+    </div>`;
+
+  const rows=[
+    {label:'Journal Q1',badge:'pb-q1',count:f.q1,color:'#7c3aed'},
+    {label:'Journal Q2',badge:'pb-q2',count:f.q2,color:'#2563eb'},
+    {label:'Journal Q3',badge:'pb-q3',count:f.q3,color:'#0891b2'},
+    {label:'Journal Q4',badge:'pb-q4',count:f.q4,color:'#64748b'},
+    {label:'Conference Papers',badge:'pb-conf',count:f.conf,color:'#ea580c'},
+    {label:'Book Chapters',badge:'pb-book',count:f.book,color:'#16a34a'},
+    {label:'Patents',badge:'pb-patent',count:f.patent,color:'#dc2626'},
+  ];
+  const td=s=>`<td style="padding:9px 14px;border-bottom:1px solid var(--border)">${s}</td>`;
+  document.getElementById('detailTableBody').innerHTML=rows.map(r=>`<tr>
+    ${td(`<span class="pub-badge ${r.badge}" style="margin-right:8px">${r.label.includes('Q')?r.label.split(' ')[1]:'<i class="fas fa-circle"></i>'}</span>${r.label}`)}
+    ${td(`<strong>${r.count}</strong>`)}
+  </tr>`).join('');
+  document.getElementById('detailTableFoot').innerHTML=`<tr style="background:#1e293b;color:#fff">
+    ${td(`<strong>Total Publications</strong>`)}
+    ${td(`<strong>${pubs}</strong>`)}
+  </tr>`;
+  document.getElementById('detailEditBtn').onclick=()=>showEditForm(f.id);
+  document.getElementById('detailDeleteBtn').onclick=()=>askDelete(f.id);
+  showPage('detail');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ADD FORM
+// ══════════════════════════════════════════════════════════
+function showAddForm() {
+  editingId=null; photoDataURL=null;
+  document.getElementById('formPageTitle').innerHTML='<i class="fas fa-user-plus me-2"></i>Add New Faculty';
+  document.getElementById('formPageSub').textContent='Create a new faculty research profile';
+  document.getElementById('formBreadcrumb').textContent='Add Faculty';
+  document.getElementById('formSubmitBtn').innerHTML='<i class="fas fa-save me-1"></i>Add Faculty Record';
+  clearForm();
+  showPage('form');
+}
+
+function showEditForm(id) {
+  const f=faculty.find(x=>x.id===id); if(!f)return;
+  editingId=id; photoDataURL=f.photo||null;
+  document.getElementById('formPageTitle').innerHTML='<i class="fas fa-edit me-2"></i>Edit Faculty Profile';
+  document.getElementById('formPageSub').textContent=`Updating record for ${f.name}`;
+  document.getElementById('formBreadcrumb').textContent='Edit';
+  document.getElementById('formSubmitBtn').innerHTML='<i class="fas fa-save me-1"></i>Save Changes';
+  document.getElementById('inpName').value=f.name;
+  document.getElementById('inpCode').value=f.code;
+  document.getElementById('inpDesig').value=f.desig||'';
+  document.getElementById('inpDept').value=f.dept||'';
+  document.getElementById('inpQ1').value=f.q1;
+  document.getElementById('inpQ2').value=f.q2;
+  document.getElementById('inpQ3').value=f.q3;
+  document.getElementById('inpQ4').value=f.q4;
+  document.getElementById('inpConf').value=f.conf;
+  document.getElementById('inpBook').value=f.book;
+  document.getElementById('inpPatent').value=f.patent;
+  const rosVal=getROS(f).toFixed(2);
+  document.getElementById('inpRos').value=rosVal;
+  document.getElementById('rosSliderForm').value=rosVal;
+  updateROSDisplayForm(rosVal);
+  const img=document.getElementById('photoPreviewImg'), ph=document.getElementById('photoPlaceholder');
+  if(f.photo){img.src=f.photo;img.style.display='block';ph.style.display='none';}
+  else{img.style.display='none';ph.style.display='flex';}
+  showPage('form');
+}
+
+function clearForm() {
+  ['inpName','inpCode','inpDept'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inpDesig').value='';
+  ['inpQ1','inpQ2','inpQ3','inpQ4','inpConf','inpBook','inpPatent'].forEach(id=>document.getElementById(id).value=0);
+  document.getElementById('inpRos').value=0;
+  document.getElementById('rosSliderForm').value=0;
+  updateROSDisplayForm(0);
+  document.getElementById('photoPreviewImg').style.display='none';
+  document.getElementById('photoPlaceholder').style.display='flex';
+  document.getElementById('photoInput').value='';
+  hideError();
+}
+
+function submitForm() {
+  const name=document.getElementById('inpName').value.trim();
+  const code=document.getElementById('inpCode').value.trim();
+  if(!name){showError('Full Name is required.');return;}
+  if(!code){showError('Employee Code is required.');return;}
+  const rosRaw=parseFloat(document.getElementById('inpRos').value);
+  if(isNaN(rosRaw)||rosRaw<0||rosRaw>1){showError('ROS must be a number between 0.00 and 1.00.');return;}
+  const dup=faculty.find(f=>f.code.toLowerCase()===code.toLowerCase()&&f.id!==editingId);
+  if(dup){showError(`Employee code "${code}" is already used by ${dup.name}.`);return;}
+  const data={
+    name, code,
+    desig:document.getElementById('inpDesig').value,
+    dept:document.getElementById('inpDept').value.trim(),
+    photo:photoDataURL,
+    q1:parseInt(document.getElementById('inpQ1').value)||0,
+    q2:parseInt(document.getElementById('inpQ2').value)||0,
+    q3:parseInt(document.getElementById('inpQ3').value)||0,
+    q4:parseInt(document.getElementById('inpQ4').value)||0,
+    conf:parseInt(document.getElementById('inpConf').value)||0,
+    book:parseInt(document.getElementById('inpBook').value)||0,
+    patent:parseInt(document.getElementById('inpPatent').value)||0,
+    ros:Math.min(Math.max(rosRaw,0),1),
+  };
+  if(editingId){
+    const idx=faculty.findIndex(f=>f.id===editingId);
+    faculty[idx]={...faculty[idx],...data};
+    saveData(); toast('Faculty record updated!','info'); showDetail(editingId);
+  } else {
+    data.id=nextId(); faculty.push(data);
+    saveData(); toast('Faculty record added successfully!','success'); showPage('dashboard');
+  }
+}
+
+function showError(msg){const e=document.getElementById('formError');document.getElementById('formErrorMsg').textContent=msg;e.classList.add('show');e.scrollIntoView({behavior:'smooth',block:'center'});}
+function hideError(){document.getElementById('formError').classList.remove('show');}
+
+// ══════════════════════════════════════════════════════════
+//  DELETE
+// ══════════════════════════════════════════════════════════
+function askDelete(id){const f=faculty.find(x=>x.id===id);if(!f)return;deleteTargetId=id;document.getElementById('deleteModalName').textContent=`This will permanently delete "${f.name}" (${f.code}).`;document.getElementById('deleteModal').classList.add('active');}
+function closeModal(){document.getElementById('deleteModal').classList.remove('active');deleteTargetId=null;}
+function confirmDelete(){if(!deleteTargetId)return;faculty=faculty.filter(f=>f.id!==deleteTargetId);saveData();closeModal();toast('Faculty record deleted.','warning');showPage('dashboard');}
+
+// ══════════════════════════════════════════════════════════
+//  PHOTO PREVIEW
+// ══════════════════════════════════════════════════════════
+function previewPhoto(input){
+  const file=input.files[0]; if(!file)return;
+  if(file.size>5*1024*1024){alert('File too large. Max 5MB.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{photoDataURL=e.target.result;const img=document.getElementById('photoPreviewImg');img.src=photoDataURL;img.style.display='block';document.getElementById('photoPlaceholder').style.display='none';};
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════════════════
+//  ROS MANUAL DISPLAY
+// ══════════════════════════════════════════════════════════
+const colorMap={danger:'#dc2626',warning:'#d97706',info:'#0891b2',success:'#16a34a'};
+
+function updateROSDisplayForm(val) {
+  const ros=Math.min(Math.max(parseFloat(val)||0,0),1);
+  const pct=Math.round(ros*100), color=rosColorFn(ros), label=rosLabelFn(ros);
+  const fill=document.getElementById('rosBarFillForm');
+  const badge=document.getElementById('rosDisplayBadgeForm');
+  const slider=document.getElementById('rosSliderForm');
+  if(fill){fill.style.width=pct+'%';fill.className=`ros-bar-fill rf-${color}`;}
+  if(badge){badge.textContent=`${ros.toFixed(2)} — ${label}`;badge.className=`ros-display-badge badge-${color}`;}
+  if(slider)slider.value=ros;
+}
+function syncSliderForm(val){
+  const ros=parseFloat(val)||0;
+  document.getElementById('inpRos').value=ros.toFixed(2);
+  updateROSDisplayForm(ros);
+}
+function rosColorFn(r){if(r<=0)return'danger';if(r<0.3)return'warning';if(r<0.6)return'info';return'success';}
+function rosLabelFn(r){if(r<=0)return'No Publications';if(r<0.3)return'Low';if(r<0.6)return'Moderate';if(r<0.8)return'Good';return'Excellent';}
+
+// ══════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════
+function toast(msg,type){
+  const cm={success:'#16a34a',info:'#0891b2',warning:'#d97706',danger:'#dc2626'};
+  const el=document.createElement('div');el.className='toast';el.style.background=cm[type]||'#1a3a5c';
+  el.innerHTML=`<i class="fas fa-check-circle"></i><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);setTimeout(()=>el.remove(),3500);
+}
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('footerYear').textContent=new Date().getFullYear();
+  loadData();
+  renderDashboard();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

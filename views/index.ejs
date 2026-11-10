@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark portal-nav">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/portal">
+      <div class="brand-icon"><i class="fas fa-flask"></i></div>
+      <div>
+        <div class="brand-title">UIC Research Portal</div>
+        <div class="brand-sub">University Institute of Computing, Chandigarh University</div>
+      </div>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+      <a href="/" class="btn btn-outline-light btn-sm fw-semibold">
+        <i class="fas fa-home me-1"></i>Home & About
+      </a>
+      <% if (isAdmin) { %>
+        <!-- Saturday Roster Off Eligibility Modal Trigger -->
+        <button class="btn btn-info btn-sm fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#saturdayRosterModal">
+          <i class="fas fa-calendar-check me-1"></i>Saturday Roster Off
+        </button>
+
+        <!-- 1. Master Excel Upload (Directly adds papers by Author Name Column D) -->
+        <button class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#masterUploadModal">
+          <i class="fas fa-file-import me-1"></i>Upload Master Publications Excel
+        </button>
+
+        <!-- 2. Excel Export Button -->
+        <a href="/export/excel" class="btn btn-success btn-sm fw-semibold shadow-sm">
+          <i class="fas fa-file-excel me-1"></i>Export Tracking Excel
+        </a>
+
+        <!-- 3. Bulk Faculty List Upload -->
+        <button class="btn btn-light btn-sm fw-semibold text-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+          <i class="fas fa-users me-1"></i>Upload Faculty List
+        </button>
+
+        <!-- 4. Add Single Faculty -->
+        <a href="/faculty/add" class="btn btn-add btn-sm">
+          <i class="fas fa-user-plus me-1"></i>Add Faculty
+        </a>
+
+        <!-- Admin Badge & Logout -->
+        <button type="button" class="btn btn-outline-warning btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#portalAdminSettingsModal" title="Admin Credentials">
+          <i class="fas fa-user-shield me-1"></i><%= adminUsername %>
+        </button>
+        <form action="/admin/logout" method="POST" class="d-inline">
+          <input type="hidden" name="return_to" value="/portal">
+          <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold" title="Logout Admin">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+          </button>
+        </form>
+      <% } else { %>
+        <span class="badge bg-light text-dark py-2 px-3">
+          <i class="fas fa-eye text-primary me-1"></i>Visitor View (Read-Only)
+        </span>
+        <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#portalAdminLoginModal">
+          <i class="fas fa-user-shield me-1"></i>Admin Login
+        </button>
+      <% } %>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  <div class="container-fluid px-4">
+
+    <!-- Page Header & View Toggle -->
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h1 class="page-title"><i class="fas fa-users me-2"></i>Faculty Research Directory</h1>
+        <p class="page-sub">
+          <% if (isAdmin) { %>
+            Admin Mode &mdash; Upload papers, edit faculty profiles, manage publications, and track ROS scores.
+          <% } else { %>
+            University Institute of Computing, Chandigarh University &mdash; Browse faculty profiles, search by name or employee code, and view publications.
+          <% } %>
+        </p>
+      </div>
+      <div class="btn-group shadow-sm" role="group">
+        <a href="/portal?view=grid&sort=<%= sortMode %>" id="gridViewLink" class="btn btn-sm <%= viewMode !== 'list' ? 'btn-primary' : 'btn-outline-primary' %>">
+          <i class="fas fa-th-large me-1"></i>Grid View
+        </a>
+        <a href="/portal?view=list&sort=<%= sortMode %>" id="listViewLink" class="btn btn-sm <%= viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary' %>">
+          <i class="fas fa-list me-1"></i>List View
+        </a>
+      </div>
+    </div>
+
+    <!-- Alert notifications -->
+    <% if (query.admin_logged_in) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-user-shield me-2 fs-5 align-middle"></i>
+        <strong>Admin Mode Active (<%= adminUsername %>)!</strong> You now have full rights to add, edit, upload, and delete records.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.login_err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2 fs-5 align-middle"></i>
+        <strong>Admin Login Failed:</strong> <%= query.login_err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.cred_updated) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-key me-2 fs-5 align-middle"></i>
+        <strong>Admin Credentials Updated!</strong> Username and password have been saved.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.cred_err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2 fs-5 align-middle"></i>
+        <strong>Credential Update Failed:</strong> <%= query.cred_err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.master_success) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2 fs-5 align-middle"></i>
+        <strong>Master Publication Excel Processed!</strong> Added <strong><%= query.matched %></strong> new<% if (query.replaced > 0) { %>, replaced <strong><%= query.replaced %></strong> existing<% } %><% if (query.skipped > 0) { %>, skipped <strong><%= query.skipped %></strong> duplicate(s)<% } %>.
+        <% if (query.unmatched > 0) { %>
+          <div class="mt-1 small text-dark">
+            <i class="fas fa-info-circle text-warning me-1"></i> <strong><%= query.unmatched %></strong> rows could not be mapped to any registered faculty name (e.g. <%= query.unmatched_names %>). Please make sure the faculty members exist.
+          </div>
+        <% } %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.master_err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2 fs-5 align-middle"></i>
+        <strong>Master Upload Error:</strong> <%= query.master_err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.upload_success) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2 fs-5 align-middle"></i>
+        <strong>Faculty List Processed!</strong> Added <strong><%= query.added %></strong> new<% if (query.replaced > 0) { %>, replaced/updated <strong><%= query.replaced %></strong> existing<% } %><% if (query.skipped > 0) { %>, skipped <strong><%= query.skipped %></strong><% } %>.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.upload_err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2 fs-5 align-middle"></i>
+        <strong>Faculty Upload Error:</strong> <%= query.upload_err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.bulk_deleted) { %>
+      <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-trash-alt me-2 fs-5 align-middle"></i>
+        Successfully deleted <strong><%= query.bulk_deleted %></strong> selected faculty profile(s) and their associated records.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.all_deleted) { %>
+      <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-trash-alt me-2 fs-5 align-middle"></i>
+        All <strong><%= query.all_deleted %></strong> faculty profiles and records have been deleted.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (query.deleted) { %>
+      <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-info-circle me-2 fs-5 align-middle"></i>
+        Faculty member profile successfully removed.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+
+    <% if (isAdmin) { %>
+    <!-- Master Upload Banner -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light">
+      <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 rounded bg-warning text-dark"><i class="fas fa-bolt fs-4"></i></div>
+          <div>
+            <div class="fw-bold text-dark">Direct Excel Publication Import</div>
+            <div class="text-muted small">Upload your spreadsheet with <strong>Author names (CU)</strong> (Col D) and <strong>Document Type</strong> (Col H). The system matches the faculty name and auto-sorts each entry into <strong>Journal</strong> (Article/Review), <strong>Conference</strong>, <strong>Book Chapter</strong>, or <strong>Patent</strong>.</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/download-master-publications-template" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-download me-1"></i>Download Template
+          </a>
+          <button class="btn btn-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#masterUploadModal">
+            <i class="fas fa-upload me-1"></i>Upload Master Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saturday Roster Off Eligibility Quick Bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4" style="background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%); border-left: 4px solid #0d6efd !important;">
+      <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 rounded bg-primary text-white"><i class="fas fa-calendar-check fs-4"></i></div>
+          <div>
+            <div class="fw-bold text-dark">Saturday Roster Off Eligibility (Variable ROS Threshold)</div>
+            <div class="text-muted small">
+              Set a threshold ROS score (e.g., <strong>0.50</strong>). Faculty with <strong>ROS &ge; Threshold</strong> qualify for Saturday roster off.
+            </div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="input-group input-group-sm shadow-sm" style="width: 175px;">
+            <span class="input-group-text fw-bold bg-white text-primary">ROS &ge;</span>
+            <input type="number" id="quickRosterThreshold" class="form-control fw-bold" step="0.01" min="0" value="0.50">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm" onclick="openRosterModal()">
+            <i class="fas fa-list-check me-1"></i>View Eligible (<span id="quickEligibleCount">0</span>)
+          </button>
+          <a href="/export/saturday-roster?threshold=0.50" id="quickRosterDownloadBtn" class="btn btn-success btn-sm fw-semibold shadow-sm">
+            <i class="fas fa-file-excel me-1"></i>Download Eligible Excel
+          </a>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Stats Bar -->
+    <div class="stats-row row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card stat-total">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-num"><%= totalFaculty %></div>
+          <div class="stat-label">Total Faculty Registered</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card stat-avg">
+          <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+          <div class="stat-num"><%= avgROS %></div>
+          <div class="stat-label">Average Department ROS</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card stat-zero">
+          <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="stat-num"><%= zeroCount %></div>
+          <div class="stat-label">Zero Publications / ROS</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card stat-active">
+          <div class="stat-icon"><i class="fas fa-award"></i></div>
+          <div class="stat-num"><%= activeCount %></div>
+          <div class="stat-label">Active Research Contributors</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter, Sort & Search Bar -->
+    <div class="filter-bar mb-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span class="filter-label"><i class="fas fa-filter me-1"></i>Filter by ROS:</span>
+          <button class="filter-btn active" data-filter="all">
+            <i class="fas fa-th me-1"></i>All Faculty (<%= totalFaculty %>)
+          </button>
+          <button class="filter-btn filter-zero" data-filter="zero">
+            <i class="fas fa-times-circle me-1"></i>Zero ROS (<%= zeroCount %>)
+          </button>
+          <button class="filter-btn filter-low" data-filter="low">
+            <i class="fas fa-arrow-down me-1"></i>Low ROS &lt; 0.3
+          </button>
+          <button class="filter-btn filter-moderate" data-filter="moderate">
+            <i class="fas fa-minus me-1"></i>Moderate 0.3–0.6
+          </button>
+          <button class="filter-btn filter-good" data-filter="good">
+            <i class="fas fa-arrow-up me-1"></i>Good &gt; 0.6
+          </button>
+        </div>
+
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="d-flex align-items-center gap-2">
+            <label for="sortFacultySelect" class="small fw-bold text-muted text-nowrap mb-0">
+              <i class="fas fa-sort-alpha-down me-1 text-primary"></i>Sort by:
+            </label>
+            <select id="sortFacultySelect" class="form-select form-select-sm fw-semibold border-primary shadow-sm" style="width: auto; min-width: 215px;">
+              <option value="name_asc" <%= sortMode === 'name_asc' ? 'selected' : '' %>>Name (A &rarr; Z)</option>
+              <option value="emp_asc" <%= sortMode === 'emp_asc' ? 'selected' : '' %>>Employee Code (Low &rarr; High)</option>
+              <option value="emp_desc" <%= sortMode === 'emp_desc' ? 'selected' : '' %>>Employee Code (High &rarr; Low)</option>
+              <option value="ros_desc" <%= sortMode === 'ros_desc' ? 'selected' : '' %>>ROS Score (High &rarr; Low)</option>
+              <option value="ros_asc" <%= sortMode === 'ros_asc' ? 'selected' : '' %>>ROS Score (Low &rarr; High)</option>
+            </select>
+          </div>
+
+          <% if (isAdmin) { %>
+          <a href="/export/excel" class="text-success small fw-bold text-decoration-none d-flex align-items-center gap-1">
+            <i class="fas fa-file-excel fs-6"></i> Download Excel (.xlsx)
+          </a>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <div class="search-wrap">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search by faculty name or employee code...">
+          <button class="search-clear" id="clearSearch" title="Clear"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- No results state -->
+    <div id="noResults" class="text-center py-5" style="display:none;">
+      <i class="fas fa-search fa-3x text-muted mb-3"></i>
+      <h5 class="text-muted">No faculty found</h5>
+      <p class="text-muted">Try a different search or filter option.</p>
+    </div>
+
+    <!-- Faculty List / Grid Views -->
+    <% if (faculty.length === 0) { %>
+      <div class="text-center py-5 bg-white rounded-3 shadow-sm p-4">
+        <i class="fas fa-users-slash fa-4x text-muted mb-3 opacity-25"></i>
+        <h4 class="text-dark">No faculty records found</h4>
+        <% if (isAdmin) { %>
+        <p class="text-muted mb-3">Upload your faculty list Excel sheet or add single records manually.</p>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+            <i class="fas fa-file-upload me-1"></i>Upload Faculty Excel
+          </button>
+          <a href="/faculty/add" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i>Add Individual Faculty
+          </a>
+        </div>
+        <% } else { %>
+        <p class="text-muted mb-0">No faculty profiles have been published yet.</p>
+        <% } %>
+      </div>
+    <% } else { %>
+
+      <% if (isAdmin) { %>
+      <!-- Bulk Selection & Delete Action Bar -->
+      <form id="bulkDeleteForm" action="/faculty/delete-multiple" method="POST"></form>
+      <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <div class="form-check mb-0">
+              <input type="checkbox" class="form-check-input" id="selectAllFaculty" style="cursor:pointer; transform: scale(1.15);">
+              <label class="form-check-label fw-bold text-dark ms-1" for="selectAllFaculty" style="cursor:pointer;">
+                Select All Visible Faculty
+              </label>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+              <span id="selectedFacultyCount">0</span> Selected
+            </span>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="submit" form="bulkDeleteForm" id="deleteSelectedFacultyBtn" class="btn btn-outline-danger btn-sm fw-semibold" disabled
+                    onclick="return confirm('Are you sure you want to delete all selected faculty profiles and their publications? This cannot be undone.');">
+              <i class="fas fa-trash-alt me-1"></i>Delete Selected (<span id="deleteBtnCount">0</span>)
+            </button>
+            <form action="/faculty/delete-all" method="POST" class="d-inline"
+                  onsubmit="return confirm('WARNING: This will permanently delete ALL <%= faculty.length %> faculty members and ALL their publication records! Are you absolutely sure?');">
+              <button type="submit" class="btn btn-danger btn-sm fw-semibold shadow-sm">
+                <i class="fas fa-exclamation-triangle me-1"></i>Delete All (<%= faculty.length %>)
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- 1. TABLE / LIST VIEW -->
+      <% if (viewMode === 'list') { %>
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-table me-2"></i>Faculty Records (List View)</h5>
+            <span class="badge bg-light text-dark border"><%= faculty.length %> Entries</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="facultyTable">
+              <thead class="table-light">
+                <tr>
+                  <% if (isAdmin) { %>
+                  <th style="width: 3%;" class="text-center">
+                    <input type="checkbox" id="tableSelectAll" class="form-check-input" title="Select All">
+                  </th>
+                  <% } %>
+                  <th style="width: 4%;">S.No</th>
+                  <th style="width: 24%;">Faculty Name & Details</th>
+                  <th style="width: 13%;">Employee Code</th>
+                  <th style="width: 12%;">Department</th>
+                  <th style="width: 18%;" class="text-center">Publications Breakdown</th>
+                  <th style="width: 12%;" class="text-center">Total ROS</th>
+                  <th style="width: 14%;" class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="facultyTableBody">
+                <% faculty.forEach((f, idx) => { %>
+                  <%
+                    const rc = rosColor(f.ros);
+                    const rl = rosLabel(f.ros);
+                    const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                  %>
+                  <tr class="faculty-card-wrap"
+                      data-ros="<%= f.ros %>"
+                      data-name="<%= f.name.toLowerCase() %>"
+                      data-code="<%= f.employee_code.toLowerCase() %>">
+                    <% if (isAdmin) { %>
+                    <td class="text-center">
+                      <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm" class="form-check-input faculty-select-cb" style="cursor:pointer;">
+                    </td>
+                    <% } %>
+                    <td class="text-muted fw-bold serial-col"><%= idx + 1 %></td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <% if (f.photo) { %>
+                          <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                        <% } else { %>
+                          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem;">
+                            <%= initials %>
+                          </div>
+                        <% } %>
+                        <div>
+                          <div class="fw-bold text-dark"><%= f.name %></div>
+                          <div class="text-muted small"><%= f.designation || 'Faculty' %></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-primary border font-monospace px-2 py-1 fs-6">
+                        <%= f.employee_code %>
+                      </span>
+                    </td>
+                    <td><%= f.department || '—' %></td>
+                    <td class="text-center">
+                      <% if (f.total_pubs === 0) { %>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Zero Publications</span>
+                      <% } else { %>
+                        <div class="d-flex justify-content-center flex-wrap gap-1">
+                          <span class="badge bg-primary">Journals: <%= f.journal_count %></span>
+                          <% if (f.conf_count > 0) { %><span class="badge bg-warning text-dark">Conf: <%= f.conf_count %></span><% } %>
+                          <% if (f.book_count > 0) { %><span class="badge bg-success">Book: <%= f.book_count %></span><% } %>
+                          <% if (f.patent_count > 0) { %><span class="badge bg-danger">Patent: <%= f.patent_count %></span><% } %>
+                        </div>
+                        <small class="text-muted">(<%= f.total_pubs %> Total)</small>
+                      <% } %>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-<%= rc %>-subtle text-<%= rc %> border border-<%= rc %>-subtle px-2 py-1 fs-6 fw-bold">
+                        <%= f.ros.toFixed(2) %>
+                      </span>
+                      <div class="small text-muted"><%= rl %></div>
+                    </td>
+                    <td class="text-end">
+                      <a href="/faculty/<%= f.id %>" class="btn btn-sm btn-primary">
+                        <i class="fas fa-folder-open me-1"></i><%= isAdmin ? 'Open' : 'View Details' %>
+                      </a>
+                      <% if (isAdmin) { %>
+                      <a href="/faculty/<%= f.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      <!-- 2. GRID CARDS VIEW -->
+      <% } else { %>
+        <div class="row g-4" id="facultyGrid">
+          <% faculty.forEach(f => { %>
+          <%
+            const rc = rosColor(f.ros);
+            const rl = rosLabel(f.ros);
+            const rosPercent = Math.min(Math.round(f.ros * 100), 100);
+            const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+          %>
+          <div class="col-12 col-md-6 col-lg-4 faculty-card-wrap"
+               data-ros="<%= f.ros %>"
+               data-name="<%= f.name.toLowerCase() %>"
+               data-code="<%= f.employee_code.toLowerCase() %>">
+            <div class="faculty-card position-relative">
+              <% if (isAdmin) { %>
+              <div class="position-absolute" style="top: 14px; right: 14px; z-index: 5;">
+                <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm"
+                       class="form-check-input faculty-select-cb shadow-sm border-secondary"
+                       style="width: 20px; height: 20px; cursor: pointer;" title="Select for bulk delete">
+              </div>
+              <% } %>
+              <div class="card-top-accent"></div>
+              <div class="faculty-card-inner">
+                <div class="faculty-header">
+                  <div class="faculty-photo-wrap">
+                    <% if (f.photo) { %>
+                      <img src="/uploads/<%= f.photo %>" alt="<%= f.name %>" class="faculty-photo">
+                    <% } else { %>
+                      <div class="faculty-photo-placeholder">
+                        <span><%= initials %></span>
+                      </div>
+                    <% } %>
+                    <div class="ros-badge ros-badge-<%= rc %>"><%= f.ros.toFixed(2) %></div>
+                  </div>
+                  <div class="faculty-info">
+                    <h3 class="faculty-name"><%= f.name %></h3>
+                    <span class="emp-badge"><i class="fas fa-id-card me-1"></i><%= f.employee_code %></span>
+                    <% if (f.designation) { %><div class="faculty-desig"><%= f.designation %></div><% } %>
+                    <% if (f.department) { %><div class="faculty-dept"><i class="fas fa-building me-1"></i><%= f.department %></div><% } %>
+                  </div>
+                </div>
+
+                <!-- ROS Bar -->
+                <div class="ros-section">
+                  <div class="ros-label-row">
+                    <span class="ros-title">Total ROS Score</span>
+                    <span class="ros-value text-<%= rc %>"><%= f.ros.toFixed(2) %> <span class="ros-status"><%= rl %></span></span>
+                  </div>
+                  <div class="ros-bar-bg">
+                    <div class="ros-bar-fill ros-fill-<%= rc %>" style="width: <%= rosPercent %>%"></div>
+                  </div>
+                </div>
+
+                <!-- Badges -->
+                <div class="pub-badges">
+                  <% if (f.journal_count > 0) { %><span class="pub-badge bg-primary">Journals: <%= f.journal_count %></span><% } %>
+                  <% if (f.conf_count > 0) { %><span class="pub-badge bg-warning text-dark">Conf: <%= f.conf_count %></span><% } %>
+                  <% if (f.book_count > 0) { %><span class="pub-badge bg-success">Book: <%= f.book_count %></span><% } %>
+                  <% if (f.patent_count > 0) { %><span class="pub-badge bg-danger">Patent: <%= f.patent_count %></span><% } %>
+                  <% if (f.total_pubs === 0) { %><span class="pub-badge pub-none"><i class="fas fa-ban"></i> 0 Publications</span><% } %>
+                </div>
+
+                <!-- Actions -->
+                <div class="card-actions">
+                  <a href="/faculty/<%= f.id %>" class="btn btn-view">
+                    <i class="fas fa-folder-open me-1"></i><%= isAdmin ? 'Open Record' : 'View Details' %> (<%= f.total_pubs %>)
+                  </a>
+                  <% if (isAdmin) { %>
+                  <a href="/faculty/<%= f.id %>/edit" class="btn btn-edit-sm" title="Edit Profile"><i class="fas fa-edit"></i></a>
+                  <form action="/faculty/<%= f.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete <%= f.name %>? This cannot be undone.');">
+                    <button type="submit" class="btn btn-del-sm" title="Delete Profile"><i class="fas fa-trash"></i></button>
+                  </form>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      <% } %>
+
+    <% } %>
+
+  </div>
+</main>
+
+<% if (isAdmin) { %>
+<!-- Modal 1: Master Publications Excel Upload (Dashboard) -->
+<div class="modal fade" id="masterUploadModal" tabindex="-1" aria-labelledby="masterUploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow">
+      <form action="/dashboard/upload-publications-master" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fw-bold" id="masterUploadModalLabel">
+            <i class="fas fa-file-import me-2"></i>Upload Master Publications Excel
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            Upload your departmental publications spreadsheet. The system automatically reads <strong>Author names (CU)</strong> (Column D) to find the faculty record, and checks <strong>Document Type</strong> (Column H) to classify the entry:
+          </p>
+
+          <div class="row g-2 mb-3 text-center small">
+            <div class="col-3">
+              <div class="p-2 border rounded bg-primary text-white">
+                <div class="fw-bold">Article / Review</div>
+                <div>&rarr; Added as Journal</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="p-2 border rounded bg-warning text-dark">
+                <div class="fw-bold">Conference Paper</div>
+                <div>&rarr; Added as Conference</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="p-2 border rounded bg-success text-white">
+                <div class="fw-bold">Book Chapter</div>
+                <div>&rarr; Added as Book Chapter</div>
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="p-2 border rounded bg-danger text-white">
+                <div class="fw-bold">Patent</div>
+                <div>&rarr; Added as Patent</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold small text-dark"><i class="fas fa-table me-1 text-primary"></i>Required Format (Screenshot Match):</span>
+              <a href="/download-master-publications-template" class="btn btn-outline-dark btn-sm py-0 px-2" style="font-size:0.75rem;">
+                <i class="fas fa-download me-1"></i>Sample Template
+              </a>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered text-center mb-0" style="font-size:0.75rem;">
+                <thead class="table-secondary">
+                  <tr>
+                    <th>Title</th>
+                    <th>Source title</th>
+                    <th class="table-warning">Author names (CU)</th>
+                    <th>ROS</th>
+                    <th>Source quartile (Q)</th>
+                    <th>Link</th>
+                    <th class="table-warning">Document Type</th>
+                    <th>APN</th>
+                    <th>EID based Scopus Link</th>
+                    <th>EID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Biosurfactants as green solutions...</td>
+                    <td>European Journal of Agronomy</td>
+                    <td class="fw-bold text-primary">Neeraj Narwat</td>
+                    <td>0.34</td>
+                    <td>Q1</td>
+                    <td>https://...</td>
+                    <td class="fw-bold text-success">Review</td>
+                    <td>1/Oct/2026</td>
+                    <td>https://...</td>
+                    <td>105053427146</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Select Excel or CSV Spreadsheet <span class="text-danger">*</span></label>
+            <input type="file" name="master_excel" class="form-control" accept=".xlsx, .xls, .csv" required>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning fw-bold text-dark"><i class="fas fa-cloud-upload-alt me-1"></i>Process & Add to Faculty Records</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: Bulk Upload Faculty List (Excel) -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form action="/faculty/upload-excel" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="bulkUploadModalLabel">
+            <i class="fas fa-users me-2"></i>Upload Faculty List (Excel / CSV)
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            Upload a spreadsheet with faculty member details (Serial Number, Faculty Name, Employee Code).
+          </p>
+
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold small text-dark"><i class="fas fa-info-circle me-1 text-primary"></i>Expected Columns:</span>
+              <a href="/download-template" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.75rem;">
+                <i class="fas fa-download me-1"></i>Sample Template
+              </a>
+            </div>
+            <ul class="small text-muted mb-0 ps-3">
+              <li><strong>Sr. No</strong> / <strong>S.No</strong></li>
+              <li><strong>Faculty Name</strong> / <strong>Name of faculty</strong> (Required)</li>
+              <li><strong>Employee Code</strong> (Required & Unique)</li>
+              <li><strong>Designation</strong> & <strong>Department</strong> (Optional)</li>
+            </ul>
+            <div class="alert alert-info py-2 px-2 mt-2 mb-0 small">
+              <i class="fas fa-sync-alt me-1"></i>
+              <strong>Duplicate Check:</strong> Automatically checks both <strong>Faculty Name</strong> and <strong>Employee Code</strong>. If existing records are found, you will be asked whether to replace/update them or skip.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Select File <span class="text-danger">*</span></label>
+            <input type="file" name="faculty_excel" class="form-control" accept=".xlsx, .xls, .csv" required>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-cloud-upload-alt me-1"></i>Import Faculty</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 3: Saturday Roster Off Eligibility (Variable ROS Threshold) -->
+<div class="modal fade" id="saturdayRosterModal" tabindex="-1" aria-labelledby="saturdayRosterModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="saturdayRosterModalLabel">
+          <i class="fas fa-calendar-check me-2"></i>Saturday Roster Off Eligibility List
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+
+        <!-- Variable Threshold Control -->
+        <div class="card border bg-light rounded-3 mb-4">
+          <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <label for="modalRosterThreshold" class="fw-bold text-dark mb-0">
+                <i class="fas fa-sliders-h text-primary me-1"></i>Set Threshold ROS Value:
+              </label>
+              <div class="input-group" style="width: 190px;">
+                <span class="input-group-text fw-bold bg-white text-primary">ROS &ge;</span>
+                <input type="number" id="modalRosterThreshold" class="form-control fw-bold" step="0.01" min="0" value="0.50">
+              </div>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Quick Thresholds">
+                <button type="button" class="btn btn-outline-secondary fw-semibold" onclick="setRosterThreshold(0.30)">0.30</button>
+                <button type="button" class="btn btn-outline-secondary fw-semibold" onclick="setRosterThreshold(0.50)">0.50</button>
+                <button type="button" class="btn btn-outline-secondary fw-semibold" onclick="setRosterThreshold(0.80)">0.80</button>
+                <button type="button" class="btn btn-outline-secondary fw-semibold" onclick="setRosterThreshold(1.00)">1.00</button>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="fas fa-check-circle me-1"></i>Eligible: <span id="modalEligibleCount">0</span>
+              </span>
+              <span class="badge bg-secondary fs-6 px-3 py-2">
+                Not Eligible: <span id="modalNotEligibleCount">0</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Eligible Faculty Preview Table -->
+        <div class="border rounded-3 overflow-hidden">
+          <div class="bg-white px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark small">
+              <i class="fas fa-users text-success me-1"></i>
+              Faculty Eligible for Saturday Roster Off (ROS &ge; <span id="modalThresholdLabel">0.50</span>)
+            </span>
+            <span class="text-muted small">Sorted by Highest ROS</span>
+          </div>
+          <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+            <table class="table table-hover table-sm align-middle mb-0" id="rosterPreviewTable">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th class="ps-3" style="width: 6%;">S.No</th>
+                  <th style="width: 14%;">Employee Code</th>
+                  <th style="width: 24%;">Faculty Name</th>
+                  <th style="width: 18%;">Designation</th>
+                  <th style="width: 12%;">Department</th>
+                  <th class="text-center" style="width: 10%;">Total Pubs</th>
+                  <th class="text-center" style="width: 16%;">Total ROS Score</th>
+                </tr>
+              </thead>
+              <tbody id="rosterPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer bg-light d-flex justify-content-between flex-wrap gap-2">
+        <div class="small text-muted">
+          <i class="fas fa-file-excel text-success me-1"></i>
+          The Excel file includes <strong>Eligible Saturday Off</strong>, <strong>Not Eligible Faculty</strong> (with ROS shortfall), and <strong>Roster Summary</strong> sheets.
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <a href="/export/saturday-roster?threshold=0.50" id="modalRosterDownloadBtn" class="btn btn-success fw-bold shadow-sm">
+            <i class="fas fa-file-excel me-1"></i>Download Eligible Excel (.xlsx)
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Settings Modal (Change Username & Password) -->
+<div class="modal fade" id="portalAdminSettingsModal" tabindex="-1" aria-labelledby="portalAdminSettingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <form action="/admin/update-credentials" method="POST">
+        <input type="hidden" name="return_to" value="/portal">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title fw-bold" id="portalAdminSettingsModalLabel">
+            <i class="fas fa-key me-2"></i>Update Admin Username & Password
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Current Password <span class="text-danger">*</span></label>
+            <input type="password" name="current_password" class="form-control" placeholder="Verify current password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">New Username <span class="text-danger">*</span></label>
+            <input type="text" name="new_username" class="form-control" value="<%= adminUsername %>" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">New Password</label>
+            <input type="password" name="new_password" class="form-control" placeholder="Leave blank to keep existing password">
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success fw-bold"><i class="fas fa-save me-1"></i>Save Credentials</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% } else { %>
+<!-- Portal Admin Login Modal for Visitors -->
+<div class="modal fade" id="portalAdminLoginModal" tabindex="-1" aria-labelledby="portalAdminLoginModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <form action="/admin/login" method="POST">
+        <input type="hidden" name="return_to" value="/portal">
+        <div class="modal-header text-white" style="background: #0b1f3f;">
+          <h5 class="modal-title fw-bold" id="portalAdminLoginModalLabel">
+            <i class="fas fa-user-shield me-2 text-warning"></i>Admin Login — UIC Research Portal
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="small text-muted mb-3">
+            Log in as Admin to unlock faculty &amp; publication editing, Excel upload, and delete permissions.
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="Enter admin username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter admin password" required>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-sign-in-alt me-1"></i>Login as Admin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<footer class="portal-footer">
+  <div class="container-fluid px-4 text-center">
+    <span><i class="fas fa-university me-1"></i>UIC Research Portal &copy; <%= new Date().getFullYear() %> &mdash; University Institute of Computing, Chandigarh University</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+<script id="portalFacultyDataJson" type="application/json">
+  <%- JSON.stringify(faculty.map(f => ({
+    id: f.id,
+    name: f.name,
+    employee_code: f.employee_code,
+    designation: f.designation || '',
+    department: f.department || '',
+    total_pubs: f.total_pubs || 0,
+    ros: f.ros || 0
+  }))) %>
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Instant Sort (Employee Code / Name / ROS) ──────────────────────
+  const sortSelect = document.getElementById('sortFacultySelect');
+  const gridContainer = document.getElementById('facultyGrid');
+  const tableBody = document.getElementById('facultyTableBody');
+  const gridViewLink = document.getElementById('gridViewLink');
+  const listViewLink = document.getElementById('listViewLink');
+
+  function sortFacultyItems(mode) {
+    const container = gridContainer || tableBody;
+    if (!container) return;
+    const items = Array.from(container.querySelectorAll('.faculty-card-wrap'));
+
+    items.sort((a, b) => {
+      const codeA = a.dataset.code || '';
+      const codeB = b.dataset.code || '';
+      const nameA = a.dataset.name || '';
+      const nameB = b.dataset.name || '';
+      const rosA = parseFloat(a.dataset.ros) || 0;
+      const rosB = parseFloat(b.dataset.ros) || 0;
+
+      if (mode === 'emp_asc') {
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (mode === 'emp_desc') {
+        return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      if (mode === 'ros_desc') {
+        return (rosB - rosA) || nameA.localeCompare(nameB);
+      }
+      if (mode === 'ros_asc') {
+        return (rosA - rosB) || nameA.localeCompare(nameB);
+      }
+      return nameA.localeCompare(nameB);
+    });
+
+    items.forEach((el, idx) => {
+      container.appendChild(el);
+      const snoCell = el.querySelector('.serial-col');
+      if (snoCell) snoCell.textContent = idx + 1;
+    });
+
+    if (gridViewLink) gridViewLink.href = `/portal?view=grid&sort=${encodeURIComponent(mode)}`;
+    if (listViewLink) listViewLink.href = `/portal?view=list&sort=${encodeURIComponent(mode)}`;
+    if (window.history && window.history.replaceState) {
+      const url = new URL(window.location);
+      url.searchParams.set('sort', mode);
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      sortFacultyItems(this.value);
+    });
+  }
+
+  // ── Saturday Roster Off Eligibility Logic ──────────────────────────
+  const allFacultyList = JSON.parse(document.getElementById('portalFacultyDataJson').textContent || '[]');
+  const quickInput = document.getElementById('quickRosterThreshold');
+  const modalInput = document.getElementById('modalRosterThreshold');
+  const quickCountEl = document.getElementById('quickEligibleCount');
+  const quickDlBtn = document.getElementById('quickRosterDownloadBtn');
+  const modalEligibleCountEl = document.getElementById('modalEligibleCount');
+  const modalNotEligibleCountEl = document.getElementById('modalNotEligibleCount');
+  const modalThresholdLabelEl = document.getElementById('modalThresholdLabel');
+  const modalDlBtn = document.getElementById('modalRosterDownloadBtn');
+  const rosterBodyEl = document.getElementById('rosterPreviewBody');
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function updateRosterPreview(rawVal, sourceEl) {
+    const parsed = parseFloat(rawVal);
+    const threshold = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    const thresholdFixed = threshold.toFixed(2);
+    const thresholdScaled = Math.round(threshold * 10000);
+
+    if (quickInput && sourceEl !== quickInput) quickInput.value = threshold;
+    if (modalInput && sourceEl !== modalInput) modalInput.value = threshold;
+
+    const eligible = allFacultyList
+      .filter(f => Math.round((parseFloat(f.ros) || 0) * 10000) >= thresholdScaled)
+      .sort((a, b) => (b.ros - a.ros) || a.name.localeCompare(b.name));
+    const notEligibleCount = allFacultyList.length - eligible.length;
+
+    if (quickCountEl) quickCountEl.textContent = eligible.length;
+    if (modalEligibleCountEl) modalEligibleCountEl.textContent = eligible.length;
+    if (modalNotEligibleCountEl) modalNotEligibleCountEl.textContent = notEligibleCount;
+    if (modalThresholdLabelEl) modalThresholdLabelEl.textContent = thresholdFixed;
+
+    const dlUrl = `/export/saturday-roster?threshold=${encodeURIComponent(threshold)}`;
+    if (quickDlBtn) quickDlBtn.href = dlUrl;
+    if (modalDlBtn) modalDlBtn.href = dlUrl;
+
+    if (rosterBodyEl) {
+      if (eligible.length === 0) {
+        rosterBodyEl.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              <i class="fas fa-info-circle me-1"></i>No faculty members meet the threshold of <strong>ROS &ge; ${thresholdFixed}</strong>.
+            </td>
+          </tr>`;
+      } else {
+        rosterBodyEl.innerHTML = eligible.map((f, idx) => `
+          <tr>
+            <td class="ps-3 fw-bold text-muted">${idx + 1}</td>
+            <td><span class="badge bg-light text-primary border font-monospace">${escapeHtml(f.employee_code)}</span></td>
+            <td><a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none">${escapeHtml(f.name)}</a></td>
+            <td class="small text-muted">${escapeHtml(f.designation) || '—'}</td>
+            <td class="small">${escapeHtml(f.department) || '—'}</td>
+            <td class="text-center fw-semibold">${f.total_pubs}</td>
+            <td class="text-center">
+              <span class="badge bg-success px-2 py-1 fs-6">${parseFloat(f.ros).toFixed(2)}</span>
+            </td>
+          </tr>`).join('');
+      }
+    }
+  }
+
+  window.setRosterThreshold = function(val) {
+    updateRosterPreview(val, null);
+  };
+
+  window.openRosterModal = function() {
+    updateRosterPreview(quickInput ? quickInput.value : 0.5, null);
+    const modal = new bootstrap.Modal(document.getElementById('saturdayRosterModal'));
+    modal.show();
+  };
+
+  if (quickInput) {
+    quickInput.addEventListener('input', function() {
+      updateRosterPreview(this.value, quickInput);
+    });
+  }
+  if (modalInput) {
+    modalInput.addEventListener('input', function() {
+      updateRosterPreview(this.value, modalInput);
+    });
+  }
+  // Initialize with default 0.50
+  updateRosterPreview(0.50, null);
+
+  // ── Bulk Selection & Delete Logic ──────────────────────────────────
+  const selectAllTop = document.getElementById('selectAllFaculty');
+  const selectAllTable = document.getElementById('tableSelectAll');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedFacultyBtn');
+  const selectedCountSpan = document.getElementById('selectedFacultyCount');
+  const deleteBtnCountSpan = document.getElementById('deleteBtnCount');
+
+  function getCheckboxes() {
+    return Array.from(document.querySelectorAll('.faculty-select-cb'));
+  }
+
+  function getVisibleCheckboxes() {
+    return getCheckboxes().filter(cb => {
+      const wrap = cb.closest('.faculty-card-wrap');
+      return !wrap || wrap.style.display !== 'none';
+    });
+  }
+
+  function updateFacultySelectionUI() {
+    const allChecked = getCheckboxes().filter(cb => cb.checked);
+    const count = allChecked.length;
+
+    if (selectedCountSpan) selectedCountSpan.textContent = count;
+    if (deleteBtnCountSpan) deleteBtnCountSpan.textContent = count;
+    if (deleteSelectedBtn) deleteSelectedBtn.disabled = count === 0;
+
+    const visibleCbs = getVisibleCheckboxes();
+    const allVisibleChecked = visibleCbs.length > 0 && visibleCbs.every(cb => cb.checked);
+    if (selectAllTop) selectAllTop.checked = allVisibleChecked;
+    if (selectAllTable) selectAllTable.checked = allVisibleChecked;
+  }
+  window.updateFacultySelectionUI = updateFacultySelectionUI;
+
+  function toggleAllVisible(checked) {
+    const visibleCbs = getVisibleCheckboxes();
+    visibleCbs.forEach(cb => cb.checked = checked);
+    updateFacultySelectionUI();
+  }
+
+  if (selectAllTop) {
+    selectAllTop.addEventListener('change', function() {
+      toggleAllVisible(this.checked);
+    });
+  }
+
+  if (selectAllTable) {
+    selectAllTable.addEventListener('change', function() {
+      toggleAllVisible(this.checked);
+    });
+  }
+
+  getCheckboxes().forEach(cb => {
+    cb.addEventListener('change', updateFacultySelectionUI);
+  });
+});
+</script>
+</body>
+</html>

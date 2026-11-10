@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Faculty — UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark portal-nav">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/portal">
+      <div class="brand-icon"><i class="fas fa-flask"></i></div>
+      <div>
+        <div class="brand-title">UIC Research Portal</div>
+        <div class="brand-sub">University Institute of Computing, Chandigarh University</div>
+      </div>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <a href="/" class="nav-link-btn"><i class="fas fa-home me-1"></i>Home</a>
+      <a href="/portal" class="nav-link-btn"><i class="fas fa-th-large me-1"></i>Directory</a>
+      <a href="/faculty/add" class="btn btn-add active-nav">
+        <i class="fas fa-user-plus me-1"></i>Add Faculty
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  <div class="container" style="max-width:860px;">
+
+    <div class="page-header">
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb custom-breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/portal">Directory</a></li>
+            <li class="breadcrumb-item active">Add Faculty Profile</li>
+          </ol>
+        </nav>
+        <h1 class="page-title"><i class="fas fa-user-plus me-2"></i>Add Faculty Member</h1>
+        <p class="page-sub">Create the faculty member's profile. You can add specific journal, conference, book chapter, or patent records (with Scopus ID, Link, APN, EID, and manual ROS) via form or Excel upload inside their profile.</p>
+      </div>
+    </div>
+
+    <% if (error) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i><%= error %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <% } %>
+
+    <% if (typeof duplicateMatch !== 'undefined' && duplicateMatch) { %>
+    <div class="alert alert-warning border-warning shadow-sm p-4 rounded-3 mb-4" role="alert">
+      <div class="d-flex align-items-start gap-3">
+        <i class="fas fa-exclamation-circle fa-2x text-warning mt-1"></i>
+        <div class="flex-grow-1">
+          <h5 class="fw-bold text-dark mb-1">
+            Existing Faculty Record Detected (<%= duplicateMatch.matchReason %>)
+          </h5>
+          <p class="mb-2 text-dark">
+            A faculty member matching this <strong>Name</strong> or <strong>Employee Code</strong> already exists in the portal:
+          </p>
+          <div class="p-3 bg-white rounded border mb-3 small">
+            <div><strong>Existing Name:</strong> <%= duplicateMatch.existing.name %></div>
+            <div><strong>Existing Employee Code:</strong> <span class="font-monospace fw-bold"><%= duplicateMatch.existing.employee_code %></span></div>
+            <div><strong>Designation / Dept:</strong> <%= duplicateMatch.existing.designation || 'N/A' %> &bull; <%= duplicateMatch.existing.department || 'N/A' %></div>
+          </div>
+          <p class="mb-3 fw-semibold text-dark">Do you want to replace/update this existing faculty record with your new details below? (Existing publication records will be kept intact.)</p>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-warning fw-bold text-dark shadow-sm" onclick="submitReplace()">
+              <i class="fas fa-sync-alt me-1"></i>Yes, Replace Existing Faculty
+            </button>
+            <a href="/faculty/<%= duplicateMatch.existing.id %>" class="btn btn-outline-primary btn-sm d-flex align-items-center">
+              <i class="fas fa-folder-open me-1"></i>Open Existing Profile
+            </a>
+            <a href="/faculty/add" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
+              <i class="fas fa-times me-1"></i>Clear & Enter New
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <form action="/faculty/add" method="POST" enctype="multipart/form-data" id="facultyForm">
+      <input type="hidden" name="confirm_replace" id="confirmReplaceInput" value="0">
+      <input type="hidden" name="replace_id" value="<%= (typeof duplicateMatch !== 'undefined' && duplicateMatch) ? duplicateMatch.existing.id : '' %>">
+      <input type="hidden" name="pending_photo" value="<%= (typeof formData !== 'undefined' && formData && formData.pending_photo) ? formData.pending_photo : '' %>">
+
+      <!-- Section 1: Personal Info -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <i class="fas fa-id-card me-2"></i>Faculty Profile Information
+        </div>
+        <div class="form-section-body">
+          <!-- Photo Upload -->
+          <div class="photo-upload-area mb-4">
+            <div class="photo-preview-wrap" id="photoPreviewWrap">
+              <% if (typeof formData !== 'undefined' && formData && formData.pending_photo) { %>
+                <img id="photoPreview" src="/uploads/<%= formData.pending_photo %>" alt="Preview" class="photo-preview-img" style="display:block;">
+                <div class="photo-placeholder" id="photoPlaceholder" style="display:none;">
+                  <i class="fas fa-camera fa-2x"></i>
+                  <span>Click to upload photo</span>
+                </div>
+              <% } else { %>
+                <div class="photo-placeholder" id="photoPlaceholder">
+                  <i class="fas fa-camera fa-2x"></i>
+                  <span>Click to upload photo</span>
+                </div>
+                <img id="photoPreview" src="" alt="Preview" class="photo-preview-img" style="display:none;">
+              <% } %>
+            </div>
+            <div class="photo-upload-info">
+              <label for="photo" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-upload me-1"></i>Choose Photo
+              </label>
+              <input type="file" id="photo" name="photo" accept="image/*" class="d-none">
+              <div class="text-muted small mt-1">JPG, PNG, GIF — Max 5MB</div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label required-label">Full Name</label>
+              <input type="text" name="name" class="form-control portal-input" placeholder="e.g. Dr. John Smith"
+                     value="<%= (typeof formData !== 'undefined' && formData && formData.name) ? formData.name : '' %>" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required-label">Employee Code</label>
+              <input type="text" name="employee_code" class="form-control portal-input" placeholder="e.g. EMP007"
+                     value="<%= (typeof formData !== 'undefined' && formData && formData.employee_code) ? formData.employee_code : '' %>" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Designation</label>
+              <select name="designation" class="form-select portal-input">
+                <option value="">Select Designation</option>
+                <% const selDesig = (typeof formData !== 'undefined' && formData && formData.designation) ? formData.designation : ''; %>
+                <% ['Professor','Associate Professor','Assistant Professor','Lecturer','Research Fellow','Visiting Faculty'].forEach(d => { %>
+                <option value="<%= d %>" <%= selDesig === d ? 'selected' : '' %>><%= d %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Department</label>
+              <input type="text" name="department" class="form-control portal-input" placeholder="e.g. Computer Science"
+                     value="<%= (typeof formData !== 'undefined' && formData && formData.department) ? formData.department : '' %>">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-actions">
+        <a href="/portal" class="btn btn-cancel"><i class="fas fa-times me-1"></i>Cancel</a>
+        <button type="submit" class="btn btn-submit">
+          <i class="fas fa-save me-1"></i>Create Profile & Manage Publications
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</main>
+
+<footer class="portal-footer">
+  <div class="container-fluid px-4 text-center">
+    <span><i class="fas fa-university me-1"></i>UIC Research Portal &copy; <%= new Date().getFullYear() %> &mdash; University Institute of Computing, Chandigarh University</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+<script>
+function submitReplace() {
+  document.getElementById('confirmReplaceInput').value = '1';
+  document.getElementById('facultyForm').submit();
+}
+</script>
+</body>
+</html>
