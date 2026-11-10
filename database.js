@@ -781,46 +781,93 @@ function seedIfEmpty() {
   }
 }
 
+const MONTH_DEFS = [
+  { num: 1, pad: '01', short: 'Jan', full: 'January' },
+  { num: 2, pad: '02', short: 'Feb', full: 'February' },
+  { num: 3, pad: '03', short: 'Mar', full: 'March' },
+  { num: 4, pad: '04', short: 'Apr', full: 'April' },
+  { num: 5, pad: '05', short: 'May', full: 'May' },
+  { num: 6, pad: '06', short: 'Jun', full: 'June' },
+  { num: 7, pad: '07', short: 'Jul', full: 'July' },
+  { num: 8, pad: '08', short: 'Aug', full: 'August' },
+  { num: 9, pad: '09', short: 'Sep', full: 'September' },
+  { num: 10, pad: '10', short: 'Oct', full: 'October' },
+  { num: 11, pad: '11', short: 'Nov', full: 'November' },
+  { num: 12, pad: '12', short: 'Dec', full: 'December' }
+];
+
+function parsePublicationYearMonth(monthStr) {
+  const raw = String(monthStr || '').trim();
+  if (!raw) return null;
+
+  // Match YYYY-MM, YYYY/MM, YYYY-M, YYYY-MM-DD
+  let m = raw.match(/^(\d{4})[-\/](\d{1,2})(?:[-\/]\d{1,2})?$/);
+  if (m) {
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    if (month >= 1 && month <= 12) return { year, month };
+  }
+
+  // Fallback: look for 4-digit year + short month name (or 2-digit year like Oct-26)
+  const lower = raw.toLowerCase();
+  let foundMonth = null;
+  for (const def of MONTH_DEFS) {
+    if (lower.includes(def.short.toLowerCase())) {
+      foundMonth = def.num;
+      break;
+    }
+  }
+  if (foundMonth) {
+    const y4 = raw.match(/\b(20\d{2})\b/);
+    if (y4) return { year: parseInt(y4[1], 10), month: foundMonth };
+    const y2 = raw.match(/(?:^|[\s\-\/])(\d{2})$/);
+    if (y2) return { year: 2000 + parseInt(y2[1], 10), month: foundMonth };
+  }
+
+  return null;
+}
+
 function getDepartmentMonthlyROS(year = 2026) {
   const y = parseInt(year, 10) || 2026;
-  const monthDefs = [
-    { num: '01', key: `${y}-01`, short: 'Jan', label: `Jan ${y}`, full: `January ${y}` },
-    { num: '02', key: `${y}-02`, short: 'Feb', label: `Feb ${y}`, full: `February ${y}` },
-    { num: '03', key: `${y}-03`, short: 'Mar', label: `Mar ${y}`, full: `March ${y}` },
-    { num: '04', key: `${y}-04`, short: 'Apr', label: `Apr ${y}`, full: `April ${y}` },
-    { num: '05', key: `${y}-05`, short: 'May', label: `May ${y}`, full: `May ${y}` },
-    { num: '06', key: `${y}-06`, short: 'Jun', label: `Jun ${y}`, full: `June ${y}` },
-    { num: '07', key: `${y}-07`, short: 'Jul', label: `Jul ${y}`, full: `July ${y}` },
-    { num: '08', key: `${y}-08`, short: 'Aug', label: `Aug ${y}`, full: `August ${y}` },
-    { num: '09', key: `${y}-09`, short: 'Sep', label: `Sep ${y}`, full: `September ${y}` },
-    { num: '10', key: `${y}-10`, short: 'Oct', label: `Oct ${y}`, full: `October ${y}` },
-    { num: '11', key: `${y}-11`, short: 'Nov', label: `Nov ${y}`, full: `November ${y}` },
-    { num: '12', key: `${y}-12`, short: 'Dec', label: `Dec ${y}`, full: `December ${y}` }
-  ];
-
   const allPubs = queryAll('SELECT * FROM publications');
 
-  const rows = monthDefs.map(m => {
+  let runningRos = 0;
+  let runningPubs = 0;
+  let prevRos = null;
+
+  const rows = MONTH_DEFS.map(m => {
+    const key = `${y}-${m.pad}`;
     const monthPubs = allPubs.filter(p => {
-      const pm = String(p.month || '').trim().toLowerCase();
-      if (!pm) return false;
-      if (pm === m.key.toLowerCase() || pm.startsWith(m.key.toLowerCase())) return true;
-      if (pm.includes(m.short.toLowerCase()) && (pm.includes(String(y)) || pm.includes(String(y).slice(-2)))) return true;
-      if (pm === `${y}-${parseInt(m.num, 10)}`) return true;
-      return false;
+      const parsed = parsePublicationYearMonth(p.month);
+      return parsed && parsed.year === y && parsed.month === m.num;
     });
 
     const qStats = computeQuartileStats(monthPubs);
     const total = monthPubs.length;
     const ros = parseFloat(monthPubs.reduce((sum, p) => sum + (parseFloat(p.ros) || 0), 0).toFixed(2));
 
+    runningRos = parseFloat((runningRos + ros).toFixed(2));
+    runningPubs += total;
+
+    const momDiff = prevRos === null ? null : parseFloat((ros - prevRos).toFixed(2));
+    const momGrowthPct = (prevRos !== null && prevRos > 0)
+      ? parseFloat((((ros - prevRos) / prevRos) * 100).toFixed(1))
+      : null;
+    prevRos = ros;
+
     return {
-      month: m.label,
-      monthFull: m.full,
-      key: m.key,
+      monthNum: m.num,
+      month: `${m.short} ${y}`,
+      monthShort: m.short,
+      monthFull: `${m.full} ${y}`,
+      key,
       ...qStats,
       total,
-      ros
+      ros,
+      cumulative_ros: runningRos,
+      cumulative_pubs: runningPubs,
+      mom_diff: momDiff,
+      mom_growth_pct: momGrowthPct
     };
   });
 
@@ -850,6 +897,165 @@ function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 
 
 function getDepartmentMonthlyROS2026() {
   return getDepartmentMonthlyROS(2026);
+}
+
+function buildRankedPerformers(pubsSubset, facultyMap, limit = 25) {
+  const byFac = new Map();
+
+  pubsSubset.forEach(p => {
+    const f = facultyMap.get(p.faculty_id);
+    if (!f) return;
+    if (!byFac.has(f.id)) {
+      byFac.set(f.id, {
+        id: f.id,
+        name: f.name,
+        employee_code: f.employee_code,
+        designation: f.designation || '',
+        department: f.department || '',
+        photo: f.photo || null,
+        pubs: []
+      });
+    }
+    byFac.get(f.id).pubs.push(p);
+  });
+
+  const ranked = Array.from(byFac.values()).map(entry => {
+    const qStats = computeQuartileStats(entry.pubs);
+    const totalRos = parseFloat(entry.pubs.reduce((s, p) => s + (parseFloat(p.ros) || 0), 0).toFixed(2));
+    return {
+      id: entry.id,
+      name: entry.name,
+      employee_code: entry.employee_code,
+      designation: entry.designation,
+      department: entry.department,
+      photo: entry.photo,
+      total_pubs: entry.pubs.length,
+      ros: totalRos,
+      ...qStats
+    };
+  });
+
+  ranked.sort((a, b) => {
+    const rosDiff = Math.round(b.ros * 10000) - Math.round(a.ros * 10000);
+    if (rosDiff !== 0) return rosDiff;
+    if (b.total_pubs !== a.total_pubs) return b.total_pubs - a.total_pubs;
+    if (b.q1 !== a.q1) return b.q1 - a.q1;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Assign competition rank (ties on exact ROS share rank)
+  let currentRank = 0;
+  let lastRosScaled = null;
+  ranked.forEach((item, idx) => {
+    const scaled = Math.round(item.ros * 10000);
+    if (scaled !== lastRosScaled) {
+      currentRank = idx + 1;
+      lastRosScaled = scaled;
+    }
+    item.rank = currentRank;
+  });
+
+  const deptRos = parseFloat(pubsSubset.reduce((s, p) => s + (parseFloat(p.ros) || 0), 0).toFixed(2));
+  const winners = ranked.filter(item => item.rank === 1);
+
+  return {
+    total_pubs: pubsSubset.length,
+    active_faculty: ranked.length,
+    dept_ros: deptRos,
+    winners,
+    winner: ranked.length > 0 ? ranked[0] : null,
+    top: limit > 0 ? ranked.slice(0, limit) : ranked
+  };
+}
+
+function getTopPerformersByYear(year = 2026, limit = 25) {
+  const y = parseInt(year, 10) || 2026;
+  const facultyList = queryAll('SELECT id, name, employee_code, designation, department, photo FROM faculty');
+  const facultyMap = new Map(facultyList.map(f => [f.id, f]));
+
+  const allPubs = queryAll('SELECT id, faculty_id, pub_type, ros, quartile, month FROM publications');
+  const yearPubs = [];
+  const byMonth = new Map();
+  for (let m = 1; m <= 12; m++) byMonth.set(m, []);
+
+  allPubs.forEach(p => {
+    const parsed = parsePublicationYearMonth(p.month);
+    if (parsed && parsed.year === y) {
+      yearPubs.push({ ...p, _m: parsed.month });
+      byMonth.get(parsed.month).push(p);
+    }
+  });
+
+  const monthly = MONTH_DEFS.map(m => {
+    const stats = buildRankedPerformers(byMonth.get(m.num), facultyMap, limit);
+    return {
+      key: `${y}-${m.pad}`,
+      monthNum: m.num,
+      short: m.short,
+      label: `${m.short} ${y}`,
+      full: `${m.full} ${y}`,
+      ...stats
+    };
+  });
+
+  const quarterDefs = [
+    { key: 'Q1', label: `Q1 ${y}`, range: `Jan – Mar ${y}`, months: [1, 2, 3] },
+    { key: 'Q2', label: `Q2 ${y}`, range: `Apr – Jun ${y}`, months: [4, 5, 6] },
+    { key: 'Q3', label: `Q3 ${y}`, range: `Jul – Sep ${y}`, months: [7, 8, 9] },
+    { key: 'Q4', label: `Q4 ${y}`, range: `Oct – Dec ${y}`, months: [10, 11, 12] }
+  ];
+  const quarterly = quarterDefs.map(q => {
+    const subset = yearPubs.filter(p => q.months.includes(p._m));
+    const stats = buildRankedPerformers(subset, facultyMap, limit);
+    return { key: q.key, label: q.label, range: q.range, months: q.months, ...stats };
+  });
+
+  const halfDefs = [
+    { key: 'H1', label: `H1 ${y} (First Half)`, range: `Jan – Jun ${y}`, months: [1, 2, 3, 4, 5, 6] },
+    { key: 'H2', label: `H2 ${y} (Second Half)`, range: `Jul – Dec ${y}`, months: [7, 8, 9, 10, 11, 12] }
+  ];
+  const sixMonthly = halfDefs.map(h => {
+    const subset = yearPubs.filter(p => h.months.includes(p._m));
+    const stats = buildRankedPerformers(subset, facultyMap, limit);
+    return { key: h.key, label: h.label, range: h.range, months: h.months, ...stats };
+  });
+
+  const annualStats = buildRankedPerformers(yearPubs, facultyMap, limit);
+  const annual = {
+    key: String(y),
+    label: `Annual ${y}`,
+    range: `Jan – Dec ${y}`,
+    ...annualStats
+  };
+
+  // Pick smart defaults: latest period in the year that actually has publications
+  const activeMonths = monthly.filter(m => m.total_pubs > 0);
+  const defaultMonthKey = activeMonths.length > 0 ? activeMonths[activeMonths.length - 1].key : monthly[0].key;
+  const activeQuarters = quarterly.filter(q => q.total_pubs > 0);
+  const defaultQuarterKey = activeQuarters.length > 0 ? activeQuarters[activeQuarters.length - 1].key : 'Q1';
+  const activeHalves = sixMonthly.filter(h => h.total_pubs > 0);
+  const defaultHalfKey = activeHalves.length > 0 ? activeHalves[activeHalves.length - 1].key : 'H1';
+
+  return {
+    year: y,
+    monthly,
+    quarterly,
+    sixMonthly,
+    annual,
+    defaults: {
+      monthKey: defaultMonthKey,
+      quarterKey: defaultQuarterKey,
+      halfKey: defaultHalfKey
+    }
+  };
+}
+
+function getAllYearsTopPerformers(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], limit = 20) {
+  const result = {};
+  yearsList.forEach(y => {
+    result[y] = getTopPerformersByYear(y, limit);
+  });
+  return result;
 }
 
 function getAdminConfig() {
@@ -889,6 +1095,8 @@ module.exports = {
   getDepartmentMonthlyROS,
   getAllYearsMonthlyROS,
   getDepartmentMonthlyROS2026,
+  getTopPerformersByYear,
+  getAllYearsTopPerformers,
   getFacultyById,
   getFacultyByEmployeeCode,
   findFacultyByName,

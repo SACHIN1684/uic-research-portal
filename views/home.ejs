@@ -8,6 +8,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --cu-red: #c8102e;
@@ -297,6 +298,88 @@
     .cu-footer a:hover {
       color: #ffffff;
     }
+    /* ROS Growth Chart & Top Performers */
+    .growth-chart-wrap {
+      position: relative;
+      height: 340px;
+      width: 100%;
+    }
+    .chart-mode-btn.active {
+      background-color: var(--cu-navy) !important;
+      color: #fff !important;
+      border-color: var(--cu-navy) !important;
+    }
+    .champ-card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      border-top: 4px solid var(--cu-navy);
+      padding: 18px;
+      height: 100%;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .champ-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+    }
+    .champ-card.champ-monthly { border-top-color: #0d6efd; }
+    .champ-card.champ-quarterly { border-top-color: #198754; }
+    .champ-card.champ-sixmonthly { border-top-color: #6f42c1; }
+    .champ-card.champ-annual { border-top-color: #c8102e; }
+    .perf-period-tab {
+      border-radius: 10px !important;
+      font-weight: 700;
+      padding: 10px 18px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      transition: all 0.2s ease;
+    }
+    .perf-period-tab.active {
+      background: linear-gradient(135deg, var(--cu-navy), #163665) !important;
+      color: #ffffff !important;
+      border-color: var(--cu-navy) !important;
+      box-shadow: 0 6px 16px rgba(11, 31, 63, 0.22);
+    }
+    .period-mini-card {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      height: 100%;
+    }
+    .period-mini-card:hover {
+      border-color: #0d6efd;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(13, 110, 253, 0.12);
+    }
+    .period-mini-card.selected {
+      border: 2px solid #0d6efd;
+      background: #eff6ff;
+      box-shadow: 0 6px 16px rgba(13, 110, 253, 0.15);
+    }
+    .period-mini-card.empty-period {
+      background: #f8fafc;
+      opacity: 0.72;
+    }
+    .avatar-circle-sm {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: linear-gradient(135deg, var(--cu-navy), #1d4ed8);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -343,7 +426,12 @@
           </li>
           <li class="nav-item">
             <a class="nav-link fw-semibold text-danger fw-bold" href="#monthly-ros">
-              <i class="fas fa-table me-1"></i>Monthly ROS (2026)
+              <i class="fas fa-chart-line me-1"></i>ROS & Growth
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark" href="#top-performers">
+              <i class="fas fa-trophy me-1 text-warning"></i>Top Performers
             </a>
           </li>
           <li class="nav-item">
@@ -617,6 +705,63 @@
         </div>
       </div>
 
+      <!-- Month-wise Department ROS Growth Graph -->
+      <div class="card border shadow-sm rounded-3 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3 border-bottom">
+          <div>
+            <h5 class="fw-bold text-dark mb-0 display-font">
+              <i class="fas fa-chart-line text-danger me-2"></i>
+              Department Month-wise ROS Growth Graph &bull; <span id="chartYearHeading"><%= selectedYear %></span>
+            </h5>
+            <div class="small text-muted">
+              Tracks monthly department Research Output Score (ROS) and cumulative growth trajectory across the year.
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Mode">
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn active fw-semibold" data-chart-mode="growth">
+              <i class="fas fa-chart-area me-1"></i>ROS + Cumulative Growth
+            </button>
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="papers">
+              <i class="fas fa-chart-bar me-1"></i>Monthly ROS vs Papers
+            </button>
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="quartile">
+              <i class="fas fa-layer-group me-1"></i>Quartile Breakdown (Q1–Q4)
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-2 mb-3 text-center" id="growthInsightStrip">
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">PEAK MONTH ROS</div>
+                <div class="fw-bold text-danger small mt-1" id="insightPeakMonth">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">LATEST MoM GROWTH</div>
+                <div class="fw-bold small mt-1" id="insightMomGrowth">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">CUMULATIVE YEAR ROS</div>
+                <div class="fw-bold text-primary small mt-1" id="insightCumulativeRos">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">AVG ROS / ACTIVE MONTH</div>
+                <div class="fw-bold text-success small mt-1" id="insightAvgActiveRos">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="growth-chart-wrap">
+            <canvas id="deptRosGrowthChart"></canvas>
+          </div>
+        </div>
+      </div>
+
       <!-- Screenshot-Matching Table: Cluster replaced with Month, Jan-Dec Year, Q1-Q4, Total, Research Output Score (ROS) -->
       <div class="card border shadow-sm rounded-3 overflow-hidden">
         <div class="table-responsive">
@@ -742,6 +887,112 @@
             <a href="/export/excel" class="btn btn-success btn-sm fw-semibold">
               <i class="fas fa-file-excel me-1"></i> Export Excel Sheet
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Top Performers Leaderboard Section: Monthly, Quarterly, Six-Monthly & Annually -->
+  <section id="top-performers" class="py-5 border-bottom" style="background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);">
+    <div class="container">
+      <div class="section-title-wrap mb-4">
+        <span class="section-badge"><i class="fas fa-trophy me-1"></i> Faculty Research Excellence</span>
+        <h2 class="section-title display-font">Top Performers &mdash; Monthly, Quarterly, Six-Monthly &amp; Annual</h2>
+        <p class="text-muted">
+          Identify highest-contributing faculty researchers ranked by Research Output Score (ROS) across monthly, quarterly (Q1–Q4), half-yearly (H1–H2), and full-year horizons.
+        </p>
+      </div>
+
+      <!-- Synchronized Controls Bar -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4 p-3 rounded-3 bg-white border shadow-sm">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge bg-dark px-3 py-2">
+            <i class="fas fa-calendar-check me-1 text-warning"></i>Year: <span id="perfYearBadge"><%= selectedYear %></span>
+          </span>
+          <select id="perfYearSelect" class="form-select form-select-sm fw-bold border-primary" style="width: auto; min-width: 150px;">
+            <% [2024, 2025, 2026, 2027, 2028, 2029, 2030].forEach(y => { %>
+              <option value="<%= y %>" <%= selectedYear === y ? 'selected' : '' %>>Calendar <%= y %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a href="/export/top-performers?year=<%= selectedYear %>" id="exportTopPerformersBtn" class="btn btn-success btn-sm fw-semibold shadow-sm">
+            <i class="fas fa-file-excel me-1"></i>Export Top Performers Excel
+          </a>
+        </div>
+      </div>
+
+      <!-- 4 At-a-Glance Champion Spotlight Cards -->
+      <div class="row g-3 mb-4" id="championSpotlightRow">
+        <div class="col-md-6 col-xl-3">
+          <div class="champ-card champ-monthly" id="spotMonthly"></div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="champ-card champ-quarterly" id="spotQuarterly"></div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="champ-card champ-sixmonthly" id="spotSixMonthly"></div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <div class="champ-card champ-annual" id="spotAnnual"></div>
+        </div>
+      </div>
+
+      <!-- Detailed Period Explorer -->
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 px-4 border-bottom">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex flex-wrap gap-2" id="perfModeTabs">
+              <button type="button" class="btn btn-sm perf-period-tab active" data-perf-tab="monthly">
+                <i class="fas fa-calendar-day me-1"></i>Monthly Basis
+              </button>
+              <button type="button" class="btn btn-sm perf-period-tab" data-perf-tab="quarterly">
+                <i class="fas fa-chart-pie me-1"></i>Quarterly Basis
+              </button>
+              <button type="button" class="btn btn-sm perf-period-tab" data-perf-tab="sixMonthly">
+                <i class="fas fa-calendar-week me-1"></i>Six-Monthly Basis
+              </button>
+              <button type="button" class="btn btn-sm perf-period-tab" data-perf-tab="annual">
+                <i class="fas fa-award me-1"></i>Annually
+              </button>
+            </div>
+            <div class="d-flex align-items-center gap-2" id="perfSubSelectorWrap">
+              <label for="perfSubSelect" class="small fw-bold text-muted mb-0 text-nowrap">Inspect Period:</label>
+              <select id="perfSubSelect" class="form-select form-select-sm fw-bold border-primary" style="min-width: 190px;"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-4">
+          <!-- Period Snapshot Cards Grid (click any card to view its full ranking) -->
+          <div class="row g-2 mb-4" id="perfSnapshotGrid"></div>
+
+          <!-- Selected Period Header Summary -->
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div>
+              <h5 class="fw-bold text-dark mb-0" id="perfTableHeading">-</h5>
+              <div class="small text-muted" id="perfTableSub">-</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap" id="perfPeriodBadges"></div>
+          </div>
+
+          <!-- Ranked Leaderboard Table -->
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 75px;">Rank</th>
+                  <th>Faculty Member</th>
+                  <th class="text-center">Emp Code</th>
+                  <th class="text-center">Papers</th>
+                  <th class="text-center">Quartiles (Q1–Q4)</th>
+                  <th class="text-center">Period ROS</th>
+                  <th class="text-center">Dept Share</th>
+                </tr>
+              </thead>
+              <tbody id="perfLeaderboardBody"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -1047,18 +1298,485 @@
   <script id="allYearsDataJson" type="application/json">
     <%- JSON.stringify(allYearsROS) %>
   </script>
+  <script id="allYearsTopPerformersJson" type="application/json">
+    <%- JSON.stringify(allYearsTopPerformers) %>
+  </script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const allYearsData = JSON.parse(document.getElementById('allYearsDataJson').textContent);
+    const allYearsPerf = JSON.parse(document.getElementById('allYearsTopPerformersJson').textContent);
     const yearSelect = document.getElementById('reportingYearSelect');
+    const perfYearSelect = document.getElementById('perfYearSelect');
     if (!yearSelect) return;
 
-    function updateYearView(year) {
+    function esc(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function initials(name) {
+      const parts = String(name || '').replace(/^(Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.|Er\.)\s*/i, '').trim().split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return (parts[0] || '?').substring(0, 2).toUpperCase();
+    }
+
+    let currentYear = parseInt(yearSelect.value, 10) || 2026;
+    let currentChartMode = 'growth';
+    let currentPerfTab = 'monthly';
+    let selectedMonthKey = null;
+    let selectedQuarterKey = null;
+    let selectedHalfKey = null;
+    let rosChartInstance = null;
+
+    function renderGrowthChartAndInsights(year, data) {
+      const chartHeading = document.getElementById('chartYearHeading');
+      if (chartHeading) chartHeading.textContent = year;
+
+      const rows = data.rows || [];
+      const activeRows = rows.filter(r => r.total > 0 || r.ros > 0);
+      const peakRow = activeRows.reduce((best, r) => (!best || r.ros > best.ros ? r : best), null);
+      const avgActive = activeRows.length ? (data.totals.ros / activeRows.length) : 0;
+
+      // Latest MoM growth among consecutive months with prior > 0 or latest active transition
+      let latestMomHtml = '<span class="text-muted">N/A (No MoM baseline)</span>';
+      for (let i = rows.length - 1; i >= 1; i--) {
+        if ((rows[i].ros > 0 || rows[i].total > 0) && rows[i - 1].ros > 0) {
+          const pct = rows[i].mom_growth_pct;
+          const diff = rows[i].mom_diff;
+          const isUp = diff >= 0;
+          const color = isUp ? 'text-success' : 'text-danger';
+          const icon = isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+          const sign = isUp ? '+' : '';
+          latestMomHtml = `<span class="${color}"><i class="fas ${icon} me-1"></i>${sign}${pct}% (${sign}${diff.toFixed(2)} in ${rows[i].monthShort || rows[i].month})</span>`;
+          break;
+        }
+      }
+
+      const peakEl = document.getElementById('insightPeakMonth');
+      const momEl = document.getElementById('insightMomGrowth');
+      const cumEl = document.getElementById('insightCumulativeRos');
+      const avgEl = document.getElementById('insightAvgActiveRos');
+      if (peakEl) peakEl.textContent = peakRow ? `${peakRow.month} (${peakRow.ros.toFixed(2)} ROS)` : 'No publications';
+      if (momEl) momEl.innerHTML = latestMomHtml;
+      if (cumEl) cumEl.textContent = `${(data.totals.ros || 0).toFixed(2)} ROS (${data.totals.total || 0} papers)`;
+      if (avgEl) avgEl.textContent = activeRows.length ? `${avgActive.toFixed(2)} ROS (${activeRows.length} active mos)` : '0.00 ROS';
+
+      const canvas = document.getElementById('deptRosGrowthChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      const labels = rows.map(r => r.monthShort || r.month.split(' ')[0]);
+      const monthlyVals = rows.map(r => Number(r.ros || 0));
+      const cumulativeVals = rows.map(r => Number(r.cumulative_ros || 0));
+      const paperVals = rows.map(r => Number(r.total || 0));
+
+      let datasets = [];
+      let scales = {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, title: { display: true, text: 'ROS Score' } }
+      };
+
+      if (currentChartMode === 'growth') {
+        datasets = [
+          {
+            type: 'bar',
+            label: `Monthly Dept ROS (${year})`,
+            data: monthlyVals,
+            backgroundColor: 'rgba(13, 110, 253, 0.78)',
+            borderColor: '#0b5ed7',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Cumulative ROS Growth',
+            data: cumulativeVals,
+            borderColor: '#c8102e',
+            backgroundColor: 'rgba(200, 16, 46, 0.12)',
+            borderWidth: 3,
+            pointBackgroundColor: '#c8102e',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            fill: true,
+            tension: 0.3,
+            order: 1
+          }
+        ];
+      } else if (currentChartMode === 'papers') {
+        datasets = [
+          {
+            type: 'bar',
+            label: `Monthly Dept ROS (${year})`,
+            data: monthlyVals,
+            backgroundColor: 'rgba(200, 16, 46, 0.8)',
+            borderColor: '#960c22',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            yAxisID: 'y',
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Total Papers Published',
+            data: paperVals,
+            borderColor: '#0b1f3f',
+            backgroundColor: 'rgba(11, 31, 63, 0.12)',
+            borderWidth: 3,
+            pointBackgroundColor: '#0b1f3f',
+            pointRadius: 4,
+            tension: 0.25,
+            yAxisID: 'y1',
+            order: 1
+          }
+        ];
+        scales = {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, position: 'left', title: { display: true, text: 'ROS Score' } },
+          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { precision: 0 }, title: { display: true, text: 'Papers Count' } }
+        };
+      } else {
+        datasets = [
+          { type: 'bar', label: 'Q1 ROS', data: rows.map(r => Number(r.q1_ros || 0)), backgroundColor: '#198754', stack: 'q' },
+          { type: 'bar', label: 'Q2 ROS', data: rows.map(r => Number(r.q2_ros || 0)), backgroundColor: '#0d6efd', stack: 'q' },
+          { type: 'bar', label: 'Q3 ROS', data: rows.map(r => Number(r.q3_ros || 0)), backgroundColor: '#0dcaf0', stack: 'q' },
+          { type: 'bar', label: 'Q4 ROS', data: rows.map(r => Number(r.q4_ros || 0)), backgroundColor: '#ffc107', stack: 'q' }
+        ];
+        scales = {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, title: { display: true, text: 'ROS by Quartile' } }
+        };
+      }
+
+      if (rosChartInstance) {
+        rosChartInstance.destroy();
+      }
+      rosChartInstance = new Chart(canvas.getContext('2d'), {
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, font: { weight: '600' } } },
+            tooltip: {
+              callbacks: {
+                afterBody: function(items) {
+                  const idx = items[0] ? items[0].dataIndex : -1;
+                  if (idx < 0 || !rows[idx]) return '';
+                  const r = rows[idx];
+                  const lines = [`Papers: ${r.total}`];
+                  if (r.mom_growth_pct !== null && r.mom_growth_pct !== undefined) {
+                    const s = r.mom_growth_pct >= 0 ? '+' : '';
+                    lines.push(`MoM ROS Change: ${s}${r.mom_growth_pct}%`);
+                  }
+                  return lines;
+                }
+              }
+            }
+          },
+          scales
+        }
+      });
+    }
+
+    function renderSpotlightCard(title, badgeText, badgeClass, iconClass, periodObj) {
+      if (!periodObj || !periodObj.winner) {
+        return `
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge ${badgeClass}">${esc(badgeText)}</span>
+            <i class="fas ${iconClass} text-muted fs-5"></i>
+          </div>
+          <div class="small fw-bold text-dark">${esc(title)}</div>
+          <div class="text-muted small mt-2"><i class="fas fa-info-circle me-1"></i>No publications recorded in this period.</div>
+        `;
+      }
+      const winners = (periodObj.winners && periodObj.winners.length > 0) ? periodObj.winners : [periodObj.winner];
+      const isTie = winners.length > 1;
+      const topWinner = winners[0];
+      const namesHtml = winners.slice(0, 2).map(w => `
+        <a href="/faculty/${w.id}" class="text-decoration-none fw-bold text-dark d-block text-truncate" title="${esc(w.name)}">
+          ${esc(w.name)}
+        </a>
+      `).join('');
+      const moreTie = winners.length > 2 ? `<div class="small text-muted">+${winners.length - 2} more tied</div>` : '';
+
+      return `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="badge ${badgeClass}">${esc(badgeText)}</span>
+          <i class="fas ${iconClass} text-warning fs-5"></i>
+        </div>
+        <div class="small text-muted fw-semibold mb-1">${esc(title)} &bull; ${esc(periodObj.range || periodObj.label)}</div>
+        <div class="d-flex align-items-center gap-2 my-2">
+          <div class="avatar-circle-sm">${initials(topWinner.name)}</div>
+          <div class="min-w-0 flex-grow-1">
+            ${namesHtml}
+            ${moreTie}
+            <div class="small text-muted">${isTie ? `<span class="badge bg-warning text-dark">Co-Winners (${winners.length} tied)</span>` : esc(topWinner.employee_code)}</div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2 small">
+          <span><strong class="text-danger fs-6">${topWinner.ros.toFixed(2)}</strong> ROS</span>
+          <span class="text-muted">${topWinner.total_pubs} ${topWinner.total_pubs === 1 ? 'paper' : 'papers'}</span>
+        </div>
+      `;
+    }
+
+    function renderTopPerformersSection(year, resetDefaults = false) {
+      const perf = allYearsPerf[year];
+      const yearBadge = document.getElementById('perfYearBadge');
+      const exportBtn = document.getElementById('exportTopPerformersBtn');
+      if (yearBadge) yearBadge.textContent = year;
+      if (exportBtn) exportBtn.href = `/export/top-performers?year=${year}`;
+      if (!perf) return;
+
+      if (resetDefaults || !selectedMonthKey || !selectedMonthKey.startsWith(String(year))) {
+        selectedMonthKey = perf.defaults.monthKey;
+        selectedQuarterKey = perf.defaults.quarterKey;
+        selectedHalfKey = perf.defaults.halfKey;
+      }
+
+      // Spotlight Cards (using latest active or selected periods)
+      const spotMonthObj = perf.monthly.find(m => m.key === selectedMonthKey) || perf.monthly[0];
+      const spotQuarterObj = perf.quarterly.find(q => q.key === selectedQuarterKey) || perf.quarterly[0];
+      const spotHalfObj = perf.sixMonthly.find(h => h.key === selectedHalfKey) || perf.sixMonthly[0];
+      const spotAnnualObj = perf.annual;
+
+      const sM = document.getElementById('spotMonthly');
+      const sQ = document.getElementById('spotQuarterly');
+      const sH = document.getElementById('spotSixMonthly');
+      const sA = document.getElementById('spotAnnual');
+      if (sM) sM.innerHTML = renderSpotlightCard('Monthly Top Performer', spotMonthObj.label, 'bg-primary', 'fa-medal', spotMonthObj);
+      if (sQ) sQ.innerHTML = renderSpotlightCard('Quarterly Top Performer', spotQuarterObj.label, 'bg-success', 'fa-trophy', spotQuarterObj);
+      if (sH) sH.innerHTML = renderSpotlightCard('Six-Monthly Top Performer', spotHalfObj.key + ' ' + year, 'bg-dark', 'fa-crown', spotHalfObj);
+      if (sA) sA.innerHTML = renderSpotlightCard('Annual Top Performer', 'Year ' + year, 'bg-danger', 'fa-award', spotAnnualObj);
+
+      // Tabs active state
+      document.querySelectorAll('#perfModeTabs [data-perf-tab]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.perfTab === currentPerfTab);
+      });
+
+      const subWrap = document.getElementById('perfSubSelectorWrap');
+      const subSelect = document.getElementById('perfSubSelect');
+      const snapshotGrid = document.getElementById('perfSnapshotGrid');
+
+      let activePeriod = null;
+
+      if (currentPerfTab === 'monthly') {
+        if (subWrap) subWrap.style.display = 'flex';
+        if (subSelect) {
+          subSelect.innerHTML = perf.monthly.map(m =>
+            `<option value="${m.key}" ${m.key === selectedMonthKey ? 'selected' : ''}>${esc(m.full)} (${m.total_pubs} papers)</option>`
+          ).join('');
+        }
+        activePeriod = perf.monthly.find(m => m.key === selectedMonthKey) || perf.monthly[0];
+        if (snapshotGrid) {
+          snapshotGrid.innerHTML = perf.monthly.map(m => {
+            const isSel = m.key === activePeriod.key;
+            const hasData = m.total_pubs > 0 && m.winner;
+            const winText = hasData
+              ? (m.winners.length > 1 ? `${esc(m.winner.name)} (+${m.winners.length - 1})` : esc(m.winner.name))
+              : 'No data';
+            return `
+              <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <button type="button" class="w-100 period-mini-card ${isSel ? 'selected' : ''} ${!hasData ? 'empty-period' : ''}" data-pick-key="${m.key}">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold small text-dark">${esc(m.short)}</span>
+                    <span class="badge ${hasData ? 'bg-danger' : 'bg-secondary bg-opacity-50'}">${hasData ? m.winner.ros.toFixed(2) : '0.00'}</span>
+                  </div>
+                  <div class="text-truncate small ${hasData ? 'fw-semibold text-primary' : 'text-muted'}" title="${winText}">${winText}</div>
+                  <div class="text-muted" style="font-size: 0.7rem;">${m.total_pubs} papers</div>
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+      } else if (currentPerfTab === 'quarterly') {
+        if (subWrap) subWrap.style.display = 'flex';
+        if (subSelect) {
+          subSelect.innerHTML = perf.quarterly.map(q =>
+            `<option value="${q.key}" ${q.key === selectedQuarterKey ? 'selected' : ''}>${esc(q.label)} (${esc(q.range)})</option>`
+          ).join('');
+        }
+        activePeriod = perf.quarterly.find(q => q.key === selectedQuarterKey) || perf.quarterly[0];
+        if (snapshotGrid) {
+          snapshotGrid.innerHTML = perf.quarterly.map(q => {
+            const isSel = q.key === activePeriod.key;
+            const hasData = q.total_pubs > 0 && q.winner;
+            const winText = hasData
+              ? (q.winners.length > 1 ? `${esc(q.winner.name)} (+${q.winners.length - 1} tied)` : esc(q.winner.name))
+              : 'No publications';
+            return `
+              <div class="col-sm-6 col-lg-3">
+                <button type="button" class="w-100 period-mini-card ${isSel ? 'selected' : ''} ${!hasData ? 'empty-period' : ''}" data-pick-key="${q.key}">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-dark">${esc(q.label)}</span>
+                    <span class="badge ${hasData ? 'bg-success' : 'bg-secondary bg-opacity-50'}">${hasData ? q.winner.ros.toFixed(2) + ' ROS' : '0.00'}</span>
+                  </div>
+                  <div class="small text-muted mb-1">${esc(q.range)}</div>
+                  <div class="text-truncate small ${hasData ? 'fw-bold text-primary' : 'text-muted'}">${winText}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.72rem;">Dept Total: ${q.dept_ros.toFixed(2)} ROS (${q.total_pubs} papers)</div>
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+      } else if (currentPerfTab === 'sixMonthly') {
+        if (subWrap) subWrap.style.display = 'flex';
+        if (subSelect) {
+          subSelect.innerHTML = perf.sixMonthly.map(h =>
+            `<option value="${h.key}" ${h.key === selectedHalfKey ? 'selected' : ''}>${esc(h.label)} (${esc(h.range)})</option>`
+          ).join('');
+        }
+        activePeriod = perf.sixMonthly.find(h => h.key === selectedHalfKey) || perf.sixMonthly[0];
+        if (snapshotGrid) {
+          snapshotGrid.innerHTML = perf.sixMonthly.map(h => {
+            const isSel = h.key === activePeriod.key;
+            const hasData = h.total_pubs > 0 && h.winner;
+            const winText = hasData
+              ? (h.winners.length > 1 ? `${esc(h.winner.name)} (+${h.winners.length - 1} tied)` : esc(h.winner.name))
+              : 'No publications';
+            return `
+              <div class="col-md-6">
+                <button type="button" class="w-100 period-mini-card ${isSel ? 'selected' : ''} ${!hasData ? 'empty-period' : ''}" data-pick-key="${h.key}">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-dark fs-6">${esc(h.label)}</span>
+                    <span class="badge ${hasData ? 'bg-dark' : 'bg-secondary bg-opacity-50'} fs-6">${hasData ? h.winner.ros.toFixed(2) + ' ROS' : '0.00'}</span>
+                  </div>
+                  <div class="small text-muted mb-2">${esc(h.range)}</div>
+                  <div class="text-truncate ${hasData ? 'fw-bold text-primary' : 'text-muted'}">
+                    <i class="fas fa-trophy text-warning me-1"></i>Top: ${winText}
+                  </div>
+                  <div class="small text-muted mt-1">Active Faculty: ${h.active_faculty} &bull; Dept ROS: ${h.dept_ros.toFixed(2)} (${h.total_pubs} papers)</div>
+                </button>
+              </div>
+            `;
+          }).join('');
+        }
+      } else {
+        if (subWrap) subWrap.style.display = 'none';
+        activePeriod = perf.annual;
+        if (snapshotGrid) {
+          const top3 = (activePeriod.top || []).slice(0, 3);
+          if (top3.length === 0) {
+            snapshotGrid.innerHTML = '';
+          } else {
+            const medals = [
+              { lbl: '1st Place (Annual Top)', cls: 'border-warning bg-warning-subtle', badge: 'bg-warning text-dark' },
+              { lbl: '2nd Place', cls: 'border-secondary bg-light', badge: 'bg-secondary' },
+              { lbl: '3rd Place', cls: 'border-info bg-info-subtle', badge: 'bg-info text-dark' }
+            ];
+            snapshotGrid.innerHTML = top3.map((f, idx) => {
+              const m = medals[idx] || medals[2];
+              return `
+                <div class="col-md-4">
+                  <div class="p-3 rounded-3 border ${m.cls} h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="badge ${m.badge}">Rank #${f.rank}</span>
+                      <strong class="text-danger fs-5">${f.ros.toFixed(2)} ROS</strong>
+                    </div>
+                    <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none fs-6 d-block">${esc(f.name)}</a>
+                    <div class="small text-muted">${esc(f.employee_code)} &bull; ${f.total_pubs} papers (Q1:${f.q1}, Q2:${f.q2}, Q3:${f.q3}, Q4:${f.q4})</div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+      }
+
+      // Bind clicks on snapshot cards
+      if (snapshotGrid) {
+        snapshotGrid.querySelectorAll('[data-pick-key]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const key = btn.dataset.pickKey;
+            if (currentPerfTab === 'monthly') selectedMonthKey = key;
+            else if (currentPerfTab === 'quarterly') selectedQuarterKey = key;
+            else if (currentPerfTab === 'sixMonthly') selectedHalfKey = key;
+            renderTopPerformersSection(currentYear, false);
+          });
+        });
+      }
+
+      // Update leaderboard heading & badges
+      const heading = document.getElementById('perfTableHeading');
+      const subHeading = document.getElementById('perfTableSub');
+      const badgesEl = document.getElementById('perfPeriodBadges');
+      if (heading) heading.textContent = `Leaderboard — ${activePeriod.full || activePeriod.label}`;
+      if (subHeading) subHeading.textContent = `${activePeriod.range || activePeriod.full || activePeriod.label} • Ranked by ROS Score (ties share rank)`;
+      if (badgesEl) {
+        badgesEl.innerHTML = `
+          <span class="badge bg-primary">${activePeriod.active_faculty} Active Faculty</span>
+          <span class="badge bg-secondary">${activePeriod.total_pubs} Total Papers</span>
+          <span class="badge bg-danger">${activePeriod.dept_ros.toFixed(2)} Dept ROS</span>
+        `;
+      }
+
+      // Leaderboard rows
+      const lbBody = document.getElementById('perfLeaderboardBody');
+      if (lbBody) {
+        if (!activePeriod.top || activePeriod.top.length === 0) {
+          lbBody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                <i class="fas fa-folder-open me-2"></i>No faculty publications recorded for <strong>${esc(activePeriod.full || activePeriod.label)}</strong>.
+              </td>
+            </tr>
+          `;
+        } else {
+          lbBody.innerHTML = activePeriod.top.map(f => {
+            const sharePct = activePeriod.dept_ros > 0 ? ((f.ros / activePeriod.dept_ros) * 100).toFixed(1) : '0.0';
+            const rankBadge = f.rank === 1
+              ? `<span class="badge bg-warning text-dark fs-6 px-2 py-1"><i class="fas fa-trophy me-1"></i>#1</span>`
+              : (f.rank === 2
+                ? `<span class="badge bg-secondary fs-6 px-2 py-1">#2</span>`
+                : (f.rank === 3
+                  ? `<span class="badge bg-info text-dark fs-6 px-2 py-1">#3</span>`
+                  : `<span class="fw-bold text-muted">#${f.rank}</span>`));
+
+            const avatarHtml = f.photo
+              ? `<img src="/uploads/${esc(f.photo)}" alt="" class="avatar-circle-sm">`
+              : `<div class="avatar-circle-sm">${initials(f.name)}</div>`;
+
+            return `
+              <tr class="${f.rank === 1 ? 'table-warning bg-opacity-25' : ''}">
+                <td>${rankBadge}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    ${avatarHtml}
+                    <div>
+                      <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none">${esc(f.name)}</a>
+                      <div class="small text-muted">${esc(f.designation || 'Faculty')}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center"><span class="badge bg-light text-dark border">${esc(f.employee_code)}</span></td>
+                <td class="text-center fw-bold">${f.total_pubs}</td>
+                <td class="text-center">
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Q1:${f.q1}</span>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Q2:${f.q2}</span>
+                  <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Q3:${f.q3}</span>
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Q4:${f.q4}</span>
+                </td>
+                <td class="text-center"><span class="badge bg-danger fs-6 px-3 py-1">${f.ros.toFixed(2)}</span></td>
+                <td class="text-center small fw-semibold text-muted">${sharePct}%</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function updateYearView(year, updateUrl = true) {
+      currentYear = parseInt(year, 10) || 2026;
+      if (yearSelect && parseInt(yearSelect.value, 10) !== currentYear) yearSelect.value = currentYear;
+      if (perfYearSelect && parseInt(perfYearSelect.value, 10) !== currentYear) perfYearSelect.value = currentYear;
+
       const fallbackMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const data = allYearsData[year] || {
-        year: year,
+      const data = allYearsData[currentYear] || {
+        year: currentYear,
         rows: fallbackMonths.map(m => ({
-          month: m + ' ' + year, q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0
+          month: m + ' ' + currentYear, monthShort: m, q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0, cumulative_ros: 0
         })),
         totals: { q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0 }
       };
@@ -1067,9 +1785,9 @@
       const q1Lbl = document.getElementById('metricYearQ1Label');
       const totLbl = document.getElementById('metricYearTotalLabel');
       const rosLbl = document.getElementById('metricYearRosLabel');
-      if (q1Lbl) q1Lbl.textContent = year;
-      if (totLbl) totLbl.textContent = year;
-      if (rosLbl) rosLbl.textContent = year;
+      if (q1Lbl) q1Lbl.textContent = currentYear;
+      if (totLbl) totLbl.textContent = currentYear;
+      if (rosLbl) rosLbl.textContent = currentYear;
 
       const q1Val = document.getElementById('metricQ1Val');
       const totVal = document.getElementById('metricTotalVal');
@@ -1078,12 +1796,12 @@
       if (q1Val) q1Val.textContent = data.totals.q1;
       if (totVal) totVal.textContent = data.totals.total;
       if (rosVal) rosVal.textContent = data.totals.ros.toFixed(2);
-      if (periodVal) periodVal.textContent = 'Jan – Dec ' + year;
+      if (periodVal) periodVal.textContent = 'Jan – Dec ' + currentYear;
 
       // Update table banner
       const banner = document.getElementById('tableYearBanner');
       if (banner) {
-        banner.innerHTML = 'Research Output Score (ROS) of the UIC Department &bull; Calendar Year ' + year;
+        banner.innerHTML = 'Research Output Score (ROS) of the UIC Department &bull; Calendar Year ' + currentYear;
       }
 
       function renderQuartCell(rosVal, countVal, badgeCls) {
@@ -1138,7 +1856,7 @@
 
       // Update footer
       const footLbl = document.getElementById('tableFooterLabel');
-      if (footLbl) footLbl.innerHTML = `<i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec ${year})`;
+      if (footLbl) footLbl.innerHTML = `<i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec ${currentYear})`;
       const fQ1 = document.getElementById('footQ1');
       const fQ2 = document.getElementById('footQ2');
       const fQ3 = document.getElementById('footQ3');
@@ -1152,18 +1870,60 @@
       if (fTot) fTot.textContent = data.totals.total;
       if (fRos) fRos.textContent = data.totals.ros.toFixed(2) + ' Points';
 
-      // Update URL hash/param
-      if (window.history && window.history.replaceState) {
+      // Render Department ROS Growth Graph + Top Performers
+      renderGrowthChartAndInsights(currentYear, data);
+      renderTopPerformersSection(currentYear, true);
+
+      // Update URL param
+      if (updateUrl && window.history && window.history.replaceState) {
         const newUrl = new URL(window.location);
-        newUrl.searchParams.set('year', year);
-        newUrl.hash = 'monthly-ros';
+        newUrl.searchParams.set('year', currentYear);
         window.history.replaceState({}, '', newUrl);
       }
     }
 
     yearSelect.addEventListener('change', function() {
-      updateYearView(parseInt(this.value, 10));
+      updateYearView(parseInt(this.value, 10), true);
     });
+
+    if (perfYearSelect) {
+      perfYearSelect.addEventListener('change', function() {
+        updateYearView(parseInt(this.value, 10), true);
+      });
+    }
+
+    document.querySelectorAll('[data-chart-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentChartMode = btn.dataset.chartMode;
+        document.querySelectorAll('[data-chart-mode]').forEach(b => b.classList.toggle('active', b === btn));
+        const data = allYearsData[currentYear];
+        if (data) renderGrowthChartAndInsights(currentYear, data);
+      });
+    });
+
+    document.querySelectorAll('#perfModeTabs [data-perf-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPerfTab = btn.dataset.perfTab;
+        renderTopPerformersSection(currentYear, false);
+      });
+    });
+
+    const perfSubSelect = document.getElementById('perfSubSelect');
+    if (perfSubSelect) {
+      perfSubSelect.addEventListener('change', function() {
+        if (currentPerfTab === 'monthly') selectedMonthKey = this.value;
+        else if (currentPerfTab === 'quarterly') selectedQuarterKey = this.value;
+        else if (currentPerfTab === 'sixMonthly') selectedHalfKey = this.value;
+        renderTopPerformersSection(currentYear, false);
+      });
+    }
+
+    // Initial render of Chart + Top Performers for selectedYear
+    const initData = allYearsData[currentYear];
+    if (initData) {
+      renderGrowthChartAndInsights(currentYear, initData);
+    }
+    renderTopPerformersSection(currentYear, true);
 
     // Auto-open Admin Login modal if requested via query param
     const urlParams = new URLSearchParams(window.location.search);

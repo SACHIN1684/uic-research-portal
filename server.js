@@ -265,9 +265,12 @@ app.get('/', (req, res) => {
     const avgROS = totalFaculty ? (faculty.reduce((s, f) => s + f.ros, 0) / totalFaculty).toFixed(2) : '0.00';
 
     // Support dropdown selection of reporting year (e.g. 2024, 2025, 2026, 2027, 2028, 2029, 2030)
+    const yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
     const selectedYear = parseInt(req.query.year, 10) || 2026;
-    const allYearsROS = db.getAllYearsMonthlyROS([2024, 2025, 2026, 2027, 2028, 2029, 2030]);
+    const allYearsROS = db.getAllYearsMonthlyROS(yearsList);
     const monthlyROS = allYearsROS[selectedYear] || db.getDepartmentMonthlyROS(selectedYear);
+    const allYearsTopPerformers = db.getAllYearsTopPerformers(yearsList, 20);
+    const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20);
 
     res.render('home', {
       totalFaculty,
@@ -278,6 +281,8 @@ app.get('/', (req, res) => {
       selectedYear,
       allYearsROS,
       monthlyROS,
+      allYearsTopPerformers,
+      topPerformers,
       query: req.query
     });
   } catch (err) {
@@ -498,6 +503,88 @@ app.get('/export/saturday-roster', (req, res) => {
     res.send(fileBuffer);
   } catch (err) {
     res.status(500).send('Error generating Saturday Roster Off Excel: ' + err.message);
+  }
+});
+
+// Top Performers & Department Growth Excel Download Route
+app.get('/export/top-performers', (req, res) => {
+  try {
+    const year = parseInt(req.query.year, 10) || 2026;
+    const perfData = db.getTopPerformersByYear(year, 0);
+    const rosData = db.getDepartmentMonthlyROS(year);
+
+    function flattenPeriodRows(periods, periodLabelFn) {
+      const rows = [];
+      periods.forEach(p => {
+        if (!p.top || p.top.length === 0) {
+          rows.push({
+            'Period': periodLabelFn(p),
+            'Rank': '-',
+            'Employee Code': '-',
+            'Faculty Name': 'No publications recorded',
+            'Designation': '-',
+            'Publications': 0,
+            'Q1': 0,
+            'Q2': 0,
+            'Q3': 0,
+            'Q4': 0,
+            'ROS Score': 0,
+            'Dept Period ROS': 0
+          });
+          return;
+        }
+        p.top.forEach(f => {
+          rows.push({
+            'Period': periodLabelFn(p),
+            'Rank': f.rank,
+            'Employee Code': f.employee_code,
+            'Faculty Name': f.name,
+            'Designation': f.designation || 'N/A',
+            'Publications': f.total_pubs,
+            'Q1': f.q1,
+            'Q2': f.q2,
+            'Q3': f.q3,
+            'Q4': f.q4,
+            'ROS Score': f.ros,
+            'Dept Period ROS': p.dept_ros
+          });
+        });
+      });
+      return rows;
+    }
+
+    const monthlyRows = flattenPeriodRows(perfData.monthly, p => p.label);
+    const quarterlyRows = flattenPeriodRows(perfData.quarterly, p => `${p.label} (${p.range})`);
+    const sixMonthlyRows = flattenPeriodRows(perfData.sixMonthly, p => `${p.label} (${p.range})`);
+    const annualRows = flattenPeriodRows([perfData.annual], p => p.range);
+    const growthRows = rosData.rows.map(r => ({
+      'Month': r.month,
+      'Q1 ROS': r.q1_ros,
+      'Q2 ROS': r.q2_ros,
+      'Q3 ROS': r.q3_ros,
+      'Q4 ROS': r.q4_ros,
+      'Papers': r.total,
+      'Monthly Dept ROS': r.ros,
+      'Cumulative Dept ROS': r.cumulative_ros,
+      'MoM ROS Change': r.mom_diff === null ? '-' : r.mom_diff,
+      'MoM Growth (%)': r.mom_growth_pct === null ? '-' : `${r.mom_growth_pct}%`
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthlyRows), 'Monthly Top Performers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(quarterlyRows), 'Quarterly Top Performers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sixMonthlyRows), 'Six-Monthly Performers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(annualRows), 'Annual Top Performers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(growthRows), 'Dept ROS Growth');
+
+    const fileBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const filename = `UIC_Top_Performers_Growth_${year}_${new Date().toISOString().substring(0, 10)}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(fileBuffer);
+  } catch (err) {
+    res.status(500).send('Error generating Top Performers Excel: ' + err.message);
   }
 });
 
