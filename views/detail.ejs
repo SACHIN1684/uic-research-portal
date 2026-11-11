@@ -30,6 +30,20 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
       <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home me-1"></i>Home</a>
       <a href="/portal" class="nav-link-btn"><i class="fas fa-th-large me-1"></i>Directory</a>
       <% if (isAdmin) { %>
+        <div class="btn-group btn-group-sm shadow-sm" role="group" aria-label="Undo Redo">
+          <form action="/admin/undo" method="POST" class="d-inline">
+            <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
+            <button type="submit" class="btn btn-outline-light btn-sm fw-semibold" <%= !historyStatus.canUndo ? 'disabled' : '' %> title="<%= historyStatus.canUndo ? 'Undo: ' + historyStatus.undoLabel : 'Nothing to Undo' %>">
+              <i class="fas fa-undo me-1"></i>Undo
+            </button>
+          </form>
+          <form action="/admin/redo" method="POST" class="d-inline">
+            <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
+            <button type="submit" class="btn btn-outline-light btn-sm fw-semibold" <%= !historyStatus.canRedo ? 'disabled' : '' %> title="<%= historyStatus.canRedo ? 'Redo: ' + historyStatus.redoLabel : 'Nothing to Redo' %>">
+              <i class="fas fa-redo me-1"></i>Redo
+            </button>
+          </form>
+        </div>
         <a href="/export/excel" class="btn btn-success btn-sm">
           <i class="fas fa-file-excel me-1"></i>Export Excel
         </a>
@@ -58,6 +72,20 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
   <div class="container" style="max-width:1150px;">
 
     <!-- Alerts -->
+    <% if (query.undo_done) { %>
+      <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-undo me-2 fs-5 align-middle"></i>
+        <strong>Undo Complete:</strong> Reverted "<%= query.undo_done %>".
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.redo_done) { %>
+      <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-redo me-2 fs-5 align-middle"></i>
+        <strong>Redo Complete:</strong> Re-applied "<%= query.redo_done %>".
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
     <% if (query.replaced) { %>
       <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
         <i class="fas fa-sync-alt me-2 fs-5 align-middle"></i>
@@ -355,6 +383,9 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
                           <td class="text-muted small"><%= idx + 1 %></td>
                           <td>
                             <div class="fw-bold text-dark"><%= p.title %></div>
+                            <span class="badge <%= (p.pub_department && p.pub_department.trim().toUpperCase() !== 'UIC') ? 'bg-secondary' : 'bg-info-subtle text-dark border' %>" style="font-size:0.7rem;">
+                              Dept: <%= p.pub_department || 'UIC' %>
+                            </span>
                           </td>
                           <td>
                             <div class="text-muted small"><%= p.source_title || '—' %></div>
@@ -615,9 +646,15 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
               <input type="text" name="eid" class="form-control" placeholder="e.g. 105053427146">
             </div>
 
-            <div class="col-12">
+            <div class="col-md-6">
               <label class="form-label fw-bold">EID based Scopus Link</label>
               <input type="url" name="scopus_link" class="form-control" placeholder="https://www.scopus.com/...">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Department (for Home ROS Table)</label>
+              <input type="text" name="pub_department" class="form-control" value="UIC" placeholder="UIC, or CSE / ECE / USB">
+              <div class="form-text small"><code>UIC</code> goes to UIC table; other names (CSE/ECE/USB) go to Other Dept table.</div>
             </div>
 
           </div>
@@ -764,6 +801,11 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
               <input type="text" name="eid" class="form-control" id="edit_eid" placeholder="e.g. 2-s2.0-85192837190">
             </div>
 
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Department (for Home ROS Table)</label>
+              <input type="text" name="pub_department" class="form-control" id="edit_pub_department" placeholder="UIC, or CSE / ECE / USB">
+            </div>
+
           </div>
         </div>
         <div class="modal-footer bg-light">
@@ -840,6 +882,7 @@ window.openEditPubModal = function(pubId) {
   document.getElementById('edit_link').value = p.link || '';
   document.getElementById('edit_scopus_link').value = p.scopus_link || '';
   document.getElementById('edit_eid').value = p.eid || '';
+  document.getElementById('edit_pub_department').value = p.pub_department || 'UIC';
 
   const modal = new bootstrap.Modal(document.getElementById('editPubModal'));
   modal.show();

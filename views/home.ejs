@@ -451,6 +451,18 @@
           <li class="nav-item">
             <% if (isAdmin) { %>
               <div class="d-flex align-items-center gap-1">
+                <form action="/admin/undo" method="POST" class="d-inline">
+                  <input type="hidden" name="return_to" value="/?year=<%= selectedYear %>#monthly-ros">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm py-2 px-2" <%= !historyStatus.canUndo ? 'disabled' : '' %> title="<%= historyStatus.canUndo ? 'Undo: ' + historyStatus.undoLabel : 'Nothing to Undo' %>">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                </form>
+                <form action="/admin/redo" method="POST" class="d-inline">
+                  <input type="hidden" name="return_to" value="/?year=<%= selectedYear %>#monthly-ros">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm py-2 px-2" <%= !historyStatus.canRedo ? 'disabled' : '' %> title="<%= historyStatus.canRedo ? 'Redo: ' + historyStatus.redoLabel : 'Nothing to Redo' %>">
+                    <i class="fas fa-redo"></i>
+                  </button>
+                </form>
                 <button type="button" class="btn btn-success btn-sm fw-semibold py-2 px-2" data-bs-toggle="modal" data-bs-target="#adminSettingsModal" title="Admin Settings">
                   <i class="fas fa-user-shield me-1"></i>Admin
                 </button>
@@ -472,8 +484,33 @@
     </div>
   </nav>
 
-  <% if (typeof query !== 'undefined' && (query.login_err || query.admin_logged_in || query.admin_logged_out || query.admin_login_required || query.cred_updated || query.cred_err)) { %>
+  <% if (typeof query !== 'undefined' && (query.login_err || query.admin_logged_in || query.admin_logged_out || query.admin_login_required || query.cred_updated || query.cred_err || query.undo_done || query.redo_done || query.history_err || query.counting_updated)) { %>
     <div class="container mt-3">
+      <% if (query.undo_done) { %>
+        <div class="alert alert-info alert-dismissible fade show shadow-sm mb-2" role="alert">
+          <i class="fas fa-undo me-2"></i><strong>Undid Change:</strong> <%= query.undo_done %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.redo_done) { %>
+        <div class="alert alert-info alert-dismissible fade show shadow-sm mb-2" role="alert">
+          <i class="fas fa-redo me-2"></i><strong>Redid Change:</strong> <%= query.redo_done %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.history_err) { %>
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-2" role="alert">
+          <i class="fas fa-info-circle me-2"></i><%= query.history_err %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      <% if (query.counting_updated) { %>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-2" role="alert">
+          <i class="fas fa-check-circle me-2"></i><strong>Counting Mode Updated:</strong>
+          <%= pubCountingMode === 'separate' ? 'Separate author entries mode is now active.' : 'Shared co-author paper = 1 publication mode is now active.' %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
       <% if (query.login_err) { %>
         <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-0" role="alert">
           <i class="fas fa-exclamation-triangle me-2"></i><strong>Login Failed:</strong> <%= query.login_err %>
@@ -705,36 +742,40 @@
         </div>
       </div>
 
-      <!-- Screenshot-Matching Table: Cluster replaced with Month, Jan-Dec Year, Q1-Q4, Total, Research Output Score (ROS) -->
+      <!-- Table 1: Research Output Score (ROS) — UIC Department ONLY -->
       <div class="card border shadow-sm rounded-3 overflow-hidden mb-4">
         <div class="table-responsive">
           <table class="table table-bordered table-hover align-middle mb-0 text-center" style="border-color: #9ac2e8;">
             <thead>
-              <!-- Top Banner Matching the User Screenshot -->
               <tr style="background-color: #bfe3fa; color: #0b1f3f;">
-                <th colspan="7" class="py-2 fs-6 fw-bold text-center text-uppercase" style="letter-spacing: 0.5px;" id="tableYearBanner">
-                  Research Output Score (ROS) of the UIC Department &bull; Calendar Year <%= selectedYear %>
+                <th colspan="8" class="py-2 fs-6 fw-bold text-center text-uppercase" style="letter-spacing: 0.5px;" id="tableUicBanner">
+                  Research Output Score (ROS) &mdash; UIC Department &bull; Calendar Year <%= selectedYear %>
                 </th>
               </tr>
-              <!-- Columns Header Row -->
               <tr style="background-color: #cfe2ff; color: #0b1f3f;">
-                <th class="text-start ps-4 py-3 fw-bold" style="width: 24%; min-width: 165px;">
+                <th class="text-start ps-3 py-3 fw-bold" style="width: 14%; min-width: 120px;">
+                  <i class="fas fa-building me-1 text-primary"></i> Department
+                </th>
+                <th class="text-start ps-3 py-3 fw-bold" style="width: 18%; min-width: 140px;">
                   <i class="fas fa-calendar-day me-1 text-primary"></i> Month
                 </th>
-                <th class="py-3 fw-bold" style="width: 12%; background-color: #dff0d8;">Q1</th>
-                <th class="py-3 fw-bold" style="width: 12%;">Q2</th>
-                <th class="py-3 fw-bold" style="width: 12%;">Q3</th>
-                <th class="py-3 fw-bold" style="width: 12%;">Q4</th>
-                <th class="py-3 fw-bold bg-light" style="width: 12%;">Total</th>
-                <th class="py-3 fw-bold pe-4" style="width: 16%; background-color: #fff3cd; color: #856404;">
+                <th class="py-3 fw-bold" style="width: 11%; background-color: #dff0d8;">Q1</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q2</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q3</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q4</th>
+                <th class="py-3 fw-bold bg-light" style="width: 10%;">Total</th>
+                <th class="py-3 fw-bold pe-3" style="width: 14%; background-color: #fff3cd; color: #856404;">
                   <i class="fas fa-award me-1 text-warning"></i> Research Output Score (ROS)
                 </th>
               </tr>
             </thead>
-            <tbody id="monthlyRosTableBody">
-              <% monthlyROS.rows.forEach(function(row, idx) { %>
+            <tbody id="uicRosTableBody">
+              <% uicMonthlyROS.rows.forEach(function(row, idx) { %>
                 <tr style="<%= row.total > 0 ? 'background-color: #f0fdf4;' : (idx % 2 === 1 ? 'background-color: #fafbfc;' : 'background-color: #ffffff;') %>">
-                  <td class="text-start ps-4 fw-semibold text-dark">
+                  <td class="text-start ps-3">
+                    <span class="badge bg-primary fw-bold px-2 py-1">UIC</span>
+                  </td>
+                  <td class="text-start ps-3 fw-semibold text-dark">
                     <span class="d-inline-flex align-items-center gap-2">
                       <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;"><%= idx + 1 %></span>
                       <strong><%= row.month %></strong>
@@ -778,7 +819,7 @@
                       <div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>
                     <% } %>
                   </td>
-                  <td class="pe-4 fw-bold fs-6">
+                  <td class="pe-3 fw-bold fs-6">
                     <% if (row.ros > 0) { %>
                       <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
                     <% } else { %>
@@ -789,30 +830,30 @@
               <% }); %>
             </tbody>
             <tfoot>
-              <!-- Grand Total Summary Row -->
               <tr style="background-color: #e2e8f0; font-size: 1.05rem;" class="border-top-2 border-primary">
-                <td class="text-start ps-4 fw-bold text-dark py-3" id="tableFooterLabel">
-                  <i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec <%= selectedYear %>)
+                <td class="text-start ps-3 fw-bold text-primary py-3">UIC Total</td>
+                <td class="text-start ps-3 fw-bold text-dark py-3" id="uicFooterLabel">
+                  <i class="fas fa-calculator me-1 text-primary"></i> Jan – Dec <%= selectedYear %>
                 </td>
-                <td class="fw-bold text-success py-3 fs-5" id="footQ1">
-                  <%= monthlyROS.totals.q1_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q1 %> papers)</div>
+                <td class="fw-bold text-success py-3 fs-5" id="uicFootQ1">
+                  <%= uicMonthlyROS.totals.q1_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q1 %> papers)</div>
                 </td>
-                <td class="fw-bold text-primary py-3 fs-5" id="footQ2">
-                  <%= monthlyROS.totals.q2_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q2 %> papers)</div>
+                <td class="fw-bold text-primary py-3 fs-5" id="uicFootQ2">
+                  <%= uicMonthlyROS.totals.q2_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q2 %> papers)</div>
                 </td>
-                <td class="fw-bold text-info py-3 fs-5" id="footQ3">
-                  <%= monthlyROS.totals.q3_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q3 %> papers)</div>
+                <td class="fw-bold text-info py-3 fs-5" id="uicFootQ3">
+                  <%= uicMonthlyROS.totals.q3_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q3 %> papers)</div>
                 </td>
-                <td class="fw-bold text-warning text-dark py-3 fs-5" id="footQ4">
-                  <%= monthlyROS.totals.q4_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= monthlyROS.totals.q4 %> papers)</div>
+                <td class="fw-bold text-warning text-dark py-3 fs-5" id="uicFootQ4">
+                  <%= uicMonthlyROS.totals.q4_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q4 %> papers)</div>
                 </td>
-                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="footTotal"><%= monthlyROS.totals.total %></td>
-                <td class="pe-4 fw-bold text-danger py-3 fs-5 bg-light">
-                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="footRos"><%= monthlyROS.totals.ros.toFixed(2) %> Points</span>
+                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="uicFootTotal"><%= uicMonthlyROS.totals.total %></td>
+                <td class="pe-3 fw-bold text-danger py-3 fs-5 bg-light">
+                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="uicFootRos"><%= uicMonthlyROS.totals.ros.toFixed(2) %> Points</span>
                 </td>
               </tr>
             </tfoot>
@@ -821,7 +862,7 @@
         <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="small text-muted">
             <i class="fas fa-info-circle me-1 text-primary"></i>
-            Each <strong>Q1–Q4</strong> cell shows the total <strong>ROS</strong> points of all authors matching that <strong>Quartile</strong> column (with paper count below).
+            <strong>UIC Table:</strong> Publications with Department = <strong>UIC</strong>.
             <span class="badge <%= pubCountingMode === 'separate' ? 'bg-warning text-dark' : 'bg-success' %> ms-1">
               <i class="fas <%= pubCountingMode === 'separate' ? 'fa-users' : 'fa-file-check' %> me-1"></i>
               <%= pubCountingMode === 'separate' ? 'Counting Mode: Separate per Author' : 'Counting Mode: Shared Co-Author Paper = 1 Publication' %>
@@ -848,7 +889,133 @@
         </div>
       </div>
 
-      <!-- Month-wise Department ROS Growth Graph (Displayed After ROS Table) -->
+      <!-- Table 2: Research Output Score (ROS) — Other Department Deputed in UIC -->
+      <div class="card border shadow-sm rounded-3 overflow-hidden mb-4">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle mb-0 text-center" style="border-color: #d8b4fe;">
+            <thead>
+              <tr style="background-color: #ede9fe; color: #3b0764;">
+                <th colspan="8" class="py-2 fs-6 fw-bold text-center text-uppercase" style="letter-spacing: 0.5px;" id="tableOtherBanner">
+                  Research Output Score (ROS) &mdash; Other Department Deputed in UIC &bull; Calendar Year <%= selectedYear %>
+                </th>
+              </tr>
+              <tr style="background-color: #f3e8ff; color: #3b0764;">
+                <th class="text-start ps-3 py-3 fw-bold" style="width: 14%; min-width: 135px;">
+                  <i class="fas fa-project-diagram me-1 text-purple"></i> Department
+                </th>
+                <th class="text-start ps-3 py-3 fw-bold" style="width: 18%; min-width: 140px;">
+                  <i class="fas fa-calendar-day me-1"></i> Month
+                </th>
+                <th class="py-3 fw-bold" style="width: 11%; background-color: #dff0d8;">Q1</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q2</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q3</th>
+                <th class="py-3 fw-bold" style="width: 11%;">Q4</th>
+                <th class="py-3 fw-bold bg-light" style="width: 10%;">Total</th>
+                <th class="py-3 fw-bold pe-3" style="width: 14%; background-color: #fff3cd; color: #856404;">
+                  <i class="fas fa-award me-1 text-warning"></i> Research Output Score (ROS)
+                </th>
+              </tr>
+            </thead>
+            <tbody id="otherRosTableBody">
+              <% otherMonthlyROS.rows.forEach(function(row, idx) { %>
+                <tr style="<%= row.total > 0 ? 'background-color: #faf5ff;' : (idx % 2 === 1 ? 'background-color: #fafbfc;' : 'background-color: #ffffff;') %>">
+                  <td class="text-start ps-3">
+                    <span class="badge bg-secondary fw-bold px-2 py-1">Other Dept (Deputed in UIC)</span>
+                    <% if (row.departments && row.departments.length > 0) { %>
+                      <div class="small text-muted mt-1" style="font-size: 0.7rem;"><%= row.departments.join(', ') %></div>
+                    <% } %>
+                  </td>
+                  <td class="text-start ps-3 fw-semibold text-dark">
+                    <span class="d-inline-flex align-items-center gap-2">
+                      <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;"><%= idx + 1 %></span>
+                      <strong><%= row.month %></strong>
+                    </span>
+                  </td>
+                  <td>
+                    <% if (row.q1 > 0 || row.q1_ros > 0) { %>
+                      <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q2 > 0 || row.q2_ros > 0) { %>
+                      <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q3 > 0 || row.q3_ros > 0) { %>
+                      <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (row.q4 > 0 || row.q4_ros > 0) { %>
+                      <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
+                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                  <td class="fw-bold fs-6 <%= row.total > 0 ? 'text-primary' : 'text-muted' %>">
+                    <%= row.total %>
+                    <% if (row.total > 0) { %>
+                      <div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>
+                    <% } %>
+                  </td>
+                  <td class="pe-3 fw-bold fs-6">
+                    <% if (row.ros > 0) { %>
+                      <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                    <% } else { %>
+                      <span class="text-muted">0.00</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #f3e8ff; font-size: 1.05rem;" class="border-top-2">
+                <td class="text-start ps-3 fw-bold py-3" style="color: #3b0764;">Other Dept Total</td>
+                <td class="text-start ps-3 fw-bold text-dark py-3" id="otherFooterLabel">
+                  <i class="fas fa-calculator me-1"></i> Jan – Dec <%= selectedYear %>
+                </td>
+                <td class="fw-bold text-success py-3 fs-5" id="otherFootQ1">
+                  <%= otherMonthlyROS.totals.q1_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q1 %> papers)</div>
+                </td>
+                <td class="fw-bold text-primary py-3 fs-5" id="otherFootQ2">
+                  <%= otherMonthlyROS.totals.q2_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q2 %> papers)</div>
+                </td>
+                <td class="fw-bold text-info py-3 fs-5" id="otherFootQ3">
+                  <%= otherMonthlyROS.totals.q3_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q3 %> papers)</div>
+                </td>
+                <td class="fw-bold text-warning text-dark py-3 fs-5" id="otherFootQ4">
+                  <%= otherMonthlyROS.totals.q4_ros.toFixed(2) %>
+                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q4 %> papers)</div>
+                </td>
+                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="otherFootTotal"><%= otherMonthlyROS.totals.total %></td>
+                <td class="pe-3 fw-bold text-danger py-3 fs-5 bg-light">
+                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="otherFootRos"><%= otherMonthlyROS.totals.ros.toFixed(2) %> Points</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="card-footer bg-light py-2 px-4 small text-muted">
+          <i class="fas fa-info-circle me-1"></i>
+          <strong>Other Department Deputed in UIC:</strong> Automatically collects publications whose uploaded <strong>Department</strong> column specifies another department (e.g., <strong>USB</strong>, <strong>ECE</strong>, <strong>CSE</strong>, etc.).
+        </div>
+      </div>
+
+      <!-- Month-wise Department ROS Growth Graph (Displayed After ROS Tables) -->
       <div class="card border shadow-sm rounded-3 overflow-hidden">
         <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3 border-bottom">
           <div>
@@ -860,16 +1027,23 @@
               Tracks monthly department Research Output Score (ROS) and cumulative growth trajectory across the year.
             </div>
           </div>
-          <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Mode">
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn active fw-semibold" data-chart-mode="growth">
-              <i class="fas fa-chart-area me-1"></i>ROS + Cumulative Growth
-            </button>
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="papers">
-              <i class="fas fa-chart-bar me-1"></i>Monthly ROS vs Papers
-            </button>
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="quartile">
-              <i class="fas fa-layer-group me-1"></i>Quartile Breakdown (Q1–Q4)
-            </button>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <select id="chartScopeSelect" class="form-select form-select-sm fw-bold border-primary" style="width: auto;">
+              <option value="all">Combined (UIC + Other Deputed)</option>
+              <option value="uic">UIC Department Only</option>
+              <option value="other">Other Dept Deputed in UIC Only</option>
+            </select>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Mode">
+              <button type="button" class="btn btn-outline-secondary chart-mode-btn active fw-semibold" data-chart-mode="growth">
+                <i class="fas fa-chart-area me-1"></i>ROS + Cumulative Growth
+              </button>
+              <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="papers">
+                <i class="fas fa-chart-bar me-1"></i>Monthly ROS vs Papers
+              </button>
+              <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="quartile">
+                <i class="fas fa-layer-group me-1"></i>Quartile Breakdown (Q1–Q4)
+              </button>
+            </div>
           </div>
         </div>
         <div class="card-body p-4">
@@ -1312,15 +1486,20 @@
   <script id="allYearsDataJson" type="application/json">
     <%- JSON.stringify(allYearsROS) %>
   </script>
+  <script id="splitDeptDataJson" type="application/json">
+    <%- JSON.stringify(splitDeptROS) %>
+  </script>
   <script id="allYearsTopPerformersJson" type="application/json">
     <%- JSON.stringify(allYearsTopPerformers) %>
   </script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const allYearsData = JSON.parse(document.getElementById('allYearsDataJson').textContent);
+    const splitDeptData = JSON.parse(document.getElementById('splitDeptDataJson').textContent);
     const allYearsPerf = JSON.parse(document.getElementById('allYearsTopPerformersJson').textContent);
     const yearSelect = document.getElementById('reportingYearSelect');
     const perfYearSelect = document.getElementById('perfYearSelect');
+    const chartScopeSelect = document.getElementById('chartScopeSelect');
     if (!yearSelect) return;
 
     function esc(str) {
@@ -1337,6 +1516,7 @@
 
     let currentYear = parseInt(yearSelect.value, 10) || 2026;
     let currentChartMode = 'growth';
+    let currentChartScope = 'all';
     let currentPerfTab = 'monthly';
     let selectedMonthKey = null;
     let selectedQuarterKey = null;
@@ -1826,66 +2006,126 @@
         return `<span class="text-muted">0.00</span>`;
       }
 
-      // Update table rows
-      const tbody = document.getElementById('monthlyRosTableBody');
-      if (tbody) {
-        tbody.innerHTML = '';
-        data.rows.forEach((row, idx) => {
-          const tr = document.createElement('tr');
-          if (row.total > 0) {
-            tr.style.backgroundColor = '#f0fdf4';
-          } else if (idx % 2 === 1) {
-            tr.style.backgroundColor = '#fafbfc';
-          } else {
-            tr.style.backgroundColor = '#ffffff';
-          }
-
-          const q1Badge = renderQuartCell(row.q1_ros || 0, row.q1 || 0, 'bg-success');
-          const q2Badge = renderQuartCell(row.q2_ros || 0, row.q2 || 0, 'bg-primary');
-          const q3Badge = renderQuartCell(row.q3_ros || 0, row.q3 || 0, 'bg-info text-dark');
-          const q4Badge = renderQuartCell(row.q4_ros || 0, row.q4 || 0, 'bg-warning text-dark');
-          const totalClass = row.total > 0 ? 'text-primary' : 'text-muted';
-          const totalCell = row.total > 0
-            ? `${row.total}<div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>`
-            : `0`;
-          const rosBadge = row.ros > 0 ? `<span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm">${row.ros.toFixed(2)}</span>` : `<span class="text-muted">0.00</span>`;
-
-          tr.innerHTML = `
-            <td class="text-start ps-4 fw-semibold text-dark">
-              <span class="d-inline-flex align-items-center gap-2">
-                <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;">${idx + 1}</span>
-                <strong>${row.month}</strong>
-              </span>
-            </td>
-            <td>${q1Badge}</td>
-            <td>${q2Badge}</td>
-            <td>${q3Badge}</td>
-            <td>${q4Badge}</td>
-            <td class="fw-bold fs-6 ${totalClass}">${totalCell}</td>
-            <td class="pe-4 fw-bold fs-6">${rosBadge}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+      function makeFallbackYear(y) {
+        return {
+          year: y,
+          rows: fallbackMonths.map(m => ({
+            month: m + ' ' + y, monthShort: m, departments: [], q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0, cumulative_ros: 0
+          })),
+          totals: { q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0 }
+        };
       }
 
-      // Update footer
-      const footLbl = document.getElementById('tableFooterLabel');
-      if (footLbl) footLbl.innerHTML = `<i class="fas fa-calculator me-1 text-primary"></i> Total (Jan – Dec ${currentYear})`;
-      const fQ1 = document.getElementById('footQ1');
-      const fQ2 = document.getElementById('footQ2');
-      const fQ3 = document.getElementById('footQ3');
-      const fQ4 = document.getElementById('footQ4');
-      const fTot = document.getElementById('footTotal');
-      const fRos = document.getElementById('footRos');
-      if (fQ1) fQ1.innerHTML = `${(data.totals.q1_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q1} papers)</div>`;
-      if (fQ2) fQ2.innerHTML = `${(data.totals.q2_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q2} papers)</div>`;
-      if (fQ3) fQ3.innerHTML = `${(data.totals.q3_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q3} papers)</div>`;
-      if (fQ4) fQ4.innerHTML = `${(data.totals.q4_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${data.totals.q4} papers)</div>`;
-      if (fTot) fTot.textContent = data.totals.total;
-      if (fRos) fRos.textContent = data.totals.ros.toFixed(2) + ' Points';
+      function renderSplitDeptTable(cfg, tableData) {
+        const banner = document.getElementById(cfg.bannerId);
+        if (banner) {
+          banner.innerHTML = `${cfg.bannerTitle} &bull; Calendar Year ${currentYear}`;
+        }
+
+        const tbody = document.getElementById(cfg.tbodyId);
+        if (tbody) {
+          tbody.innerHTML = '';
+          tableData.rows.forEach((row, idx) => {
+            const tr = document.createElement('tr');
+            if (row.total > 0) {
+              tr.style.backgroundColor = cfg.activeRowBg;
+            } else if (idx % 2 === 1) {
+              tr.style.backgroundColor = '#fafbfc';
+            } else {
+              tr.style.backgroundColor = '#ffffff';
+            }
+
+            const q1Badge = renderQuartCell(row.q1_ros || 0, row.q1 || 0, 'bg-success');
+            const q2Badge = renderQuartCell(row.q2_ros || 0, row.q2 || 0, 'bg-primary');
+            const q3Badge = renderQuartCell(row.q3_ros || 0, row.q3 || 0, 'bg-info text-dark');
+            const q4Badge = renderQuartCell(row.q4_ros || 0, row.q4 || 0, 'bg-warning text-dark');
+            const totalClass = row.total > 0 ? 'text-primary' : 'text-muted';
+            const totalCell = row.total > 0
+              ? `${row.total}<div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>`
+              : `0`;
+            const rosBadge = row.ros > 0 ? `<span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm">${row.ros.toFixed(2)}</span>` : `<span class="text-muted">0.00</span>`;
+            const deptSub = (!cfg.isUic && row.departments && row.departments.length > 0)
+              ? `<div class="small text-muted mt-1" style="font-size: 0.7rem;">${esc(row.departments.join(', '))}</div>`
+              : '';
+
+            tr.innerHTML = `
+              <td class="text-start ps-3">
+                <span class="badge ${cfg.deptBadgeCls} fw-bold px-2 py-1">${cfg.deptBadgeText}</span>
+                ${deptSub}
+              </td>
+              <td class="text-start ps-3 fw-semibold text-dark">
+                <span class="d-inline-flex align-items-center gap-2">
+                  <span class="badge rounded-circle bg-secondary bg-opacity-25 text-dark" style="width: 22px; height: 22px; line-height: 16px; font-size: 0.72rem;">${idx + 1}</span>
+                  <strong>${row.month}</strong>
+                </span>
+              </td>
+              <td>${q1Badge}</td>
+              <td>${q2Badge}</td>
+              <td>${q3Badge}</td>
+              <td>${q4Badge}</td>
+              <td class="fw-bold fs-6 ${totalClass}">${totalCell}</td>
+              <td class="pe-3 fw-bold fs-6">${rosBadge}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        const footLbl = document.getElementById(cfg.footerLabelId);
+        if (footLbl) footLbl.innerHTML = `<i class="fas fa-calculator me-1"></i> Jan – Dec ${currentYear}`;
+        const fQ1 = document.getElementById(cfg.footQ1Id);
+        const fQ2 = document.getElementById(cfg.footQ2Id);
+        const fQ3 = document.getElementById(cfg.footQ3Id);
+        const fQ4 = document.getElementById(cfg.footQ4Id);
+        const fTot = document.getElementById(cfg.footTotalId);
+        const fRos = document.getElementById(cfg.footRosId);
+        if (fQ1) fQ1.innerHTML = `${(tableData.totals.q1_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q1} papers)</div>`;
+        if (fQ2) fQ2.innerHTML = `${(tableData.totals.q2_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q2} papers)</div>`;
+        if (fQ3) fQ3.innerHTML = `${(tableData.totals.q3_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q3} papers)</div>`;
+        if (fQ4) fQ4.innerHTML = `${(tableData.totals.q4_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q4} papers)</div>`;
+        if (fTot) fTot.textContent = tableData.totals.total;
+        if (fRos) fRos.textContent = tableData.totals.ros.toFixed(2) + ' Points';
+      }
+
+      const uicData = (splitDeptData.uic && splitDeptData.uic[currentYear]) || makeFallbackYear(currentYear);
+      const otherData = (splitDeptData.other && splitDeptData.other[currentYear]) || makeFallbackYear(currentYear);
+
+      renderSplitDeptTable({
+        isUic: true,
+        bannerId: 'tableUicBanner',
+        bannerTitle: 'Research Output Score (ROS) &mdash; UIC Department',
+        tbodyId: 'uicRosTableBody',
+        activeRowBg: '#f0fdf4',
+        deptBadgeCls: 'bg-primary',
+        deptBadgeText: 'UIC',
+        footerLabelId: 'uicFooterLabel',
+        footQ1Id: 'uicFootQ1',
+        footQ2Id: 'uicFootQ2',
+        footQ3Id: 'uicFootQ3',
+        footQ4Id: 'uicFootQ4',
+        footTotalId: 'uicFootTotal',
+        footRosId: 'uicFootRos'
+      }, uicData);
+
+      renderSplitDeptTable({
+        isUic: false,
+        bannerId: 'tableOtherBanner',
+        bannerTitle: 'Research Output Score (ROS) &mdash; Other Department Deputed in UIC',
+        tbodyId: 'otherRosTableBody',
+        activeRowBg: '#faf5ff',
+        deptBadgeCls: 'bg-secondary',
+        deptBadgeText: 'Other Dept (Deputed in UIC)',
+        footerLabelId: 'otherFooterLabel',
+        footQ1Id: 'otherFootQ1',
+        footQ2Id: 'otherFootQ2',
+        footQ3Id: 'otherFootQ3',
+        footQ4Id: 'otherFootQ4',
+        footTotalId: 'otherFootTotal',
+        footRosId: 'otherFootRos'
+      }, otherData);
 
       // Render Department ROS Growth Graph + Top Performers
-      renderGrowthChartAndInsights(currentYear, data);
+      const chartSourceData = (splitDeptData[currentChartScope] && splitDeptData[currentChartScope][currentYear]) || data;
+      renderGrowthChartAndInsights(currentYear, chartSourceData);
       renderTopPerformersSection(currentYear, true);
 
       // Update URL param
@@ -1906,12 +2146,20 @@
       });
     }
 
+    if (chartScopeSelect) {
+      chartScopeSelect.addEventListener('change', function() {
+        currentChartScope = this.value || 'all';
+        const chartSourceData = (splitDeptData[currentChartScope] && splitDeptData[currentChartScope][currentYear]) || allYearsData[currentYear];
+        if (chartSourceData) renderGrowthChartAndInsights(currentYear, chartSourceData);
+      });
+    }
+
     document.querySelectorAll('[data-chart-mode]').forEach(btn => {
       btn.addEventListener('click', () => {
         currentChartMode = btn.dataset.chartMode;
         document.querySelectorAll('[data-chart-mode]').forEach(b => b.classList.toggle('active', b === btn));
-        const data = allYearsData[currentYear];
-        if (data) renderGrowthChartAndInsights(currentYear, data);
+        const chartSourceData = (splitDeptData[currentChartScope] && splitDeptData[currentChartScope][currentYear]) || allYearsData[currentYear];
+        if (chartSourceData) renderGrowthChartAndInsights(currentYear, chartSourceData);
       });
     });
 

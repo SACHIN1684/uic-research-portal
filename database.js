@@ -6,7 +6,12 @@ const crypto = require('crypto');
 const DB_PATH = path.join(__dirname, 'research_portal.db');
 
 let db = null;
+let SQLRef = null;
 let isBrandNewDB = false;
+
+const MAX_HISTORY_STEPS = 30;
+let undoStack = [];
+let redoStack = [];
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -26,6 +31,7 @@ function verifyPassword(password, storedHash) {
 
 async function initDB() {
   const SQL = await initSqlJs();
+  SQLRef = SQL;
 
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
@@ -108,8 +114,89 @@ async function initDB() {
     );
   }
 
+  // Safe migration: add pub_department column to publications if absent
+  const pubCols = queryAll("PRAGMA table_info('publications')");
+  if (!pubCols.some(c => c.name === 'pub_department')) {
+    db.run("ALTER TABLE publications ADD COLUMN pub_department TEXT DEFAULT 'UIC'");
+    db.run("UPDATE publications SET pub_department = 'UIC' WHERE pub_department IS NULL OR TRIM(pub_department) = ''");
+  }
+
   saveDB();
   return db;
+}
+
+function captureSnapshot(label) {
+  if (!db) return null;
+  return {
+    label: String(label || 'Change'),
+    timestamp: new Date().toISOString(),
+    buffer: Buffer.from(db.export())
+  };
+}
+
+function recordUndoState(label) {
+  const snap = captureSnapshot(label);
+  if (!snap) return;
+  undoStack.push(snap);
+  if (undoStack.length > MAX_HISTORY_STEPS) {
+    undoStack.shift();
+  }
+  redoStack = [];
+}
+
+function restoreSnapshot(snap) {
+  if (!snap || !SQLRef) return false;
+  // Preserve active admin credentials/session secret so undo/redo never logs out admin
+  const currentAdmin = queryOne('SELECT username, password_hash, session_secret, updated_at FROM admin_config WHERE id = 1');
+  db = new SQLRef.Database(snap.buffer);
+
+  // Ensure schema compatibility
+  const pubCols = queryAll("PRAGMA table_info('publications')");
+  if (!pubCols.some(c => c.name === 'pub_department')) {
+    db.run("ALTER TABLE publications ADD COLUMN pub_department TEXT DEFAULT 'UIC'");
+  }
+
+  if (currentAdmin) {
+    db.run(
+      'UPDATE admin_config SET username = ?, password_hash = ?, session_secret = ?, updated_at = ? WHERE id = 1',
+      [currentAdmin.username, currentAdmin.password_hash, currentAdmin.session_secret, currentAdmin.updated_at]
+    );
+  }
+  saveDB();
+  return true;
+}
+
+function undoAction() {
+  if (undoStack.length === 0) {
+    return { ok: false, message: 'Nothing to undo.' };
+  }
+  const targetSnap = undoStack.pop();
+  const currentSnap = captureSnapshot(targetSnap.label);
+  if (currentSnap) redoStack.push(currentSnap);
+  restoreSnapshot(targetSnap);
+  return { ok: true, label: targetSnap.label };
+}
+
+function redoAction() {
+  if (redoStack.length === 0) {
+    return { ok: false, message: 'Nothing to redo.' };
+  }
+  const targetSnap = redoStack.pop();
+  const currentSnap = captureSnapshot(targetSnap.label);
+  if (currentSnap) undoStack.push(currentSnap);
+  restoreSnapshot(targetSnap);
+  return { ok: true, label: targetSnap.label };
+}
+
+function getHistoryStatus() {
+  return {
+    canUndo: undoStack.length > 0,
+    canRedo: redoStack.length > 0,
+    undoCount: undoStack.length,
+    redoCount: redoStack.length,
+    undoLabel: undoStack.length > 0 ? undoStack[undoStack.length - 1].label : '',
+    redoLabel: redoStack.length > 0 ? redoStack[redoStack.length - 1].label : ''
+  };
 }
 
 function saveDB() {
@@ -173,6 +260,22 @@ function getPubCountingMode() {
   const row = queryOne("SELECT value FROM portal_settings WHERE key = 'pub_counting_mode'");
   const val = row ? String(row.value || '').trim().toLowerCase() : 'unique';
   return val === 'separate' ? 'separate' : 'unique';
+}
+
+function normalizePubDepartment(deptRaw) {
+  const d = String(deptRaw || '').trim();
+  return d || 'UIC';
+}
+
+function isUicDepartment(deptRaw) {
+  const d = String(deptRaw || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  if (!d) return true;
+  return (
+    d === 'UIC' ||
+    d === 'UIC DEPARTMENT' ||
+    d === 'UNIVERSITY INSTITUTE OF COMPUTING' ||
+    d === 'UNIVERSITY INSTITUTE OF COMPUTING (UIC)'
+  );
 }
 
 function setPubCountingMode(mode) {
@@ -603,9 +706,10 @@ function deleteAllFaculty() {
 
 function addPublication(facultyId, data) {
   const ros = parseFloat(data.ros) || 0.0;
+  const pubDept = normalizePubDepartment(data.pub_department);
   db.run(`
-    INSERT INTO publications (faculty_id, pub_type, document_type, title, source_title, author_name, ros, quartile, link, apn, scopus_link, eid, month)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO publications (faculty_id, pub_type, document_type, title, source_title, author_name, ros, quartile, link, apn, scopus_link, eid, month, pub_department)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     facultyId,
     data.pub_type || 'Journal',
@@ -619,7 +723,8 @@ function addPublication(facultyId, data) {
     (data.apn || '').trim(),
     (data.scopus_link || '').trim(),
     (data.eid || '').trim(),
-    data.month || new Date().toISOString().substring(0, 7)
+    data.month || new Date().toISOString().substring(0, 7),
+    pubDept
   ]);
   saveDB();
 }
@@ -745,6 +850,7 @@ function getPublicationById(pubId) {
 
 function updatePublication(pubId, data) {
   const ros = parseFloat(data.ros) || 0.0;
+  const pubDept = normalizePubDepartment(data.pub_department);
   db.run(`
     UPDATE publications SET
       pub_type = ?,
@@ -758,7 +864,8 @@ function updatePublication(pubId, data) {
       apn = ?,
       scopus_link = ?,
       eid = ?,
-      month = ?
+      month = ?,
+      pub_department = ?
     WHERE id = ?
   `, [
     data.pub_type || 'Journal',
@@ -773,6 +880,7 @@ function updatePublication(pubId, data) {
     (data.scopus_link || '').trim(),
     (data.eid || '').trim(),
     data.month || new Date().toISOString().substring(0, 7),
+    pubDept,
     pubId
   ]);
   saveDB();
@@ -927,9 +1035,19 @@ function parsePublicationYearMonth(monthStr) {
   return null;
 }
 
-function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
+function filterPubsByDeptScope(pubs, deptScope = 'all') {
+  if (deptScope === 'uic') {
+    return pubs.filter(p => isUicDepartment(p.pub_department));
+  }
+  if (deptScope === 'other') {
+    return pubs.filter(p => !isUicDepartment(p.pub_department));
+  }
+  return pubs;
+}
+
+function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode(), deptScope = 'all') {
   const y = parseInt(year, 10) || 2026;
-  const allPubs = queryAll('SELECT * FROM publications');
+  const allPubs = filterPubsByDeptScope(queryAll('SELECT * FROM publications'), deptScope);
 
   let runningRos = 0;
   let runningPubs = 0;
@@ -946,6 +1064,10 @@ function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
     const total = stats.total;
     const ros = stats.ros;
 
+    const deptSet = Array.from(
+      new Set(monthPubs.map(p => normalizePubDepartment(p.pub_department)))
+    );
+
     runningRos = parseFloat((runningRos + ros).toFixed(2));
     runningPubs += total;
 
@@ -961,6 +1083,7 @@ function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
       monthShort: m.short,
       monthFull: `${m.full} ${y}`,
       key,
+      departments: deptSet,
       q1: stats.q1,
       q2: stats.q2,
       q3: stats.q3,
@@ -985,6 +1108,7 @@ function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
     return parsed && parsed.year === y;
   });
   const yearStats = computeDepartmentQuartileStats(yearPubs, mode);
+  const yearDepts = Array.from(new Set(yearPubs.map(p => normalizePubDepartment(p.pub_department))));
 
   const totals = {
     q1: yearStats.q1,
@@ -999,15 +1123,23 @@ function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
     ros: parseFloat(rows.reduce((s, r) => s + r.ros, 0).toFixed(2))
   };
 
-  return { year: y, mode, rows, totals };
+  return { year: y, mode, deptScope, departments: yearDepts, rows, totals };
 }
 
-function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], mode = getPubCountingMode()) {
+function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], mode = getPubCountingMode(), deptScope = 'all') {
   const result = {};
   yearsList.forEach(y => {
-    result[y] = getDepartmentMonthlyROS(y, mode);
+    result[y] = getDepartmentMonthlyROS(y, mode, deptScope);
   });
   return result;
+}
+
+function getAllYearsSplitDepartmentROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], mode = getPubCountingMode()) {
+  return {
+    uic: getAllYearsMonthlyROS(yearsList, mode, 'uic'),
+    other: getAllYearsMonthlyROS(yearsList, mode, 'other'),
+    all: getAllYearsMonthlyROS(yearsList, mode, 'all')
+  };
 }
 
 function getDepartmentMonthlyROS2026() {
@@ -1206,12 +1338,19 @@ module.exports = {
   getAdminConfig,
   verifyAdminLogin,
   updateAdminCredentials,
+  recordUndoState,
+  undoAction,
+  redoAction,
+  getHistoryStatus,
   getPubCountingMode,
   setPubCountingMode,
+  normalizePubDepartment,
+  isUicDepartment,
   getDepartmentPublicationOverview,
   getAllFacultyWithStats,
   getDepartmentMonthlyROS,
   getAllYearsMonthlyROS,
+  getAllYearsSplitDepartmentROS,
   getDepartmentMonthlyROS2026,
   getTopPerformersByYear,
   getAllYearsTopPerformers,

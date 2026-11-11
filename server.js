@@ -82,8 +82,23 @@ app.use((req, res, next) => {
   req.adminUsername = tokenData ? tokenData.u : null;
   res.locals.isAdmin = req.isAdmin;
   res.locals.adminUsername = req.adminUsername;
+  res.locals.historyStatus = req.isAdmin
+    ? db.getHistoryStatus()
+    : { canUndo: false, canRedo: false, undoCount: 0, redoCount: 0, undoLabel: '', redoLabel: '' };
   next();
 });
+
+// In-memory store for detailed Pending / Unmatched Faculty reports from Master Excel uploads
+const pendingMasterUploads = new Map();
+function savePendingMasterReport(report) {
+  const id = 'pend_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  pendingMasterUploads.set(id, { id, createdAt: new Date().toISOString(), ...report });
+  if (pendingMasterUploads.size > 20) {
+    const oldestKey = pendingMasterUploads.keys().next().value;
+    pendingMasterUploads.delete(oldestKey);
+  }
+  return id;
+}
 
 // Middleware guarding all editing/adding/uploading/deleting routes
 function requireAdmin(req, res, next) {
@@ -257,6 +272,7 @@ app.post('/admin/update-credentials', requireAdmin, (req, res) => {
 app.post('/admin/settings/counting-mode', requireAdmin, (req, res) => {
   try {
     const mode = req.body.mode === 'separate' ? 'separate' : 'unique';
+    db.recordUndoState(`Change Counting Mode to ${mode === 'separate' ? 'Separate' : '1 Paper (Unique)'}`);
     db.setPubCountingMode(mode);
     const nextUrl = getSafeRedirectTarget(req.body.return_to, '/portal');
     const [basePath, hashPart] = nextUrl.split('#');
@@ -266,6 +282,31 @@ app.post('/admin/settings/counting-mode', requireAdmin, (req, res) => {
   } catch (err) {
     res.redirect('/portal?master_err=' + encodeURIComponent(err.message));
   }
+});
+
+// Admin Undo / Redo actions
+app.post('/admin/undo', requireAdmin, (req, res) => {
+  const nextUrl = getSafeRedirectTarget(req.body.return_to, '/portal');
+  const [basePath, hashPart] = nextUrl.split('#');
+  const hashSuffix = hashPart ? `#${hashPart}` : '';
+  const result = db.undoAction();
+  const sep = basePath.includes('?') ? '&' : '?';
+  if (!result.ok) {
+    return res.redirect(`${basePath}${sep}history_err=${encodeURIComponent(result.message)}${hashSuffix}`);
+  }
+  res.redirect(`${basePath}${sep}undo_done=${encodeURIComponent(result.label)}${hashSuffix}`);
+});
+
+app.post('/admin/redo', requireAdmin, (req, res) => {
+  const nextUrl = getSafeRedirectTarget(req.body.return_to, '/portal');
+  const [basePath, hashPart] = nextUrl.split('#');
+  const hashSuffix = hashPart ? `#${hashPart}` : '';
+  const result = db.redoAction();
+  const sep = basePath.includes('?') ? '&' : '?';
+  if (!result.ok) {
+    return res.redirect(`${basePath}${sep}history_err=${encodeURIComponent(result.message)}${hashSuffix}`);
+  }
+  res.redirect(`${basePath}${sep}redo_done=${encodeURIComponent(result.label)}${hashSuffix}`);
 });
 
 // 1. First Page / Landing Page: Introduction to UIC Department Research, Director, Campus, Heads, Coordinator
@@ -283,8 +324,11 @@ app.get('/', (req, res) => {
     // Support dropdown selection of reporting year (e.g. 2024, 2025, 2026, 2027, 2028, 2029, 2030)
     const yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
     const selectedYear = parseInt(req.query.year, 10) || 2026;
-    const allYearsROS = db.getAllYearsMonthlyROS(yearsList, pubCountingMode);
-    const monthlyROS = allYearsROS[selectedYear] || db.getDepartmentMonthlyROS(selectedYear, pubCountingMode);
+    const splitDeptROS = db.getAllYearsSplitDepartmentROS(yearsList, pubCountingMode);
+    const allYearsROS = splitDeptROS.all;
+    const monthlyROS = allYearsROS[selectedYear] || db.getDepartmentMonthlyROS(selectedYear, pubCountingMode, 'all');
+    const uicMonthlyROS = splitDeptROS.uic[selectedYear] || db.getDepartmentMonthlyROS(selectedYear, pubCountingMode, 'uic');
+    const otherMonthlyROS = splitDeptROS.other[selectedYear] || db.getDepartmentMonthlyROS(selectedYear, pubCountingMode, 'other');
     const allYearsTopPerformers = db.getAllYearsTopPerformers(yearsList, 20, pubCountingMode);
     const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20, pubCountingMode);
 
@@ -296,8 +340,11 @@ app.get('/', (req, res) => {
       avgROS,
       pubCountingMode,
       selectedYear,
+      splitDeptROS,
       allYearsROS,
       monthlyROS,
+      uicMonthlyROS,
+      otherMonthlyROS,
       allYearsTopPerformers,
       topPerformers,
       query: req.query
@@ -335,6 +382,9 @@ app.get('/portal', (req, res) => {
     const activeCount = faculty.filter(f => f.ros > 0).length;
     const viewMode = req.query.view || 'grid';
     const pubCountingMode = db.getPubCountingMode();
+    const pendingReport = (req.isAdmin && req.query.pending_id)
+      ? (pendingMasterUploads.get(String(req.query.pending_id)) || null)
+      : null;
 
     res.render('index', {
       faculty,
@@ -347,6 +397,7 @@ app.get('/portal', (req, res) => {
       viewMode,
       sortMode,
       pubCountingMode,
+      pendingReport,
       query: req.query
     });
   } catch (err) {
@@ -596,6 +647,25 @@ app.get('/export/top-performers', (req, res) => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(annualRows), 'Annual Top Performers');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(growthRows), 'Dept ROS Growth');
 
+    const uicRosData = db.getDepartmentMonthlyROS(year, db.getPubCountingMode(), 'uic');
+    const otherRosData = db.getDepartmentMonthlyROS(year, db.getPubCountingMode(), 'other');
+    const formatDeptSheet = (d, deptLabel) => d.rows.map(r => ({
+      'Department': deptLabel,
+      'Month': r.month,
+      'Q1 ROS': r.q1_ros,
+      'Q1 Papers': r.q1,
+      'Q2 ROS': r.q2_ros,
+      'Q2 Papers': r.q2,
+      'Q3 ROS': r.q3_ros,
+      'Q3 Papers': r.q3,
+      'Q4 ROS': r.q4_ros,
+      'Q4 Papers': r.q4,
+      'Total Papers': r.total,
+      'Total ROS': r.ros
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formatDeptSheet(uicRosData, 'UIC')), 'UIC Monthly ROS');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formatDeptSheet(otherRosData, 'Other Dept Deputed')), 'Other Dept ROS');
+
     const fileBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const filename = `UIC_Top_Performers_Growth_${year}_${new Date().toISOString().substring(0, 10)}.xlsx`;
 
@@ -621,7 +691,8 @@ app.get('/download-master-publications-template', (req, res) => {
         'Document Type': 'Review',
         'APN': '1/Oct/2026',
         'EID based Scopus Link': 'https://www.scopus.com/example',
-        'EID': '105053427146'
+        'EID': '105053427146',
+        'Department': 'UIC'
       },
       {
         'Title': 'Deep Learning Architectures for Autonomous Edge Sensors',
@@ -633,7 +704,8 @@ app.get('/download-master-publications-template', (req, res) => {
         'Document Type': 'Conference Paper',
         'APN': '15/May/2026',
         'EID based Scopus Link': 'https://www.scopus.com/example2',
-        'EID': '2-s2.0-85192837190'
+        'EID': '2-s2.0-85192837190',
+        'Department': 'UIC'
       },
       {
         'Title': 'Microbial Bioremediation of Heavy Metals in Industrial Soil',
@@ -645,7 +717,8 @@ app.get('/download-master-publications-template', (req, res) => {
         'Document Type': 'Book Chapter',
         'APN': '20/Jul/2026',
         'EID based Scopus Link': 'https://www.scopus.com/example3',
-        'EID': '2-s2.0-85201928371'
+        'EID': '2-s2.0-85201928371',
+        'Department': 'CSE'
       }
     ];
 
@@ -699,6 +772,16 @@ function parseExcelPublicationRow(r, fallbackAuthor = '') {
   const scopusLink = r['EID based Scopus Link'] || r['Scopus Link'] || '';
   const eid = r['EID'] || r['eid'] || '';
   const monthStr = parseMonthFromAPN(apn, r['Month'] || r['month']);
+  const deptRaw =
+    r['Department Name'] ||
+    r['department name'] ||
+    r['Department'] ||
+    r['department'] ||
+    r['Dept'] ||
+    r['dept'] ||
+    r['DEPT'] ||
+    '';
+  const pubDepartment = db.normalizePubDepartment(deptRaw);
 
   return {
     pub_type: pubType,
@@ -712,12 +795,13 @@ function parseExcelPublicationRow(r, fallbackAuthor = '') {
     apn: String(apn).trim(),
     scopus_link: String(scopusLink).trim(),
     eid: String(eid).trim(),
-    month: monthStr
+    month: monthStr,
+    pub_department: pubDepartment
   };
 }
 
 // ─── MASTER DASHBOARD EXCEL UPLOAD ──────────────────────────────────
-// Matches Column D: "Author names (CU)" to faculty name and checks duplicate publications
+// Matches Column D: "Author names (CU)" to faculty name, separates found vs pending/not-found names, and checks duplicates
 app.post('/dashboard/upload-publications-master', requireAdmin, upload.single('master_excel'), (req, res) => {
   try {
     if (!req.file) {
@@ -730,23 +814,58 @@ app.post('/dashboard/upload-publications-master', requireAdmin, upload.single('m
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
     const itemsToImport = [];
-    let unmatchedCount = 0;
-    const unmatchedNames = new Set();
+    const pendingRows = [];
+    const pendingNameMap = new Map();
 
-    rawData.forEach(r => {
+    rawData.forEach((r, idx) => {
       const pubData = parseExcelPublicationRow(r);
       if (!pubData) return;
 
+      const excelRowNum = idx + 2;
       const authorQuery = pubData.author_name;
       if (!authorQuery) {
-        unmatchedCount++;
+        pendingRows.push({
+          rowNo: excelRowNum,
+          authorName: '(Blank Author)',
+          pubDepartment: pubData.pub_department,
+          title: pubData.title,
+          sourceTitle: pubData.source_title,
+          documentType: pubData.document_type,
+          quartile: pubData.quartile,
+          ros: pubData.ros,
+          apn: pubData.apn,
+          month: pubData.month,
+          link: pubData.link,
+          scopusLink: pubData.scopus_link,
+          eid: pubData.eid,
+          reason: 'Author name missing in Excel'
+        });
         return;
       }
 
       const faculty = db.findFacultyByName(authorQuery);
       if (!faculty) {
-        unmatchedCount++;
-        unmatchedNames.add(authorQuery);
+        pendingRows.push({
+          rowNo: excelRowNum,
+          authorName: authorQuery,
+          pubDepartment: pubData.pub_department,
+          title: pubData.title,
+          sourceTitle: pubData.source_title,
+          documentType: pubData.document_type,
+          quartile: pubData.quartile,
+          ros: pubData.ros,
+          apn: pubData.apn,
+          month: pubData.month,
+          link: pubData.link,
+          scopusLink: pubData.scopus_link,
+          eid: pubData.eid,
+          reason: 'Faculty not found in Directory'
+        });
+        const key = authorQuery.toLowerCase();
+        if (!pendingNameMap.has(key)) {
+          pendingNameMap.set(key, { name: authorQuery, department: pubData.pub_department, count: 0 });
+        }
+        pendingNameMap.get(key).count += 1;
         return;
       }
 
@@ -760,8 +879,18 @@ app.post('/dashboard/upload-publications-master', requireAdmin, upload.single('m
 
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
+    const unmatchedCount = pendingRows.length;
+    const uniquePendingNames = Array.from(pendingNameMap.values());
+    const sampleUnmatched = uniquePendingNames.map(x => x.name).slice(0, 5).join(', ');
+    const pendingId = unmatchedCount > 0
+      ? savePendingMasterReport({
+          unmatchedCount,
+          pendingRows,
+          uniquePendingNames
+        })
+      : '';
+
     const analysis = db.analyzePublicationsUpload(itemsToImport);
-    const sampleUnmatched = Array.from(unmatchedNames).slice(0, 3).join(', ');
 
     if (analysis.duplicateItems.length > 0) {
       return res.render('pub_upload_confirm', {
@@ -773,14 +902,23 @@ app.post('/dashboard/upload-publications-master', requireAdmin, upload.single('m
         newItemsJson: JSON.stringify(analysis.newItems),
         duplicateItemsJson: JSON.stringify(analysis.duplicateItems),
         unmatchedCount,
-        unmatchedNames: sampleUnmatched
+        unmatchedNames: sampleUnmatched,
+        pendingId,
+        pendingRows,
+        uniquePendingNames
       });
     }
 
+    if (analysis.newItems.length > 0) {
+      db.recordUndoState(`Master Excel Upload (+${analysis.newItems.length} pubs)`);
+    }
     const result = db.applyPublicationsUpload(analysis.newItems, [], 'skip');
     let redirectUrl = `/portal?master_success=1&matched=${result.addedCount}&replaced=0&skipped=0&unmatched=${unmatchedCount}`;
     if (sampleUnmatched) {
       redirectUrl += `&unmatched_names=${encodeURIComponent(sampleUnmatched)}`;
+    }
+    if (pendingId) {
+      redirectUrl += `&pending_id=${encodeURIComponent(pendingId)}`;
     }
     res.redirect(redirectUrl);
   } catch (err) {
@@ -789,17 +927,60 @@ app.post('/dashboard/upload-publications-master', requireAdmin, upload.single('m
   }
 });
 
+// Download Pending / Unmatched Rows from Master Publication Excel Upload
+app.get('/dashboard/download-pending-master', requireAdmin, (req, res) => {
+  try {
+    const pendingId = String(req.query.pending_id || '');
+    const report = pendingMasterUploads.get(pendingId);
+    if (!report || !report.pendingRows || report.pendingRows.length === 0) {
+      return res.redirect('/portal?master_err=Pending+report+expired+or+empty');
+    }
+
+    const excelRows = report.pendingRows.map(p => ({
+      'Excel Row': p.rowNo,
+      'Title': p.title,
+      'Source title': p.sourceTitle || '',
+      'Author names (CU)': p.authorName,
+      'ROS': p.ros,
+      'Source quartile (Q)': p.quartile,
+      'Link': p.link || '',
+      'Document Type': p.documentType,
+      'APN': p.apn || '',
+      'EID based Scopus Link': p.scopusLink || '',
+      'EID': p.eid || '',
+      'Department': p.pubDepartment || 'UIC',
+      'Status / Reason': p.reason
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(excelRows), 'Pending Faculty Publications');
+    const fileBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="UIC_Pending_Faculty_Publications_${new Date().toISOString().substring(0, 10)}.xlsx"`);
+    res.send(fileBuffer);
+  } catch (err) {
+    res.status(500).send('Error generating pending report Excel: ' + err.message);
+  }
+});
+
 // Confirm Master Publications Excel Upload (Replace / Skip / Add All)
 app.post('/dashboard/upload-publications-master/confirm', requireAdmin, (req, res) => {
   try {
-    const { new_items_json, duplicate_items_json, decision, unmatched_count, unmatched_names } = req.body;
+    const { new_items_json, duplicate_items_json, decision, unmatched_count, unmatched_names, pending_id } = req.body;
     const newItems = JSON.parse(new_items_json || '[]');
     const duplicateItems = JSON.parse(duplicate_items_json || '[]');
+    if (newItems.length > 0 || (duplicateItems.length > 0 && decision !== 'skip')) {
+      db.recordUndoState(`Master Excel Confirm (${newItems.length} new, ${duplicateItems.length} dup=${decision})`);
+    }
     const result = db.applyPublicationsUpload(newItems, duplicateItems, decision);
 
     let redirectUrl = `/portal?master_success=1&matched=${result.addedCount}&replaced=${result.replacedCount}&skipped=${result.skippedCount}&unmatched=${unmatched_count || 0}`;
     if (unmatched_names) {
       redirectUrl += `&unmatched_names=${encodeURIComponent(unmatched_names)}`;
+    }
+    if (pending_id) {
+      redirectUrl += `&pending_id=${encodeURIComponent(pending_id)}`;
     }
     res.redirect(redirectUrl);
   } catch (err) {
@@ -849,6 +1030,9 @@ app.post('/faculty/upload-excel', requireAdmin, upload.single('faculty_excel'), 
       });
     }
 
+    if (analysis.newRows.length > 0) {
+      db.recordUndoState(`Bulk Faculty Upload (+${analysis.newRows.length} faculty)`);
+    }
     const result = db.applyFacultyUpload(analysis.newRows, [], false);
     res.redirect(`/portal?upload_success=1&added=${result.addedCount}&replaced=${result.replacedCount}&skipped=${result.skippedCount}`);
   } catch (err) {
@@ -865,6 +1049,9 @@ app.post('/faculty/upload-excel/confirm', requireAdmin, (req, res) => {
     const duplicateRows = JSON.parse(duplicate_rows_json || '[]');
     const replaceExisting = (decision === 'replace');
 
+    if (newRows.length > 0 || (replaceExisting && duplicateRows.length > 0)) {
+      db.recordUndoState(`Bulk Faculty Confirm (${newRows.length} new, replace=${replaceExisting})`);
+    }
     const result = db.applyFacultyUpload(newRows, duplicateRows, replaceExisting);
     res.redirect(`/portal?upload_success=1&added=${result.addedCount}&replaced=${result.replacedCount}&skipped=${result.skippedCount}`);
   } catch (err) {
@@ -880,11 +1067,10 @@ app.post('/faculty/delete-multiple', requireAdmin, (req, res) => {
     if (!Array.isArray(faculty_ids)) faculty_ids = [faculty_ids];
     const ids = faculty_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
 
+    if (ids.length > 0) {
+      db.recordUndoState(`Delete ${ids.length} Selected Faculty`);
+    }
     const result = db.deleteFacultyMultiple(ids);
-    result.photos.forEach(photo => {
-      const p = path.join(__dirname, 'uploads', photo);
-      if (fs.existsSync(p)) fs.unlinkSync(p);
-    });
 
     res.redirect(`/portal?bulk_deleted=${result.deletedCount}`);
   } catch (err) {
@@ -895,11 +1081,8 @@ app.post('/faculty/delete-multiple', requireAdmin, (req, res) => {
 // Delete ALL Faculty
 app.post('/faculty/delete-all', requireAdmin, (req, res) => {
   try {
+    db.recordUndoState('Delete All Faculty');
     const result = db.deleteAllFaculty();
-    result.photos.forEach(photo => {
-      const p = path.join(__dirname, 'uploads', photo);
-      if (fs.existsSync(p)) fs.unlinkSync(p);
-    });
 
     res.redirect(`/portal?all_deleted=${result.deletedCount}`);
   } catch (err) {
@@ -909,7 +1092,11 @@ app.post('/faculty/delete-all', requireAdmin, (req, res) => {
 
 // Add single faculty form
 app.get('/faculty/add', requireAdmin, (req, res) => {
-  res.render('add', { error: null, duplicateMatch: null, formData: {} });
+  const formData = {
+    name: req.query.name ? String(req.query.name).trim() : '',
+    department: req.query.department ? String(req.query.department).trim() : ''
+  };
+  res.render('add', { error: null, duplicateMatch: null, formData });
 });
 
 // Add single faculty POST (checks BOTH Name and Employee Code and asks to replace if existing)
@@ -940,12 +1127,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
       }
 
       const newPhoto = req.file ? req.file.filename : (pending_photo || null);
-      const oldFaculty = db.getFacultyById(targetId);
-      if (newPhoto && oldFaculty && oldFaculty.photo && oldFaculty.photo !== newPhoto) {
-        const oldPath = path.join(__dirname, 'uploads', oldFaculty.photo);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-
+      db.recordUndoState(`Replace Faculty: ${name.trim()}`);
       db.updateFaculty(targetId, {
         name: name.trim(),
         employee_code: employee_code.trim(),
@@ -978,6 +1160,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
     }
 
     const photo = req.file ? req.file.filename : (pending_photo || null);
+    db.recordUndoState(`Add Faculty: ${name.trim()}`);
     const newId = db.addFaculty({
       name: name.trim(),
       employee_code: employee_code.trim(),
@@ -1016,7 +1199,7 @@ app.post('/faculty/:id/publications', requireAdmin, (req, res) => {
 
     const {
       document_type, title, source_title, author_name, ros, quartile,
-      link, apn, scopus_link, eid, month, dup_action, replace_pub_id
+      link, apn, scopus_link, eid, month, pub_department, dup_action, replace_pub_id
     } = req.body;
 
     if (!title || !title.trim()) {
@@ -1038,10 +1221,12 @@ app.post('/faculty/:id/publications', requireAdmin, (req, res) => {
       apn: (apn || '').trim(),
       scopus_link: (scopus_link || '').trim(),
       eid: (eid || '').trim(),
-      month: month || new Date().toISOString().substring(0, 7)
+      month: month || new Date().toISOString().substring(0, 7),
+      pub_department: db.normalizePubDepartment(pub_department)
     };
 
     if (dup_action === 'replace' && replace_pub_id) {
+      db.recordUndoState(`Replace Publication: ${pubData.title.slice(0, 35)}`);
       db.updatePublication(parseInt(replace_pub_id, 10), pubData);
       return res.redirect(`/faculty/${facultyId}?pub_replaced=1`);
     }
@@ -1065,6 +1250,7 @@ app.post('/faculty/:id/publications', requireAdmin, (req, res) => {
       }
     }
 
+    db.recordUndoState(`Add Publication: ${pubData.title.slice(0, 35)}`);
     db.addPublication(facultyId, pubData);
     res.redirect(`/faculty/${facultyId}?pub_added=1`);
   } catch (err) {
@@ -1077,7 +1263,7 @@ app.post('/faculty/:id/publications/:pubId/edit', requireAdmin, (req, res) => {
   try {
     const facultyId = parseInt(req.params.id);
     const pubId = parseInt(req.params.pubId);
-    const { document_type, title, source_title, author_name, ros, quartile, link, apn, scopus_link, eid, month } = req.body;
+    const { document_type, title, source_title, author_name, ros, quartile, link, apn, scopus_link, eid, month, pub_department } = req.body;
 
     if (!title || !title.trim()) {
       return res.redirect(`/faculty/${facultyId}?error=missing_title`);
@@ -1087,6 +1273,7 @@ app.post('/faculty/:id/publications/:pubId/edit', requireAdmin, (req, res) => {
     const pubType = resolvePubTypeFromDocType(docType);
     const resolvedQuartile = normalizeQuartileForPubType(quartile, pubType);
 
+    db.recordUndoState(`Edit Publication: ${title.trim().slice(0, 35)}`);
     db.updatePublication(pubId, {
       pub_type: pubType,
       document_type: docType,
@@ -1099,7 +1286,8 @@ app.post('/faculty/:id/publications/:pubId/edit', requireAdmin, (req, res) => {
       apn: (apn || '').trim(),
       scopus_link: (scopus_link || '').trim(),
       eid: (eid || '').trim(),
-      month: month || new Date().toISOString().substring(0, 7)
+      month: month || new Date().toISOString().substring(0, 7),
+      pub_department: db.normalizePubDepartment(pub_department)
     });
 
     res.redirect(`/faculty/${facultyId}?pub_updated=1`);
@@ -1158,6 +1346,9 @@ app.post('/faculty/:id/upload-publications-excel', requireAdmin, upload.single('
       });
     }
 
+    if (analysis.newItems.length > 0) {
+      db.recordUndoState(`Faculty Excel Upload: ${faculty.name} (+${analysis.newItems.length})`);
+    }
     const result = db.applyPublicationsUpload(analysis.newItems, [], 'skip');
     res.redirect(`/faculty/${facultyId}?pub_upload_success=1&count=${result.addedCount}&replaced=0&skipped=0`);
   } catch (err) {
@@ -1173,6 +1364,9 @@ app.post('/faculty/:id/upload-publications-excel/confirm', requireAdmin, (req, r
     const { new_items_json, duplicate_items_json, decision } = req.body;
     const newItems = JSON.parse(new_items_json || '[]');
     const duplicateItems = JSON.parse(duplicate_items_json || '[]');
+    if (newItems.length > 0 || (duplicateItems.length > 0 && decision !== 'skip')) {
+      db.recordUndoState(`Confirm Faculty Pub Upload (${newItems.length} new, dup=${decision})`);
+    }
     const result = db.applyPublicationsUpload(newItems, duplicateItems, decision);
 
     res.redirect(`/faculty/${facultyId}?pub_upload_success=1&count=${result.addedCount}&replaced=${result.replacedCount}&skipped=${result.skippedCount}`);
@@ -1186,6 +1380,7 @@ app.post('/faculty/:id/publications/:pubId/delete', requireAdmin, (req, res) => 
   try {
     const facultyId = parseInt(req.params.id);
     const pubId = parseInt(req.params.pubId);
+    db.recordUndoState('Delete Publication');
     db.deletePublication(pubId);
     res.redirect(`/faculty/${facultyId}?deleted_single=1`);
   } catch (err) {
@@ -1204,6 +1399,9 @@ app.post('/faculty/:id/publications/delete-multiple', requireAdmin, (req, res) =
     if (!Array.isArray(pub_ids)) pub_ids = [pub_ids];
     const ids = pub_ids.map(id => parseInt(id)).filter(id => !isNaN(id));
 
+    if (ids.length > 0) {
+      db.recordUndoState(`Delete ${ids.length} Publications`);
+    }
     const count = db.deletePublicationsMultiple(ids);
     res.redirect(`/faculty/${facultyId}?deleted_multiple=${count}`);
   } catch (err) {
@@ -1241,6 +1439,7 @@ app.post('/faculty/:id/edit', requireAdmin, upload.single('photo'), (req, res) =
     }
 
     const photo = req.file ? req.file.filename : null;
+    db.recordUndoState(`Edit Faculty: ${name.trim()}`);
     db.updateFaculty(id, {
       name: name.trim(),
       employee_code: employee_code.trim(),
@@ -1260,10 +1459,7 @@ app.post('/faculty/:id/delete', requireAdmin, (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const faculty = db.getFacultyById(id);
-    if (faculty && faculty.photo) {
-      const photoPath = path.join(__dirname, 'uploads', faculty.photo);
-      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
-    }
+    db.recordUndoState(`Delete Faculty: ${faculty ? faculty.name : id}`);
     db.deleteFaculty(id);
     res.redirect('/portal?deleted=1');
   } catch (err) {
