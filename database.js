@@ -1237,6 +1237,119 @@ function getDepartmentMonthlyROS2026() {
   return getDepartmentMonthlyROS(2026);
 }
 
+function getRosCellDetails({ year = 2026, month = 'ALL', scope = 'uic', quartile = 'ALL' }) {
+  const y = parseInt(year, 10) || 2026;
+  const mNum = String(month || '').toUpperCase() === 'ALL' ? null : parseInt(month, 10);
+  const qTarget = String(quartile || 'ALL').trim().toUpperCase();
+  const sTarget = String(scope || 'uic').trim().toLowerCase();
+  const countingMode = getPubCountingMode();
+
+  const rows = queryAll(`
+    SELECT p.*, f.name AS faculty_name, f.employee_code AS faculty_code, f.designation AS faculty_designation
+    FROM publications p
+    JOIN faculty f ON f.id = p.faculty_id
+  `);
+
+  const filtered = rows.filter(p => {
+    if (sTarget === 'uic' && !isUicDepartment(p.pub_department)) return false;
+    if (sTarget === 'other' && isUicDepartment(p.pub_department)) return false;
+
+    const parsed = parsePublicationYearMonth(p.month);
+    if (!parsed || parsed.year !== y) return false;
+    if (mNum && parsed.month !== mNum) return false;
+
+    if (['Q1', 'Q2', 'Q3', 'Q4'].includes(qTarget) && getEffectiveQuartile(p) !== qTarget) {
+      return false;
+    }
+    return true;
+  });
+
+  // Sort entries by ROS descending, then faculty name, then title
+  filtered.sort((a, b) => {
+    const rDiff = (parseFloat(b.ros) || 0) - (parseFloat(a.ros) || 0);
+    if (Math.abs(rDiff) > 1e-6) return rDiff;
+    const nCmp = String(a.faculty_name || '').localeCompare(String(b.faculty_name || ''));
+    if (nCmp !== 0) return nCmp;
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
+
+  // Summarize per concerned faculty member
+  const facMap = new Map();
+  filtered.forEach(p => {
+    if (!facMap.has(p.faculty_id)) {
+      facMap.set(p.faculty_id, {
+        faculty_id: p.faculty_id,
+        faculty_name: p.faculty_name,
+        faculty_code: p.faculty_code,
+        faculty_designation: p.faculty_designation || '',
+        paper_count: 0,
+        ros_sum: 0
+      });
+    }
+    const f = facMap.get(p.faculty_id);
+    f.paper_count += 1;
+    f.ros_sum = parseFloat((f.ros_sum + (parseFloat(p.ros) || 0)).toFixed(2));
+  });
+
+  const facultySummary = Array.from(facMap.values()).sort(
+    (a, b) => (b.ros_sum - a.ros_sum) || a.faculty_name.localeCompare(b.faculty_name)
+  );
+
+  // Respect unique/separate paper count per month bucket consistently with ROS table
+  let uniquePaperCount = 0;
+  if (mNum) {
+    uniquePaperCount = computeDepartmentQuartileStats(filtered, countingMode).total;
+  } else {
+    const byM = new Map();
+    filtered.forEach(p => {
+      const parsed = parsePublicationYearMonth(p.month);
+      const mk = parsed ? parsed.month : 0;
+      if (!byM.has(mk)) byM.set(mk, []);
+      byM.get(mk).push(p);
+    });
+    byM.forEach(list => {
+      uniquePaperCount += computeDepartmentQuartileStats(list, countingMode).total;
+    });
+  }
+
+  const totalRos = parseFloat(filtered.reduce((s, p) => s + (parseFloat(p.ros) || 0), 0).toFixed(2));
+  const monthDef = mNum ? MONTH_DEFS.find(m => m.num === mNum) : null;
+
+  return {
+    year: y,
+    month: mNum || 'ALL',
+    monthLabel: monthDef ? `${monthDef.full} ${y}` : `Jan – Dec ${y}`,
+    scope: sTarget,
+    scopeLabel: sTarget === 'other' ? 'Other Department Deputed in UIC' : (sTarget === 'uic' ? 'UIC Department' : 'All Departments'),
+    quartile: qTarget,
+    countingMode,
+    summary: {
+      rowCount: filtered.length,
+      paperCount: uniquePaperCount,
+      facultyCount: facultySummary.length,
+      totalRos
+    },
+    facultySummary,
+    entries: filtered.map(p => ({
+      id: p.id,
+      faculty_id: p.faculty_id,
+      faculty_name: p.faculty_name,
+      faculty_code: p.faculty_code,
+      faculty_designation: p.faculty_designation || '',
+      pub_department: normalizePubDepartment(p.pub_department),
+      title: p.title,
+      source_title: p.source_title || '',
+      document_type: p.document_type || 'Article',
+      quartile: getEffectiveQuartile(p),
+      ros: parseFloat((parseFloat(p.ros) || 0).toFixed(2)),
+      month: p.month,
+      apn: p.apn || '',
+      link: p.link || '',
+      eid: p.eid || ''
+    }))
+  };
+}
+
 function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPubCountingMode()) {
   const byFac = new Map();
 
@@ -1443,6 +1556,7 @@ module.exports = {
   getAllYearsMonthlyROS,
   getAllYearsSplitDepartmentROS,
   getDepartmentMonthlyROS2026,
+  getRosCellDetails,
   getTopPerformersByYear,
   getAllYearsTopPerformers,
   getFacultyById,

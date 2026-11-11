@@ -380,6 +380,27 @@
       justify-content: center;
       flex-shrink: 0;
     }
+    .ros-cell-btn {
+      background: transparent;
+      border: 0;
+      padding: 4px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+    }
+    .ros-cell-btn:hover {
+      background-color: rgba(13, 110, 253, 0.08);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(13, 110, 253, 0.14);
+    }
+    .ros-cell-btn .paper-link-hint {
+      text-decoration: underline;
+      text-decoration-style: dotted;
+    }
   </style>
 </head>
 <body>
@@ -1022,45 +1043,59 @@
                   </td>
                   <td>
                     <% if (row.q1 > 0 || row.q1_ros > 0) { %>
-                      <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="Q1" title="Click to view Q1 faculty members">
+                        <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q2 > 0 || row.q2_ros > 0) { %>
-                      <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="Q2" title="Click to view Q2 faculty members">
+                        <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q3 > 0 || row.q3_ros > 0) { %>
-                      <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="Q3" title="Click to view Q3 faculty members">
+                        <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q4 > 0 || row.q4_ros > 0) { %>
-                      <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="Q4" title="Click to view Q4 faculty members">
+                        <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td class="fw-bold fs-6 <%= row.total > 0 ? 'text-primary' : 'text-muted' %>">
-                    <%= row.total %>
                     <% if (row.total > 0) { %>
-                      <div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>
+                      <button type="button" class="ros-cell-btn fw-bold text-primary fs-6" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="ALL" title="Click to view all faculty for this month">
+                        <span><%= row.total %></span>
+                        <div class="fw-semibold paper-link-hint" style="font-size: 0.72rem;">papers</div>
+                      </button>
+                    <% } else { %>
+                      0
                     <% } %>
                   </td>
                   <td class="pe-3 fw-bold fs-6">
                     <% if (row.ros > 0) { %>
-                      <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                      <button type="button" class="ros-cell-btn" data-scope="uic" data-month="<%= row.monthNum %>" data-quartile="ALL" title="Click to view contributing faculty members">
+                        <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
@@ -1075,24 +1110,66 @@
                   <i class="fas fa-calculator me-1 text-primary"></i> Jan – Dec <%= selectedYear %>
                 </td>
                 <td class="fw-bold text-success py-3 fs-5" id="uicFootQ1">
-                  <%= uicMonthlyROS.totals.q1_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q1 %> papers)</div>
+                  <% if (uicMonthlyROS.totals.q1 > 0 || uicMonthlyROS.totals.q1_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-success fs-5" data-scope="uic" data-month="ALL" data-quartile="Q1" title="Click to view all UIC Q1 faculty">
+                      <span><%= uicMonthlyROS.totals.q1_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q1 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= uicMonthlyROS.totals.q1_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-primary py-3 fs-5" id="uicFootQ2">
-                  <%= uicMonthlyROS.totals.q2_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q2 %> papers)</div>
+                  <% if (uicMonthlyROS.totals.q2 > 0 || uicMonthlyROS.totals.q2_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-primary fs-5" data-scope="uic" data-month="ALL" data-quartile="Q2" title="Click to view all UIC Q2 faculty">
+                      <span><%= uicMonthlyROS.totals.q2_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q2 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= uicMonthlyROS.totals.q2_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-info py-3 fs-5" id="uicFootQ3">
-                  <%= uicMonthlyROS.totals.q3_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q3 %> papers)</div>
+                  <% if (uicMonthlyROS.totals.q3 > 0 || uicMonthlyROS.totals.q3_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-info fs-5" data-scope="uic" data-month="ALL" data-quartile="Q3" title="Click to view all UIC Q3 faculty">
+                      <span><%= uicMonthlyROS.totals.q3_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q3 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= uicMonthlyROS.totals.q3_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-warning text-dark py-3 fs-5" id="uicFootQ4">
-                  <%= uicMonthlyROS.totals.q4_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q4 %> papers)</div>
+                  <% if (uicMonthlyROS.totals.q4 > 0 || uicMonthlyROS.totals.q4_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-dark fs-5" data-scope="uic" data-month="ALL" data-quartile="Q4" title="Click to view all UIC Q4 faculty">
+                      <span><%= uicMonthlyROS.totals.q4_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= uicMonthlyROS.totals.q4 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= uicMonthlyROS.totals.q4_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
-                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="uicFootTotal"><%= uicMonthlyROS.totals.total %></td>
+                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="uicFootTotal">
+                  <% if (uicMonthlyROS.totals.total > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-primary fs-5 paper-link-hint" data-scope="uic" data-month="ALL" data-quartile="ALL" title="Click to view all UIC faculty for the year">
+                      <%= uicMonthlyROS.totals.total %>
+                    </button>
+                  <% } else { %>
+                    0
+                  <% } %>
+                </td>
                 <td class="pe-3 fw-bold text-danger py-3 fs-5 bg-light">
-                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="uicFootRos"><%= uicMonthlyROS.totals.ros.toFixed(2) %> Points</span>
+                  <% if (uicMonthlyROS.totals.ros > 0) { %>
+                    <button type="button" class="ros-cell-btn" data-scope="uic" data-month="ALL" data-quartile="ALL" title="Click to view all UIC contributors">
+                      <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="uicFootRos"><%= uicMonthlyROS.totals.ros.toFixed(2) %> Points</span>
+                    </button>
+                  <% } else { %>
+                    <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="uicFootRos">0.00 Points</span>
+                  <% } %>
                 </td>
               </tr>
             </tfoot>
@@ -1172,45 +1249,59 @@
                   </td>
                   <td>
                     <% if (row.q1 > 0 || row.q1_ros > 0) { %>
-                      <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="Q1" title="Click to view Other Dept Q1 faculty members">
+                        <span class="badge bg-success px-2 py-1 fs-6"><%= row.q1_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q1 %> <%= row.q1 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q2 > 0 || row.q2_ros > 0) { %>
-                      <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="Q2" title="Click to view Other Dept Q2 faculty members">
+                        <span class="badge bg-primary px-2 py-1 fs-6"><%= row.q2_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q2 %> <%= row.q2 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q3 > 0 || row.q3_ros > 0) { %>
-                      <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="Q3" title="Click to view Other Dept Q3 faculty members">
+                        <span class="badge bg-info text-dark px-2 py-1 fs-6"><%= row.q3_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q3 %> <%= row.q3 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (row.q4 > 0 || row.q4_ros > 0) { %>
-                      <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
-                      <div class="text-muted mt-1" style="font-size: 0.7rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                      <button type="button" class="ros-cell-btn" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="Q4" title="Click to view Other Dept Q4 faculty members">
+                        <span class="badge bg-warning text-dark px-2 py-1 fs-6"><%= row.q4_ros.toFixed(2) %></span>
+                        <div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(<%= row.q4 %> <%= row.q4 === 1 ? 'paper' : 'papers' %>)</div>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
                   </td>
                   <td class="fw-bold fs-6 <%= row.total > 0 ? 'text-primary' : 'text-muted' %>">
-                    <%= row.total %>
                     <% if (row.total > 0) { %>
-                      <div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>
+                      <button type="button" class="ros-cell-btn fw-bold text-primary fs-6" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="ALL" title="Click to view all Other Dept faculty for this month">
+                        <span><%= row.total %></span>
+                        <div class="fw-semibold paper-link-hint" style="font-size: 0.72rem;">papers</div>
+                      </button>
+                    <% } else { %>
+                      0
                     <% } %>
                   </td>
                   <td class="pe-3 fw-bold fs-6">
                     <% if (row.ros > 0) { %>
-                      <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                      <button type="button" class="ros-cell-btn" data-scope="other" data-month="<%= row.monthNum %>" data-quartile="ALL" title="Click to view contributing faculty members">
+                        <span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm"><%= row.ros.toFixed(2) %></span>
+                      </button>
                     <% } else { %>
                       <span class="text-muted">0.00</span>
                     <% } %>
@@ -1225,24 +1316,66 @@
                   <i class="fas fa-calculator me-1"></i> Jan – Dec <%= selectedYear %>
                 </td>
                 <td class="fw-bold text-success py-3 fs-5" id="otherFootQ1">
-                  <%= otherMonthlyROS.totals.q1_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q1 %> papers)</div>
+                  <% if (otherMonthlyROS.totals.q1 > 0 || otherMonthlyROS.totals.q1_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-success fs-5" data-scope="other" data-month="ALL" data-quartile="Q1" title="Click to view all Other Dept Q1 faculty">
+                      <span><%= otherMonthlyROS.totals.q1_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q1 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= otherMonthlyROS.totals.q1_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-primary py-3 fs-5" id="otherFootQ2">
-                  <%= otherMonthlyROS.totals.q2_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q2 %> papers)</div>
+                  <% if (otherMonthlyROS.totals.q2 > 0 || otherMonthlyROS.totals.q2_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-primary fs-5" data-scope="other" data-month="ALL" data-quartile="Q2" title="Click to view all Other Dept Q2 faculty">
+                      <span><%= otherMonthlyROS.totals.q2_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q2 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= otherMonthlyROS.totals.q2_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-info py-3 fs-5" id="otherFootQ3">
-                  <%= otherMonthlyROS.totals.q3_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q3 %> papers)</div>
+                  <% if (otherMonthlyROS.totals.q3 > 0 || otherMonthlyROS.totals.q3_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-info fs-5" data-scope="other" data-month="ALL" data-quartile="Q3" title="Click to view all Other Dept Q3 faculty">
+                      <span><%= otherMonthlyROS.totals.q3_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q3 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= otherMonthlyROS.totals.q3_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
                 <td class="fw-bold text-warning text-dark py-3 fs-5" id="otherFootQ4">
-                  <%= otherMonthlyROS.totals.q4_ros.toFixed(2) %>
-                  <div class="text-muted fw-normal" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q4 %> papers)</div>
+                  <% if (otherMonthlyROS.totals.q4 > 0 || otherMonthlyROS.totals.q4_ros > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-dark fs-5" data-scope="other" data-month="ALL" data-quartile="Q4" title="Click to view all Other Dept Q4 faculty">
+                      <span><%= otherMonthlyROS.totals.q4_ros.toFixed(2) %></span>
+                      <div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(<%= otherMonthlyROS.totals.q4 %> papers)</div>
+                    </button>
+                  <% } else { %>
+                    <%= otherMonthlyROS.totals.q4_ros.toFixed(2) %>
+                    <div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>
+                  <% } %>
                 </td>
-                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="otherFootTotal"><%= otherMonthlyROS.totals.total %></td>
+                <td class="fw-bold text-dark py-3 fs-5 bg-white" id="otherFootTotal">
+                  <% if (otherMonthlyROS.totals.total > 0) { %>
+                    <button type="button" class="ros-cell-btn fw-bold text-primary fs-5 paper-link-hint" data-scope="other" data-month="ALL" data-quartile="ALL" title="Click to view all Other Dept faculty for the year">
+                      <%= otherMonthlyROS.totals.total %>
+                    </button>
+                  <% } else { %>
+                    0
+                  <% } %>
+                </td>
                 <td class="pe-3 fw-bold text-danger py-3 fs-5 bg-light">
-                  <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="otherFootRos"><%= otherMonthlyROS.totals.ros.toFixed(2) %> Points</span>
+                  <% if (otherMonthlyROS.totals.ros > 0) { %>
+                    <button type="button" class="ros-cell-btn" data-scope="other" data-month="ALL" data-quartile="ALL" title="Click to view all Other Dept contributors">
+                      <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="otherFootRos"><%= otherMonthlyROS.totals.ros.toFixed(2) %> Points</span>
+                    </button>
+                  <% } else { %>
+                    <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="otherFootRos">0.00 Points</span>
+                  <% } %>
                 </td>
               </tr>
             </tfoot>
@@ -1994,19 +2127,26 @@
         banner.innerHTML = 'Research Output Score (ROS) of the UIC Department &bull; Calendar Year ' + currentYear;
       }
 
-      function renderQuartCell(rosVal, countVal, badgeCls) {
+      function renderQuartCell(rosVal, countVal, badgeCls, scope, monthVal, quartileLabel) {
         if (countVal > 0 || rosVal > 0) {
           const pWord = countVal === 1 ? 'paper' : 'papers';
-          return `<span class="badge ${badgeCls} px-2 py-1 fs-6">${rosVal.toFixed(2)}</span><div class="text-muted mt-1" style="font-size: 0.7rem;">(${countVal} ${pWord})</div>`;
+          return `<button type="button" class="ros-cell-btn" data-scope="${scope}" data-month="${monthVal}" data-quartile="${quartileLabel}" title="Click to view ${quartileLabel} faculty members"><span class="badge ${badgeCls} px-2 py-1 fs-6">${rosVal.toFixed(2)}</span><div class="text-primary fw-semibold mt-1 paper-link-hint" style="font-size: 0.72rem;">(${countVal} ${pWord})</div></button>`;
         }
         return `<span class="text-muted">0.00</span>`;
+      }
+
+      function renderFooterQuartHtml(rosVal, countVal, textCls, scope, quartileLabel) {
+        if (countVal > 0 || rosVal > 0) {
+          return `<button type="button" class="ros-cell-btn fw-bold ${textCls} fs-5" data-scope="${scope}" data-month="ALL" data-quartile="${quartileLabel}" title="Click to view all ${quartileLabel} faculty"><span>${rosVal.toFixed(2)}</span><div class="text-primary fw-semibold paper-link-hint" style="font-size: 0.72rem;">(${countVal} papers)</div></button>`;
+        }
+        return `${rosVal.toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(0 papers)</div>`;
       }
 
       function makeFallbackYear(y) {
         return {
           year: y,
-          rows: fallbackMonths.map(m => ({
-            month: m + ' ' + y, monthShort: m, departments: [], q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0, cumulative_ros: 0
+          rows: fallbackMonths.map((m, i) => ({
+            monthNum: i + 1, month: m + ' ' + y, monthShort: m, departments: [], q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0, cumulative_ros: 0
           })),
           totals: { q1: 0, q2: 0, q3: 0, q4: 0, q1_ros: 0, q2_ros: 0, q3_ros: 0, q4_ros: 0, total: 0, ros: 0 }
         };
@@ -2018,10 +2158,12 @@
           banner.innerHTML = `${cfg.bannerTitle} &bull; Calendar Year ${currentYear}`;
         }
 
+        const scope = cfg.isUic ? 'uic' : 'other';
         const tbody = document.getElementById(cfg.tbodyId);
         if (tbody) {
           tbody.innerHTML = '';
           tableData.rows.forEach((row, idx) => {
+            const mNum = row.monthNum || (idx + 1);
             const tr = document.createElement('tr');
             if (row.total > 0) {
               tr.style.backgroundColor = cfg.activeRowBg;
@@ -2031,15 +2173,17 @@
               tr.style.backgroundColor = '#ffffff';
             }
 
-            const q1Badge = renderQuartCell(row.q1_ros || 0, row.q1 || 0, 'bg-success');
-            const q2Badge = renderQuartCell(row.q2_ros || 0, row.q2 || 0, 'bg-primary');
-            const q3Badge = renderQuartCell(row.q3_ros || 0, row.q3 || 0, 'bg-info text-dark');
-            const q4Badge = renderQuartCell(row.q4_ros || 0, row.q4 || 0, 'bg-warning text-dark');
+            const q1Badge = renderQuartCell(row.q1_ros || 0, row.q1 || 0, 'bg-success', scope, mNum, 'Q1');
+            const q2Badge = renderQuartCell(row.q2_ros || 0, row.q2 || 0, 'bg-primary', scope, mNum, 'Q2');
+            const q3Badge = renderQuartCell(row.q3_ros || 0, row.q3 || 0, 'bg-info text-dark', scope, mNum, 'Q3');
+            const q4Badge = renderQuartCell(row.q4_ros || 0, row.q4 || 0, 'bg-warning text-dark', scope, mNum, 'Q4');
             const totalClass = row.total > 0 ? 'text-primary' : 'text-muted';
             const totalCell = row.total > 0
-              ? `${row.total}<div class="text-muted fw-normal" style="font-size: 0.7rem;">papers</div>`
+              ? `<button type="button" class="ros-cell-btn fw-bold text-primary fs-6" data-scope="${scope}" data-month="${mNum}" data-quartile="ALL" title="Click to view all faculty for ${row.month}"><span>${row.total}</span><div class="fw-semibold paper-link-hint" style="font-size: 0.72rem;">papers</div></button>`
               : `0`;
-            const rosBadge = row.ros > 0 ? `<span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm">${row.ros.toFixed(2)}</span>` : `<span class="text-muted">0.00</span>`;
+            const rosBadge = row.ros > 0
+              ? `<button type="button" class="ros-cell-btn" data-scope="${scope}" data-month="${mNum}" data-quartile="ALL" title="Click to view contributing faculty members"><span class="badge bg-danger text-white px-3 py-1 fs-6 shadow-sm">${row.ros.toFixed(2)}</span></button>`
+              : `<span class="text-muted">0.00</span>`;
             const deptSub = (!cfg.isUic && row.departments && row.departments.length > 0)
               ? `<div class="small text-muted mt-1" style="font-size: 0.7rem;">${esc(row.departments.join(', '))}</div>`
               : '';
@@ -2074,12 +2218,26 @@
         const fQ4 = document.getElementById(cfg.footQ4Id);
         const fTot = document.getElementById(cfg.footTotalId);
         const fRos = document.getElementById(cfg.footRosId);
-        if (fQ1) fQ1.innerHTML = `${(tableData.totals.q1_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q1} papers)</div>`;
-        if (fQ2) fQ2.innerHTML = `${(tableData.totals.q2_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q2} papers)</div>`;
-        if (fQ3) fQ3.innerHTML = `${(tableData.totals.q3_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q3} papers)</div>`;
-        if (fQ4) fQ4.innerHTML = `${(tableData.totals.q4_ros || 0).toFixed(2)}<div class="text-muted fw-normal" style="font-size: 0.72rem;">(${tableData.totals.q4} papers)</div>`;
-        if (fTot) fTot.textContent = tableData.totals.total;
-        if (fRos) fRos.textContent = tableData.totals.ros.toFixed(2) + ' Points';
+        if (fQ1) fQ1.innerHTML = renderFooterQuartHtml(tableData.totals.q1_ros || 0, tableData.totals.q1 || 0, 'text-success', scope, 'Q1');
+        if (fQ2) fQ2.innerHTML = renderFooterQuartHtml(tableData.totals.q2_ros || 0, tableData.totals.q2 || 0, 'text-primary', scope, 'Q2');
+        if (fQ3) fQ3.innerHTML = renderFooterQuartHtml(tableData.totals.q3_ros || 0, tableData.totals.q3 || 0, 'text-info', scope, 'Q3');
+        if (fQ4) fQ4.innerHTML = renderFooterQuartHtml(tableData.totals.q4_ros || 0, tableData.totals.q4 || 0, 'text-dark', scope, 'Q4');
+        if (fTot) {
+          fTot.innerHTML = tableData.totals.total > 0
+            ? `<button type="button" class="ros-cell-btn fw-bold text-primary fs-5 paper-link-hint" data-scope="${scope}" data-month="ALL" data-quartile="ALL">${tableData.totals.total}</button>`
+            : '0';
+        }
+        if (fRos) {
+          const td = fRos.closest('td');
+          const rosStr = `${tableData.totals.ros.toFixed(2)} Points`;
+          if (td) {
+            td.innerHTML = tableData.totals.ros > 0
+              ? `<button type="button" class="ros-cell-btn" data-scope="${scope}" data-month="ALL" data-quartile="ALL"><span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="${cfg.footRosId}">${rosStr}</span></button>`
+              : `<span class="badge bg-danger fs-6 px-3 py-2 shadow-sm" id="${cfg.footRosId}">0.00 Points</span>`;
+          } else {
+            fRos.textContent = rosStr;
+          }
+        }
       }
 
       const uicData = (splitDeptData.uic && splitDeptData.uic[currentYear]) || makeFallbackYear(currentYear);
@@ -2183,6 +2341,90 @@
     }
     renderTopPerformersSection(currentYear, true);
 
+    // Click handler for ROS Table cells (Q1-Q4, Total, ROS across UIC & Other Dept tables)
+    const monthlyRosSection = document.getElementById('monthly-ros');
+    const rosCellModalEl = document.getElementById('rosCellDetailsModal');
+    const rosCellModal = rosCellModalEl ? new bootstrap.Modal(rosCellModalEl) : null;
+    if (monthlyRosSection && rosCellModal) {
+      monthlyRosSection.addEventListener('click', async (ev) => {
+        const btn = ev.target.closest('.ros-cell-btn');
+        if (!btn) return;
+        const scope = btn.dataset.scope || 'uic';
+        const month = btn.dataset.month || 'ALL';
+        const quartile = btn.dataset.quartile || 'ALL';
+
+        const titleEl = document.getElementById('rosCellModalTitle');
+        const subEl = document.getElementById('rosCellModalSub');
+        const chipsEl = document.getElementById('rosCellFacultyChips');
+        const bodyEl = document.getElementById('rosCellEntriesBody');
+        const statsEl = document.getElementById('rosCellSummaryBadges');
+
+        if (titleEl) titleEl.textContent = 'Loading concerned faculty members...';
+        if (subEl) subEl.textContent = '';
+        if (chipsEl) chipsEl.innerHTML = '';
+        if (statsEl) statsEl.innerHTML = '';
+        if (bodyEl) bodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Fetching records...</td></tr>';
+        rosCellModal.show();
+
+        try {
+          const url = `/api/ros-cell-details?year=${encodeURIComponent(currentYear)}&month=${encodeURIComponent(month)}&scope=${encodeURIComponent(scope)}&quartile=${encodeURIComponent(quartile)}`;
+          const resp = await fetch(url);
+          const payload = await resp.json();
+
+          const qText = payload.quartile === 'ALL' ? 'All Quartiles (Q1–Q4)' : payload.quartile;
+          if (titleEl) titleEl.innerHTML = `<i class="fas fa-users me-2 text-warning"></i>${esc(payload.scopeLabel)} &bull; ${esc(payload.monthLabel)} &bull; ${esc(qText)}`;
+          if (subEl) subEl.textContent = `Faculty members & publication entries contributing to this count`;
+          if (statsEl) {
+            statsEl.innerHTML = `
+              <span class="badge bg-primary">${payload.summary.facultyCount} Faculty Member(s)</span>
+              <span class="badge bg-success">${payload.summary.paperCount} Paper(s) (${payload.summary.rowCount} Author Entry/Entries)</span>
+              <span class="badge bg-danger">${Number(payload.summary.totalRos || 0).toFixed(2)} Total ROS</span>
+            `;
+          }
+
+          if (chipsEl) {
+            chipsEl.innerHTML = payload.facultySummary.length > 0
+              ? payload.facultySummary.map(f => `
+                  <a href="/faculty/${f.faculty_id}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2 fw-semibold">
+                    <span>${esc(f.faculty_name)}</span>
+                    <span class="badge bg-light text-dark border">${esc(f.faculty_code)}</span>
+                    <span class="badge bg-danger">${Number(f.ros_sum).toFixed(2)} ROS</span>
+                  </a>
+                `).join('')
+              : '<span class="text-muted small">No faculty entries found.</span>';
+          }
+
+          if (bodyEl) {
+            if (!payload.entries || payload.entries.length === 0) {
+              bodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No publications found for this selection.</td></tr>';
+            } else {
+              bodyEl.innerHTML = payload.entries.map((e, i) => `
+                <tr>
+                  <td class="text-muted fw-bold">${i + 1}</td>
+                  <td>
+                    <a href="/faculty/${e.faculty_id}" class="fw-bold text-dark text-decoration-none">${esc(e.faculty_name)}</a>
+                    <div class="small text-muted">${esc(e.faculty_code)}</div>
+                  </td>
+                  <td><span class="badge ${e.pub_department.toUpperCase() === 'UIC' ? 'bg-primary' : 'bg-secondary'}">${esc(e.pub_department)}</span></td>
+                  <td style="max-width: 300px;">
+                    <div class="fw-semibold text-dark small">${esc(e.title)}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">${esc(e.source_title)} ${e.apn ? '&bull; ' + esc(e.apn) : ''}</div>
+                  </td>
+                  <td class="text-center"><span class="badge bg-dark">${esc(e.quartile)}</span></td>
+                  <td class="text-center"><span class="badge bg-danger">${Number(e.ros).toFixed(2)}</span></td>
+                  <td class="text-center">
+                    <a href="/faculty/${e.faculty_id}" class="btn btn-outline-primary btn-sm py-0 px-2">Profile</a>
+                  </td>
+                </tr>
+              `).join('');
+            }
+          }
+        } catch (err) {
+          if (bodyEl) bodyEl.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Error loading details: ${esc(err.message)}</td></tr>`;
+        }
+      });
+    }
+
     // Auto-open Admin Login modal if requested via query param
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin_login_required') === '1' || urlParams.get('login_err')) {
@@ -2191,6 +2433,49 @@
     }
   });
   </script>
+
+  <!-- ROS Cell Details Modal (Concerned Faculty Members List) -->
+  <div class="modal fade" id="rosCellDetailsModal" tabindex="-1" aria-labelledby="rosCellModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header text-white" style="background: var(--cu-navy);">
+          <div>
+            <h5 class="modal-title fw-bold mb-0" id="rosCellModalTitle">Concerned Faculty Members</h5>
+            <div class="small text-white-50" id="rosCellModalSub"></div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex flex-wrap gap-2 mb-3" id="rosCellSummaryBadges"></div>
+          <div class="p-3 rounded-3 bg-light border mb-3">
+            <div class="fw-bold small text-dark mb-2">
+              <i class="fas fa-user-check text-primary me-1"></i>Concerned Faculty Members (Click any name to open profile):
+            </div>
+            <div class="d-flex flex-wrap gap-2" id="rosCellFacultyChips"></div>
+          </div>
+          <div class="table-responsive border rounded-3">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 45px;">#</th>
+                  <th>Faculty Member</th>
+                  <th>Dept</th>
+                  <th>Publication Title</th>
+                  <th class="text-center">Quartile</th>
+                  <th class="text-center">ROS</th>
+                  <th class="text-center">Profile</th>
+                </tr>
+              </thead>
+              <tbody id="rosCellEntriesBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Admin Login Modal -->
   <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-labelledby="adminLoginModalLabel" aria-hidden="true">

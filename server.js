@@ -1488,6 +1488,17 @@ app.get('/api/faculty', (req, res) => {
   }
 });
 
+// Drill-down endpoint for clicking any ROS / paper count cell in Home ROS tables
+app.get('/api/ros-cell-details', (req, res) => {
+  try {
+    const { year, month, scope, quartile } = req.query;
+    const details = db.getRosCellDetails({ year, month, scope, quartile });
+    res.json(details);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 404
 app.use((req, res) => {
   res.status(404).render('404', {});
