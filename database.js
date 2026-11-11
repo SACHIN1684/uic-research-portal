@@ -348,11 +348,29 @@ function computeDepartmentQuartileStats(pubs, mode = getPubCountingMode()) {
 }
 
 function getDepartmentPublicationOverview(mode = getPubCountingMode()) {
-  const allPubs = queryAll('SELECT id, pub_type, quartile, ros, title, eid FROM publications');
-  const stats = computeDepartmentQuartileStats(allPubs, mode);
+  const allPubs = queryAll('SELECT id, pub_type, quartile, ros, title, eid, month, pub_department FROM publications');
+  const buckets = new Map();
+
+  allPubs.forEach(p => {
+    const scope = isUicDepartment(p.pub_department) ? 'uic' : 'other';
+    const parsed = parsePublicationYearMonth(p.month);
+    const ymKey = parsed ? `${parsed.year}-${String(parsed.month).padStart(2, '0')}` : 'unspec';
+    const bKey = `${scope}|${ymKey}`;
+    if (!buckets.has(bKey)) buckets.set(bKey, []);
+    buckets.get(bKey).push(p);
+  });
+
+  let totalPubs = 0;
+  let q1Count = 0;
+  buckets.forEach(list => {
+    const st = computeDepartmentQuartileStats(list, mode);
+    totalPubs += st.total;
+    q1Count += st.q1;
+  });
+
   return {
-    totalPubs: stats.total,
-    q1Count: stats.q1
+    totalPubs,
+    q1Count
   };
 }
 
@@ -1045,7 +1063,81 @@ function filterPubsByDeptScope(pubs, deptScope = 'all') {
   return pubs;
 }
 
+function combineSplitDepartmentYear(uicData, otherData) {
+  const y = uicData.year;
+  let runningRos = 0;
+  let runningPubs = 0;
+  let prevRos = null;
+
+  const rows = uicData.rows.map((u, idx) => {
+    const o = otherData.rows[idx] || {};
+    const q1 = u.q1 + (o.q1 || 0);
+    const q2 = u.q2 + (o.q2 || 0);
+    const q3 = u.q3 + (o.q3 || 0);
+    const q4 = u.q4 + (o.q4 || 0);
+    const q1_ros = parseFloat((u.q1_ros + (o.q1_ros || 0)).toFixed(2));
+    const q2_ros = parseFloat((u.q2_ros + (o.q2_ros || 0)).toFixed(2));
+    const q3_ros = parseFloat((u.q3_ros + (o.q3_ros || 0)).toFixed(2));
+    const q4_ros = parseFloat((u.q4_ros + (o.q4_ros || 0)).toFixed(2));
+    const total = u.total + (o.total || 0);
+    const ros = parseFloat((u.ros + (o.ros || 0)).toFixed(2));
+
+    runningRos = parseFloat((runningRos + ros).toFixed(2));
+    runningPubs += total;
+    const momDiff = prevRos === null ? null : parseFloat((ros - prevRos).toFixed(2));
+    const momGrowthPct = (prevRos !== null && prevRos > 0)
+      ? parseFloat((((ros - prevRos) / prevRos) * 100).toFixed(1))
+      : null;
+    prevRos = ros;
+
+    return {
+      monthNum: u.monthNum,
+      month: u.month,
+      monthShort: u.monthShort,
+      monthFull: u.monthFull,
+      key: u.key,
+      departments: Array.from(new Set([...(u.departments || []), ...(o.departments || [])])),
+      q1, q2, q3, q4,
+      q1_ros, q2_ros, q3_ros, q4_ros,
+      total,
+      ros,
+      cumulative_ros: runningRos,
+      cumulative_pubs: runningPubs,
+      mom_diff: momDiff,
+      mom_growth_pct: momGrowthPct
+    };
+  });
+
+  const totals = {
+    q1: rows.reduce((s, r) => s + r.q1, 0),
+    q2: rows.reduce((s, r) => s + r.q2, 0),
+    q3: rows.reduce((s, r) => s + r.q3, 0),
+    q4: rows.reduce((s, r) => s + r.q4, 0),
+    q1_ros: parseFloat(rows.reduce((s, r) => s + r.q1_ros, 0).toFixed(2)),
+    q2_ros: parseFloat(rows.reduce((s, r) => s + r.q2_ros, 0).toFixed(2)),
+    q3_ros: parseFloat(rows.reduce((s, r) => s + r.q3_ros, 0).toFixed(2)),
+    q4_ros: parseFloat(rows.reduce((s, r) => s + r.q4_ros, 0).toFixed(2)),
+    total: rows.reduce((s, r) => s + r.total, 0),
+    ros: parseFloat(rows.reduce((s, r) => s + r.ros, 0).toFixed(2))
+  };
+
+  return {
+    year: y,
+    mode: uicData.mode,
+    deptScope: 'all',
+    departments: Array.from(new Set([...(uicData.departments || []), ...(otherData.departments || [])])),
+    rows,
+    totals
+  };
+}
+
 function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode(), deptScope = 'all') {
+  if (deptScope === 'all') {
+    const uicData = getDepartmentMonthlyROS(year, mode, 'uic');
+    const otherData = getDepartmentMonthlyROS(year, mode, 'other');
+    return combineSplitDepartmentYear(uicData, otherData);
+  }
+
   const y = parseInt(year, 10) || 2026;
   const allPubs = filterPubsByDeptScope(queryAll('SELECT * FROM publications'), deptScope);
 
@@ -1101,25 +1193,22 @@ function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode(), deptS
     };
   });
 
-  // For full-year totals in 'unique' mode, deduplicate across the year cleanly if a paper spans entries,
-  // otherwise match sum of monthly deduplicated rows (both are identical for same-month co-authors)
   const yearPubs = allPubs.filter(p => {
     const parsed = parsePublicationYearMonth(p.month);
     return parsed && parsed.year === y;
   });
-  const yearStats = computeDepartmentQuartileStats(yearPubs, mode);
   const yearDepts = Array.from(new Set(yearPubs.map(p => normalizePubDepartment(p.pub_department))));
 
   const totals = {
-    q1: yearStats.q1,
-    q2: yearStats.q2,
-    q3: yearStats.q3,
-    q4: yearStats.q4,
+    q1: rows.reduce((s, r) => s + r.q1, 0),
+    q2: rows.reduce((s, r) => s + r.q2, 0),
+    q3: rows.reduce((s, r) => s + r.q3, 0),
+    q4: rows.reduce((s, r) => s + r.q4, 0),
     q1_ros: parseFloat(rows.reduce((s, r) => s + r.q1_ros, 0).toFixed(2)),
     q2_ros: parseFloat(rows.reduce((s, r) => s + r.q2_ros, 0).toFixed(2)),
     q3_ros: parseFloat(rows.reduce((s, r) => s + r.q3_ros, 0).toFixed(2)),
     q4_ros: parseFloat(rows.reduce((s, r) => s + r.q4_ros, 0).toFixed(2)),
-    total: yearStats.total,
+    total: rows.reduce((s, r) => s + r.total, 0),
     ros: parseFloat(rows.reduce((s, r) => s + r.ros, 0).toFixed(2))
   };
 
@@ -1135,11 +1224,13 @@ function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 
 }
 
 function getAllYearsSplitDepartmentROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], mode = getPubCountingMode()) {
-  return {
-    uic: getAllYearsMonthlyROS(yearsList, mode, 'uic'),
-    other: getAllYearsMonthlyROS(yearsList, mode, 'other'),
-    all: getAllYearsMonthlyROS(yearsList, mode, 'all')
-  };
+  const uic = getAllYearsMonthlyROS(yearsList, mode, 'uic');
+  const other = getAllYearsMonthlyROS(yearsList, mode, 'other');
+  const all = {};
+  yearsList.forEach(y => {
+    all[y] = combineSplitDepartmentYear(uic[y], other[y]);
+  });
+  return { uic, other, all };
 }
 
 function getDepartmentMonthlyROS2026() {
