@@ -254,23 +254,39 @@ app.post('/admin/update-credentials', requireAdmin, (req, res) => {
   }
 });
 
+app.post('/admin/settings/counting-mode', requireAdmin, (req, res) => {
+  try {
+    const mode = req.body.mode === 'separate' ? 'separate' : 'unique';
+    db.setPubCountingMode(mode);
+    const nextUrl = getSafeRedirectTarget(req.body.return_to, '/portal');
+    const [basePath, hashPart] = nextUrl.split('#');
+    const sep = basePath.includes('?') ? '&' : '?';
+    const hashSuffix = hashPart ? `#${hashPart}` : '';
+    res.redirect(`${basePath}${sep}counting_updated=1&counting_mode=${mode}${hashSuffix}`);
+  } catch (err) {
+    res.redirect('/portal?master_err=' + encodeURIComponent(err.message));
+  }
+});
+
 // 1. First Page / Landing Page: Introduction to UIC Department Research, Director, Campus, Heads, Coordinator
 app.get('/', (req, res) => {
   try {
     const faculty = db.getAllFacultyWithStats();
     const totalFaculty = faculty.length;
-    const totalPubs = faculty.reduce((sum, f) => sum + (f.total_pubs || 0), 0);
-    const q1Count = faculty.reduce((sum, f) => sum + (f.q1 || 0), 0);
+    const pubCountingMode = db.getPubCountingMode();
+    const overview = db.getDepartmentPublicationOverview(pubCountingMode);
+    const totalPubs = overview.totalPubs;
+    const q1Count = overview.q1Count;
     const activeCount = faculty.filter(f => f.ros > 0).length;
     const avgROS = totalFaculty ? (faculty.reduce((s, f) => s + f.ros, 0) / totalFaculty).toFixed(2) : '0.00';
 
     // Support dropdown selection of reporting year (e.g. 2024, 2025, 2026, 2027, 2028, 2029, 2030)
     const yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
     const selectedYear = parseInt(req.query.year, 10) || 2026;
-    const allYearsROS = db.getAllYearsMonthlyROS(yearsList);
-    const monthlyROS = allYearsROS[selectedYear] || db.getDepartmentMonthlyROS(selectedYear);
-    const allYearsTopPerformers = db.getAllYearsTopPerformers(yearsList, 20);
-    const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20);
+    const allYearsROS = db.getAllYearsMonthlyROS(yearsList, pubCountingMode);
+    const monthlyROS = allYearsROS[selectedYear] || db.getDepartmentMonthlyROS(selectedYear, pubCountingMode);
+    const allYearsTopPerformers = db.getAllYearsTopPerformers(yearsList, 20, pubCountingMode);
+    const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20, pubCountingMode);
 
     res.render('home', {
       totalFaculty,
@@ -278,6 +294,7 @@ app.get('/', (req, res) => {
       q1Count,
       activeCount,
       avgROS,
+      pubCountingMode,
       selectedYear,
       allYearsROS,
       monthlyROS,
@@ -317,6 +334,7 @@ app.get('/portal', (req, res) => {
     const zeroCount = faculty.filter(f => f.ros === 0).length;
     const activeCount = faculty.filter(f => f.ros > 0).length;
     const viewMode = req.query.view || 'grid';
+    const pubCountingMode = db.getPubCountingMode();
 
     res.render('index', {
       faculty,
@@ -328,6 +346,7 @@ app.get('/portal', (req, res) => {
       rosLabel,
       viewMode,
       sortMode,
+      pubCountingMode,
       query: req.query
     });
   } catch (err) {

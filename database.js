@@ -92,6 +92,22 @@ async function initDB() {
     );
   }
 
+  // Portal configuration settings (e.g. unique vs separate co-author paper counting)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS portal_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  const existingMode = queryOne("SELECT value FROM portal_settings WHERE key = 'pub_counting_mode'");
+  if (!existingMode) {
+    db.run(
+      "INSERT INTO portal_settings (key, value) VALUES ('pub_counting_mode', 'unique')"
+    );
+  }
+
   saveDB();
   return db;
 }
@@ -150,6 +166,90 @@ function computeQuartileStats(pubs) {
     q2_ros: parseFloat(ros.q2.toFixed(2)),
     q3_ros: parseFloat(ros.q3.toFixed(2)),
     q4_ros: parseFloat(ros.q4.toFixed(2))
+  };
+}
+
+function getPubCountingMode() {
+  const row = queryOne("SELECT value FROM portal_settings WHERE key = 'pub_counting_mode'");
+  const val = row ? String(row.value || '').trim().toLowerCase() : 'unique';
+  return val === 'separate' ? 'separate' : 'unique';
+}
+
+function setPubCountingMode(mode) {
+  const normalized = String(mode || '').trim().toLowerCase() === 'separate' ? 'separate' : 'unique';
+  db.run(
+    "INSERT INTO portal_settings (key, value, updated_at) VALUES ('pub_counting_mode', ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+    [normalized]
+  );
+  saveDB();
+  return normalized;
+}
+
+function getPaperDedupKey(p) {
+  const eidNorm = String(p.eid || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (eidNorm) return `eid:${eidNorm}`;
+  const titleNorm = String(p.title || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (titleNorm) return `title:${titleNorm}`;
+  return `id:${p.id}`;
+}
+
+function computeDepartmentQuartileStats(pubs, mode = getPubCountingMode()) {
+  const qStats = computeQuartileStats(pubs);
+  const ros = parseFloat(pubs.reduce((sum, p) => sum + (parseFloat(p.ros) || 0), 0).toFixed(2));
+
+  if (mode === 'separate') {
+    return {
+      ...qStats,
+      total: pubs.length,
+      ros
+    };
+  }
+
+  // Unique Paper Mode: group multi-author entries sharing the same EID or Title as 1 publication
+  const quartilePriority = { Q1: 1, Q2: 2, Q3: 3, Q4: 4, 'N/A': 5 };
+  const uniquePapers = new Map();
+
+  pubs.forEach(p => {
+    const key = getPaperDedupKey(p);
+    const eq = getEffectiveQuartile(p);
+    if (!uniquePapers.has(key)) {
+      uniquePapers.set(key, eq);
+    } else {
+      const existingEq = uniquePapers.get(key);
+      if ((quartilePriority[eq] || 9) < (quartilePriority[existingEq] || 9)) {
+        uniquePapers.set(key, eq);
+      }
+    }
+  });
+
+  const uniqueCounts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+  uniquePapers.forEach(eq => {
+    if (eq === 'Q1') uniqueCounts.q1 += 1;
+    else if (eq === 'Q2') uniqueCounts.q2 += 1;
+    else if (eq === 'Q3') uniqueCounts.q3 += 1;
+    else if (eq === 'Q4') uniqueCounts.q4 += 1;
+  });
+
+  return {
+    q1: uniqueCounts.q1,
+    q2: uniqueCounts.q2,
+    q3: uniqueCounts.q3,
+    q4: uniqueCounts.q4,
+    q1_ros: qStats.q1_ros,
+    q2_ros: qStats.q2_ros,
+    q3_ros: qStats.q3_ros,
+    q4_ros: qStats.q4_ros,
+    total: uniquePapers.size,
+    ros
+  };
+}
+
+function getDepartmentPublicationOverview(mode = getPubCountingMode()) {
+  const allPubs = queryAll('SELECT id, pub_type, quartile, ros, title, eid FROM publications');
+  const stats = computeDepartmentQuartileStats(allPubs, mode);
+  return {
+    totalPubs: stats.total,
+    q1Count: stats.q1
   };
 }
 
@@ -827,7 +927,7 @@ function parsePublicationYearMonth(monthStr) {
   return null;
 }
 
-function getDepartmentMonthlyROS(year = 2026) {
+function getDepartmentMonthlyROS(year = 2026, mode = getPubCountingMode()) {
   const y = parseInt(year, 10) || 2026;
   const allPubs = queryAll('SELECT * FROM publications');
 
@@ -842,9 +942,9 @@ function getDepartmentMonthlyROS(year = 2026) {
       return parsed && parsed.year === y && parsed.month === m.num;
     });
 
-    const qStats = computeQuartileStats(monthPubs);
-    const total = monthPubs.length;
-    const ros = parseFloat(monthPubs.reduce((sum, p) => sum + (parseFloat(p.ros) || 0), 0).toFixed(2));
+    const stats = computeDepartmentQuartileStats(monthPubs, mode);
+    const total = stats.total;
+    const ros = stats.ros;
 
     runningRos = parseFloat((runningRos + ros).toFixed(2));
     runningPubs += total;
@@ -861,7 +961,14 @@ function getDepartmentMonthlyROS(year = 2026) {
       monthShort: m.short,
       monthFull: `${m.full} ${y}`,
       key,
-      ...qStats,
+      q1: stats.q1,
+      q2: stats.q2,
+      q3: stats.q3,
+      q4: stats.q4,
+      q1_ros: stats.q1_ros,
+      q2_ros: stats.q2_ros,
+      q3_ros: stats.q3_ros,
+      q4_ros: stats.q4_ros,
       total,
       ros,
       cumulative_ros: runningRos,
@@ -871,26 +978,34 @@ function getDepartmentMonthlyROS(year = 2026) {
     };
   });
 
+  // For full-year totals in 'unique' mode, deduplicate across the year cleanly if a paper spans entries,
+  // otherwise match sum of monthly deduplicated rows (both are identical for same-month co-authors)
+  const yearPubs = allPubs.filter(p => {
+    const parsed = parsePublicationYearMonth(p.month);
+    return parsed && parsed.year === y;
+  });
+  const yearStats = computeDepartmentQuartileStats(yearPubs, mode);
+
   const totals = {
-    q1: rows.reduce((s, r) => s + r.q1, 0),
-    q2: rows.reduce((s, r) => s + r.q2, 0),
-    q3: rows.reduce((s, r) => s + r.q3, 0),
-    q4: rows.reduce((s, r) => s + r.q4, 0),
+    q1: yearStats.q1,
+    q2: yearStats.q2,
+    q3: yearStats.q3,
+    q4: yearStats.q4,
     q1_ros: parseFloat(rows.reduce((s, r) => s + r.q1_ros, 0).toFixed(2)),
     q2_ros: parseFloat(rows.reduce((s, r) => s + r.q2_ros, 0).toFixed(2)),
     q3_ros: parseFloat(rows.reduce((s, r) => s + r.q3_ros, 0).toFixed(2)),
     q4_ros: parseFloat(rows.reduce((s, r) => s + r.q4_ros, 0).toFixed(2)),
-    total: rows.reduce((s, r) => s + r.total, 0),
+    total: yearStats.total,
     ros: parseFloat(rows.reduce((s, r) => s + r.ros, 0).toFixed(2))
   };
 
-  return { year: y, rows, totals };
+  return { year: y, mode, rows, totals };
 }
 
-function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030]) {
+function getAllYearsMonthlyROS(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], mode = getPubCountingMode()) {
   const result = {};
   yearsList.forEach(y => {
-    result[y] = getDepartmentMonthlyROS(y);
+    result[y] = getDepartmentMonthlyROS(y, mode);
   });
   return result;
 }
@@ -899,7 +1014,7 @@ function getDepartmentMonthlyROS2026() {
   return getDepartmentMonthlyROS(2026);
 }
 
-function buildRankedPerformers(pubsSubset, facultyMap, limit = 25) {
+function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPubCountingMode()) {
   const byFac = new Map();
 
   pubsSubset.forEach(p => {
@@ -955,25 +1070,25 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25) {
     item.rank = currentRank;
   });
 
-  const deptRos = parseFloat(pubsSubset.reduce((s, p) => s + (parseFloat(p.ros) || 0), 0).toFixed(2));
+  const periodStats = computeDepartmentQuartileStats(pubsSubset, mode);
   const winners = ranked.filter(item => item.rank === 1);
 
   return {
-    total_pubs: pubsSubset.length,
+    total_pubs: periodStats.total,
     active_faculty: ranked.length,
-    dept_ros: deptRos,
+    dept_ros: periodStats.ros,
     winners,
     winner: ranked.length > 0 ? ranked[0] : null,
     top: limit > 0 ? ranked.slice(0, limit) : ranked
   };
 }
 
-function getTopPerformersByYear(year = 2026, limit = 25) {
+function getTopPerformersByYear(year = 2026, limit = 25, mode = getPubCountingMode()) {
   const y = parseInt(year, 10) || 2026;
   const facultyList = queryAll('SELECT id, name, employee_code, designation, department, photo FROM faculty');
   const facultyMap = new Map(facultyList.map(f => [f.id, f]));
 
-  const allPubs = queryAll('SELECT id, faculty_id, pub_type, ros, quartile, month FROM publications');
+  const allPubs = queryAll('SELECT id, faculty_id, title, eid, pub_type, ros, quartile, month FROM publications');
   const yearPubs = [];
   const byMonth = new Map();
   for (let m = 1; m <= 12; m++) byMonth.set(m, []);
@@ -987,7 +1102,7 @@ function getTopPerformersByYear(year = 2026, limit = 25) {
   });
 
   const monthly = MONTH_DEFS.map(m => {
-    const stats = buildRankedPerformers(byMonth.get(m.num), facultyMap, limit);
+    const stats = buildRankedPerformers(byMonth.get(m.num), facultyMap, limit, mode);
     return {
       key: `${y}-${m.pad}`,
       monthNum: m.num,
@@ -1006,7 +1121,7 @@ function getTopPerformersByYear(year = 2026, limit = 25) {
   ];
   const quarterly = quarterDefs.map(q => {
     const subset = yearPubs.filter(p => q.months.includes(p._m));
-    const stats = buildRankedPerformers(subset, facultyMap, limit);
+    const stats = buildRankedPerformers(subset, facultyMap, limit, mode);
     return { key: q.key, label: q.label, range: q.range, months: q.months, ...stats };
   });
 
@@ -1016,11 +1131,11 @@ function getTopPerformersByYear(year = 2026, limit = 25) {
   ];
   const sixMonthly = halfDefs.map(h => {
     const subset = yearPubs.filter(p => h.months.includes(p._m));
-    const stats = buildRankedPerformers(subset, facultyMap, limit);
+    const stats = buildRankedPerformers(subset, facultyMap, limit, mode);
     return { key: h.key, label: h.label, range: h.range, months: h.months, ...stats };
   });
 
-  const annualStats = buildRankedPerformers(yearPubs, facultyMap, limit);
+  const annualStats = buildRankedPerformers(yearPubs, facultyMap, limit, mode);
   const annual = {
     key: String(y),
     label: `Annual ${y}`,
@@ -1050,10 +1165,10 @@ function getTopPerformersByYear(year = 2026, limit = 25) {
   };
 }
 
-function getAllYearsTopPerformers(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], limit = 20) {
+function getAllYearsTopPerformers(yearsList = [2024, 2025, 2026, 2027, 2028, 2029, 2030], limit = 20, mode = getPubCountingMode()) {
   const result = {};
   yearsList.forEach(y => {
-    result[y] = getTopPerformersByYear(y, limit);
+    result[y] = getTopPerformersByYear(y, limit, mode);
   });
   return result;
 }
@@ -1091,6 +1206,9 @@ module.exports = {
   getAdminConfig,
   verifyAdminLogin,
   updateAdminCredentials,
+  getPubCountingMode,
+  setPubCountingMode,
+  getDepartmentPublicationOverview,
   getAllFacultyWithStats,
   getDepartmentMonthlyROS,
   getAllYearsMonthlyROS,

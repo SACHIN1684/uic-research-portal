@@ -705,65 +705,8 @@
         </div>
       </div>
 
-      <!-- Month-wise Department ROS Growth Graph -->
-      <div class="card border shadow-sm rounded-3 overflow-hidden mb-4">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3 border-bottom">
-          <div>
-            <h5 class="fw-bold text-dark mb-0 display-font">
-              <i class="fas fa-chart-line text-danger me-2"></i>
-              Department Month-wise ROS Growth Graph &bull; <span id="chartYearHeading"><%= selectedYear %></span>
-            </h5>
-            <div class="small text-muted">
-              Tracks monthly department Research Output Score (ROS) and cumulative growth trajectory across the year.
-            </div>
-          </div>
-          <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Mode">
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn active fw-semibold" data-chart-mode="growth">
-              <i class="fas fa-chart-area me-1"></i>ROS + Cumulative Growth
-            </button>
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="papers">
-              <i class="fas fa-chart-bar me-1"></i>Monthly ROS vs Papers
-            </button>
-            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="quartile">
-              <i class="fas fa-layer-group me-1"></i>Quartile Breakdown (Q1–Q4)
-            </button>
-          </div>
-        </div>
-        <div class="card-body p-4">
-          <div class="row g-2 mb-3 text-center" id="growthInsightStrip">
-            <div class="col-6 col-lg-3">
-              <div class="p-2 rounded-3 bg-light border h-100">
-                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">PEAK MONTH ROS</div>
-                <div class="fw-bold text-danger small mt-1" id="insightPeakMonth">-</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="p-2 rounded-3 bg-light border h-100">
-                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">LATEST MoM GROWTH</div>
-                <div class="fw-bold small mt-1" id="insightMomGrowth">-</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="p-2 rounded-3 bg-light border h-100">
-                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">CUMULATIVE YEAR ROS</div>
-                <div class="fw-bold text-primary small mt-1" id="insightCumulativeRos">-</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="p-2 rounded-3 bg-light border h-100">
-                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">AVG ROS / ACTIVE MONTH</div>
-                <div class="fw-bold text-success small mt-1" id="insightAvgActiveRos">-</div>
-              </div>
-            </div>
-          </div>
-          <div class="growth-chart-wrap">
-            <canvas id="deptRosGrowthChart"></canvas>
-          </div>
-        </div>
-      </div>
-
       <!-- Screenshot-Matching Table: Cluster replaced with Month, Jan-Dec Year, Q1-Q4, Total, Research Output Score (ROS) -->
-      <div class="card border shadow-sm rounded-3 overflow-hidden">
+      <div class="card border shadow-sm rounded-3 overflow-hidden mb-4">
         <div class="table-responsive">
           <table class="table table-bordered table-hover align-middle mb-0 text-center" style="border-color: #9ac2e8;">
             <thead>
@@ -878,15 +821,86 @@
         <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="small text-muted">
             <i class="fas fa-info-circle me-1 text-primary"></i>
-            Each <strong>Q1–Q4</strong> cell shows the total <strong>ROS</strong> points of all authors matching that <strong>Quartile</strong> column (with paper count below). Conference papers without a quartile (N/A) default to <strong>Q4</strong>.
+            Each <strong>Q1–Q4</strong> cell shows the total <strong>ROS</strong> points of all authors matching that <strong>Quartile</strong> column (with paper count below).
+            <span class="badge <%= pubCountingMode === 'separate' ? 'bg-warning text-dark' : 'bg-success' %> ms-1">
+              <i class="fas <%= pubCountingMode === 'separate' ? 'fa-users' : 'fa-file-check' %> me-1"></i>
+              <%= pubCountingMode === 'separate' ? 'Counting Mode: Separate per Author' : 'Counting Mode: Shared Co-Author Paper = 1 Publication' %>
+            </span>
           </div>
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 flex-wrap">
+            <% if (isAdmin) { %>
+              <form action="/admin/settings/counting-mode" method="POST" class="d-inline">
+                <input type="hidden" name="return_to" value="/?year=<%= selectedYear %>#monthly-ros">
+                <input type="hidden" name="mode" value="<%= pubCountingMode === 'separate' ? 'unique' : 'separate' %>">
+                <button type="submit" class="btn btn-outline-dark btn-sm fw-semibold">
+                  <i class="fas fa-sliders-h me-1"></i>
+                  Switch to <%= pubCountingMode === 'separate' ? '1 Paper (Unique)' : 'Separate Author Count' %>
+                </button>
+              </form>
+            <% } %>
             <a href="/portal" class="btn btn-outline-primary btn-sm fw-semibold">
               <i class="fas fa-users me-1"></i> View Faculty Directory
             </a>
             <a href="/export/excel" class="btn btn-success btn-sm fw-semibold">
               <i class="fas fa-file-excel me-1"></i> Export Excel Sheet
             </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month-wise Department ROS Growth Graph (Displayed After ROS Table) -->
+      <div class="card border shadow-sm rounded-3 overflow-hidden">
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3 border-bottom">
+          <div>
+            <h5 class="fw-bold text-dark mb-0 display-font">
+              <i class="fas fa-chart-line text-danger me-2"></i>
+              Department Month-wise ROS Growth Graph &bull; <span id="chartYearHeading"><%= selectedYear %></span>
+            </h5>
+            <div class="small text-muted">
+              Tracks monthly department Research Output Score (ROS) and cumulative growth trajectory across the year.
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Mode">
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn active fw-semibold" data-chart-mode="growth">
+              <i class="fas fa-chart-area me-1"></i>ROS + Cumulative Growth
+            </button>
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="papers">
+              <i class="fas fa-chart-bar me-1"></i>Monthly ROS vs Papers
+            </button>
+            <button type="button" class="btn btn-outline-secondary chart-mode-btn fw-semibold" data-chart-mode="quartile">
+              <i class="fas fa-layer-group me-1"></i>Quartile Breakdown (Q1–Q4)
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-2 mb-3 text-center" id="growthInsightStrip">
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">PEAK MONTH ROS</div>
+                <div class="fw-bold text-danger small mt-1" id="insightPeakMonth">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">LATEST MoM GROWTH</div>
+                <div class="fw-bold small mt-1" id="insightMomGrowth">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">CUMULATIVE YEAR ROS</div>
+                <div class="fw-bold text-primary small mt-1" id="insightCumulativeRos">-</div>
+              </div>
+            </div>
+            <div class="col-6 col-lg-3">
+              <div class="p-2 rounded-3 bg-light border h-100">
+                <div class="text-muted" style="font-size: 0.72rem; font-weight: 600;">AVG ROS / ACTIVE MONTH</div>
+                <div class="fw-bold text-success small mt-1" id="insightAvgActiveRos">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="growth-chart-wrap">
+            <canvas id="deptRosGrowthChart"></canvas>
           </div>
         </div>
       </div>
