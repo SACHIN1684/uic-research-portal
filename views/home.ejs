@@ -403,15 +403,15 @@
   </div>
 
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg home-navbar py-3">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-3" href="/">
-        <div class="brand-logo-badge">
+  <nav class="navbar navbar-expand-lg home-navbar py-2">
+    <div class="container-fluid px-3 px-lg-4">
+      <a class="navbar-brand d-flex align-items-center gap-2 text-nowrap" href="/">
+        <div class="brand-logo-badge py-1 px-2 fs-6">
           <i class="fas fa-laptop-code me-1"></i> UIC
         </div>
         <div>
-          <div class="fw-bold fs-5 text-dark lh-1 display-font">UIC Research Portal</div>
-          <div class="text-muted" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+          <div class="fw-bold fs-6 text-dark lh-1 display-font">UIC Research Portal</div>
+          <div class="text-muted" style="font-size: 0.68rem; letter-spacing: 0.2px;">
             University Institute of Computing &bull; Chandigarh University
           </div>
         </div>
@@ -420,50 +420,38 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="homeNavbarNav">
-        <ul class="navbar-nav ms-auto align-items-center gap-2 gap-lg-3 my-3 my-lg-0">
+        <ul class="navbar-nav ms-auto align-items-center gap-1 gap-xl-2 my-2 my-lg-0" style="font-size: 0.88rem;">
           <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark active" href="#overview">Research Overview</a>
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2 active" href="#overview">Research Overview</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link fw-semibold text-danger fw-bold" href="#monthly-ros">
-              <i class="fas fa-chart-line me-1"></i>ROS & Growth
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="#leadership">My Director &amp; Heads</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="#coordinator">Research Coordinator</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="#campus">My Campus</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold text-danger text-nowrap px-2" href="#monthly-ros">
+              <i class="fas fa-chart-line me-1"></i>ROS &amp; Growth
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark" href="#top-performers">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="#top-performers">
               <i class="fas fa-trophy me-1 text-warning"></i>Top Performers
             </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark" href="#leadership">My Director & Heads</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark" href="#coordinator">Research Coordinator</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark" href="#campus">My Campus</a>
-          </li>
           <li class="nav-item ms-lg-1">
-            <a href="/portal" class="btn btn-portal-primary py-2 px-3">
+            <a href="/portal" class="btn btn-portal-primary py-2 px-3 text-nowrap" style="font-size: 0.86rem;">
               <i class="fas fa-database me-1"></i> Go to Research Portal
             </a>
           </li>
           <li class="nav-item">
             <% if (isAdmin) { %>
               <div class="d-flex align-items-center gap-1">
-                <form action="/admin/undo" method="POST" class="d-inline">
-                  <input type="hidden" name="return_to" value="/?year=<%= selectedYear %>#monthly-ros">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm py-2 px-2" <%= !historyStatus.canUndo ? 'disabled' : '' %> title="<%= historyStatus.canUndo ? 'Undo: ' + historyStatus.undoLabel : 'Nothing to Undo' %>">
-                    <i class="fas fa-undo"></i>
-                  </button>
-                </form>
-                <form action="/admin/redo" method="POST" class="d-inline">
-                  <input type="hidden" name="return_to" value="/?year=<%= selectedYear %>#monthly-ros">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm py-2 px-2" <%= !historyStatus.canRedo ? 'disabled' : '' %> title="<%= historyStatus.canRedo ? 'Redo: ' + historyStatus.redoLabel : 'Nothing to Redo' %>">
-                    <i class="fas fa-redo"></i>
-                  </button>
-                </form>
-                <button type="button" class="btn btn-success btn-sm fw-semibold py-2 px-2" data-bs-toggle="modal" data-bs-target="#adminSettingsModal" title="Admin Settings">
+                <button type="button" class="btn btn-success btn-sm fw-semibold py-2 px-2 text-nowrap" data-bs-toggle="modal" data-bs-target="#adminSettingsModal" title="Admin Settings">
                   <i class="fas fa-user-shield me-1"></i>Admin
                 </button>
                 <form action="/admin/logout" method="POST" class="d-inline">
@@ -474,7 +462,7 @@
                 </form>
               </div>
             <% } else { %>
-              <button type="button" class="btn btn-outline-danger btn-sm fw-bold py-2 px-3" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
+              <button type="button" class="btn btn-outline-danger btn-sm fw-bold py-2 px-3 text-nowrap" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
                 <i class="fas fa-user-shield me-1"></i> Admin Login
               </button>
             <% } %>
@@ -671,6 +659,257 @@
             <p class="text-muted small mb-0">
               Computational genomics, precision agriculture models, biosurfactant optimization, and data-driven ecological management.
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- My Director & Leadership Section -->
+  <section id="leadership" class="py-5 bg-white border-top border-bottom">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-crown me-1"></i> Academic Leadership</span>
+        <h2 class="section-title display-font">My Director & Department Heads</h2>
+        <p class="text-muted">
+          Visionary leadership driving research excellence, innovation culture, and academic distinction across the University Institute of Computing.
+        </p>
+      </div>
+
+      <!-- Row 1: Executive Director (1st and Only Card in Single-Column Row) -->
+      <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+          <div class="leader-card">
+            <div class="row g-0 align-items-stretch">
+              <div class="col-md-4 leader-img-wrapper" style="height: auto; min-height: 280px;">
+                <img src="/images/director_uic.jpg" alt="Executive Director UIC — Dr. Gurpreet Singh" class="leader-img" style="object-position: center top;">
+                <span class="leader-tag tag-director"><i class="fas fa-star me-1"></i> Executive Director, UIC</span>
+              </div>
+              <div class="col-md-8 p-4 p-lg-5 d-flex flex-column justify-content-between">
+                <div>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 mb-2">
+                    <i class="fas fa-crown me-1"></i> Head of Institute
+                  </span>
+                  <h3 class="fw-bold text-dark display-font mb-1">Dr. Gurpreet Singh</h3>
+                  <div class="text-danger fw-semibold small mb-3">Executive Director &mdash; University Institute of Computing</div>
+                  <p class="text-muted mb-4" style="line-height: 1.65;">
+                    Leading the academic and research initiatives of UIC. Champion of faculty innovation, international research collaborations, patents, and high-impact Q1 journal publications.
+                  </p>
+                </div>
+                <div class="border-top pt-3 d-flex justify-content-between align-items-center flex-wrap gap-2 text-muted small">
+                  <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:director.uic@cumail.in" class="text-muted text-decoration-none">director.uic@cumail.in</a></span>
+                  <span><i class="fas fa-building text-secondary me-1"></i> Block E2 - North Campus</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Department Heads (Double-Column Format: MCA Head & BCA Head) -->
+      <div class="row g-4 justify-content-center">
+        <!-- Head MCA -->
+        <div class="col-md-6">
+          <div class="leader-card">
+            <div class="leader-img-wrapper">
+              <img src="/images/head_mca.png" alt="Dr. Amanpreet Kaur Sandhu — Head MCA" class="leader-img" style="object-position: center 12%;">
+              <span class="leader-tag"><i class="fas fa-user-tie me-1"></i> Head - MCA</span>
+            </div>
+            <div class="p-4 d-flex flex-column flex-grow-1">
+              <h4 class="fw-bold text-dark mb-1">Dr. Amanpreet Kaur Sandhu</h4>
+              <div class="text-primary fw-semibold small mb-3">Head MCA — University Institute of Computing</div>
+              <p class="text-muted small mb-4 flex-grow-1">
+                Oversees postgraduate Master of Computer Applications (MCA) programs, curriculum alignment with emerging technologies, and graduate research initiatives.
+              </p>
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
+                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:hod.mca@cumail.in" class="text-muted text-decoration-none">hod.mca@cumail.in</a></span>
+                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Head BCA -->
+        <div class="col-md-6">
+          <div class="leader-card">
+            <div class="leader-img-wrapper">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80" alt="Dr. Arun Kumar — Head-BCA" class="leader-img">
+              <span class="leader-tag"><i class="fas fa-graduation-cap me-1"></i> Head - BCA</span>
+            </div>
+            <div class="p-4 d-flex flex-column flex-grow-1">
+              <h4 class="fw-bold text-dark mb-1">Dr. Arun Kumar</h4>
+              <div class="text-primary fw-semibold small mb-3">Head-BCA — University Institute of Computing</div>
+              <p class="text-muted small mb-4 flex-grow-1">
+                Leads undergraduate Bachelor of Computer Applications (BCA) programs, outcome-based education, student-faculty mentoring, and academic innovation.
+              </p>
+              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
+                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:head.bca@cumail.in" class="text-muted text-decoration-none">head.bca@cumail.in</a></span>
+                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Coordinator Details Section -->
+  <section id="coordinator" class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-microscope me-1"></i> Department Research Operations</span>
+        <h2 class="section-title display-font">Research Coordinator Office</h2>
+        <p class="text-muted">
+          Your key liaison for research project facilitation, Scopus verification, ROS tracking, patent filing assistance, and research grant compliance.
+        </p>
+      </div>
+
+      <div class="row align-items-center justify-content-center">
+        <div class="col-lg-10">
+          <div class="card border-0 rounded-4 shadow-lg overflow-hidden" style="background: white;">
+            <div class="row g-0 align-items-center">
+              <div class="col-md-4 bg-light p-4 d-flex flex-column align-items-center justify-content-center border-end text-center">
+                <img src="/images/research_coordinator.png" alt="Research Coordinator Dr. Sachin Chawla" class="shadow-sm mb-3" style="width: 190px; height: 220px; object-fit: cover; object-position: center 10%; border-radius: 14px; border: 3px solid #ffffff;">
+                <span class="badge bg-warning text-dark fw-bold mb-1"><i class="fas fa-star me-1"></i> Research Coordinator</span>
+                <div class="fw-bold text-dark">Dr. Sachin Chawla</div>
+                <div class="small text-muted">Research Coordinator &mdash; UIC</div>
+              </div>
+              <div class="col-md-8 p-4 p-lg-5 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">Department Research Lead</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">ROS Office</span>
+                  </div>
+                  <h3 class="fw-bold text-dark display-font mb-2">Dr. Sachin Chawla</h3>
+                  <div class="text-primary fw-semibold small mb-3">Research Coordinator &bull; University Institute of Computing</div>
+                  <p class="text-muted mb-4" style="line-height: 1.6;">
+                    The Research Coordinator oversees the verification of Scopus / Web of Science indexed journal papers (Q1–Q4), conferences, book chapters, and patents. The Coordinator ensures transparent calculation of ROS scores, coordinates monthly faculty output audits, and drives research workshops.
+                  </p>
+                  
+                  <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-envelope text-danger fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Official Email</div>
+                          <div class="fw-bold small text-dark"><a href="mailto:researchcoordinator.uic@cumail.in" class="text-dark text-decoration-none">researchcoordinator.uic@cumail.in</a></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-phone-alt text-success fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Phone Number</div>
+                          <div class="fw-bold small text-dark"><a href="tel:9034388155" class="text-dark text-decoration-none">+91 9034388155</a></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-map-marker-alt text-primary fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Office Location</div>
+                          <div class="fw-bold small text-dark">North Campus, E2-212 Lab, UIC Department, Chandigarh University</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
+                        <i class="fas fa-clock text-warning fs-5"></i>
+                        <div>
+                          <div class="text-muted" style="font-size: 0.72rem;">Consultation Hours</div>
+                          <div class="fw-bold small text-dark">9:30 AM to 4:30 PM (Mon to Sat)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                  <a href="/portal" class="btn btn-portal-primary py-2 px-3 small">
+                    <i class="fas fa-tachometer-alt me-1"></i> Access Portal Records
+                  </a>
+                  <a href="/download-master-publications-template" class="btn btn-outline-secondary py-2 px-3 small">
+                    <i class="fas fa-download me-1"></i> Download Excel Format
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- My Campus Section -->
+  <section id="campus" class="py-5 bg-white border-top">
+    <div class="container">
+      <div class="section-title-wrap">
+        <span class="section-badge"><i class="fas fa-map-marked-alt me-1"></i> World-Class Infrastructure</span>
+        <h2 class="section-title display-font">My Campus — Chandigarh University</h2>
+        <p class="text-muted">
+          A lush green, digitally-enabled 200+ acre campus offering cutting-edge computing laboratories, high-performance GPU clusters, and modern innovation incubators.
+        </p>
+      </div>
+
+      <div class="row g-4 mb-5">
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Main Academic Block" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-primary mb-2">Central Landmark</span>
+              <h5 class="fw-bold text-dark">Academic & Research Blocks</h5>
+              <p class="text-muted small mb-0">
+                Spacious smart classrooms, seminar auditoriums, high-speed Wi-Fi, and specialized digital innovation suites for computing research scholars.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Computing Labs" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-danger mb-2">State-of-the-Art</span>
+              <h5 class="fw-bold text-dark">Advanced Computing & AI Labs</h5>
+              <p class="text-muted small mb-0">
+                Equipped with NVIDIA DGX Supercomputing stations, cloud testbeds, IoT sensor kits, and robotic workstations for graduate and faculty research.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
+            <img src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Digital Library" style="height: 220px; object-fit: cover;">
+            <div class="card-body p-4">
+              <span class="badge bg-success mb-2">Resource Center</span>
+              <h5 class="fw-bold text-dark">Central Knowledge Resource Center</h5>
+              <p class="text-muted small mb-0">
+                Full-text subscription to IEEE Xplore, ScienceDirect, ACM Digital Library, Scopus, SpringerLink, and Web of Science repositories.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Call to Action Banner -->
+      <div class="cta-banner">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-8">
+            <div class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2">
+              <i class="fas fa-database me-1"></i> Ready to Manage or Track Output?
+            </div>
+            <h3 class="display-font fw-bold text-white mb-2" style="font-size: 2rem;">
+              Access the UIC Research Record Portal
+            </h3>
+            <p class="text-light opacity-90 mb-0">
+              Directly view faculty research profiles, upload publication spreadsheets by author names, track zero-publication alerts, and export Excel reports.
+            </p>
+          </div>
+          <div class="col-lg-4 text-lg-end">
+            <a href="/portal" class="btn btn-light btn-lg px-4 py-3 fw-bold text-primary shadow">
+              <i class="fas fa-sign-in-alt me-1"></i> Open Faculty Portal
+            </a>
           </div>
         </div>
       </div>
@@ -1181,249 +1420,6 @@
               </thead>
               <tbody id="perfLeaderboardBody"></tbody>
             </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- My Director & Leadership Section -->
-  <section id="leadership" class="py-5 bg-white border-top border-bottom">
-    <div class="container">
-      <div class="section-title-wrap">
-        <span class="section-badge"><i class="fas fa-crown me-1"></i> Academic Leadership</span>
-        <h2 class="section-title display-font">My Director & Department Heads</h2>
-        <p class="text-muted">
-          Visionary leadership driving research excellence, innovation culture, and academic distinction across the University Institute of Computing.
-        </p>
-      </div>
-
-      <div class="row g-4 justify-content-center">
-        <!-- Executive Director Card -->
-        <div class="col-md-6 col-lg-4">
-          <div class="leader-card">
-            <div class="leader-img-wrapper">
-              <img src="/images/director_uic.jpg" alt="Executive Director UIC — Dr. Gurpreet Singh" class="leader-img" style="object-position: center top;">
-              <span class="leader-tag tag-director"><i class="fas fa-star me-1"></i> Executive Director, UIC</span>
-            </div>
-            <div class="p-4 d-flex flex-column flex-grow-1">
-              <h4 class="fw-bold text-dark mb-1">Dr. Gurpreet Singh</h4>
-              <div class="text-danger fw-semibold small mb-3">Executive Director — University Institute of Computing</div>
-              <p class="text-muted small mb-4 flex-grow-1">
-                Leading the academic and research initiatives of UIC. Champion of faculty innovation, international research collaborations, patents, and high-impact Q1 journal publications.
-              </p>
-              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
-                <span><i class="fas fa-envelope text-primary me-1"></i> director.uic@cumail.in</span>
-                <span><i class="fas fa-building text-secondary me-1"></i> Block E2 - North Campus</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Head MCA -->
-        <div class="col-md-6 col-lg-4">
-          <div class="leader-card">
-            <div class="leader-img-wrapper">
-              <img src="/images/head_mca.png" alt="Dr. Amanpreet Kaur Sandhu — Head MCA" class="leader-img" style="object-position: center 12%;">
-              <span class="leader-tag"><i class="fas fa-user-tie me-1"></i> Head - MCA</span>
-            </div>
-            <div class="p-4 d-flex flex-column flex-grow-1">
-              <h4 class="fw-bold text-dark mb-1">Dr. Amanpreet Kaur Sandhu</h4>
-              <div class="text-primary fw-semibold small mb-3">Head MCA — University Institute of Computing</div>
-              <p class="text-muted small mb-4 flex-grow-1">
-                Oversees postgraduate Master of Computer Applications (MCA) programs, curriculum alignment with emerging technologies, and graduate research initiatives.
-              </p>
-              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
-                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:hod.mca@cumail.in" class="text-muted text-decoration-none">hod.mca@cumail.in</a></span>
-                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Head BCA -->
-        <div class="col-md-6 col-lg-4">
-          <div class="leader-card">
-            <div class="leader-img-wrapper">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80" alt="Dr. Arun Kumar — Head-BCA" class="leader-img">
-              <span class="leader-tag"><i class="fas fa-graduation-cap me-1"></i> Head - BCA</span>
-            </div>
-            <div class="p-4 d-flex flex-column flex-grow-1">
-              <h4 class="fw-bold text-dark mb-1">Dr. Arun Kumar</h4>
-              <div class="text-primary fw-semibold small mb-3">Head-BCA — University Institute of Computing</div>
-              <p class="text-muted small mb-4 flex-grow-1">
-                Leads undergraduate Bachelor of Computer Applications (BCA) programs, outcome-based education, student-faculty mentoring, and academic innovation.
-              </p>
-              <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
-                <span><i class="fas fa-envelope text-primary me-1"></i> <a href="mailto:head.bca@cumail.in" class="text-muted text-decoration-none">head.bca@cumail.in</a></span>
-                <span><i class="fas fa-building text-secondary me-1"></i> UIC, CU</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Research Coordinator Details Section -->
-  <section id="coordinator" class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);">
-    <div class="container">
-      <div class="section-title-wrap">
-        <span class="section-badge"><i class="fas fa-microscope me-1"></i> Department Research Operations</span>
-        <h2 class="section-title display-font">Research Coordinator Office</h2>
-        <p class="text-muted">
-          Your key liaison for research project facilitation, Scopus verification, ROS tracking, patent filing assistance, and research grant compliance.
-        </p>
-      </div>
-
-      <div class="row align-items-center justify-content-center">
-        <div class="col-lg-10">
-          <div class="card border-0 rounded-4 shadow-lg overflow-hidden" style="background: white;">
-            <div class="row g-0">
-              <div class="col-md-5 position-relative bg-dark" style="min-height: 380px;">
-                <img src="/images/research_coordinator.png" alt="Research Coordinator Dr. Sachin Chawla" class="w-100 h-100 object-fit-cover" style="object-position: center 10%;">
-                <div class="position-absolute bottom-0 start-0 w-100 p-3 text-white" style="background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);">
-                  <span class="badge bg-warning text-dark fw-bold mb-1"><i class="fas fa-star me-1"></i> Research Coordinator</span>
-                  <div class="fw-bold fs-5">Dr. Sachin Chawla</div>
-                  <div class="small text-light opacity-90">Research Coordinator — UIC</div>
-                </div>
-              </div>
-              <div class="col-md-7 p-4 p-lg-5 d-flex flex-column justify-content-between">
-                <div>
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">Department Research Lead</span>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">ROS Office</span>
-                  </div>
-                  <h3 class="fw-bold text-dark display-font mb-2">Dr. Sachin Chawla</h3>
-                  <div class="text-primary fw-semibold small mb-3">Research Coordinator &bull; University Institute of Computing</div>
-                  <p class="text-muted mb-4" style="line-height: 1.6;">
-                    The Research Coordinator oversees the verification of Scopus / Web of Science indexed journal papers (Q1–Q4), conferences, book chapters, and patents. The Coordinator ensures transparent calculation of ROS scores, coordinates monthly faculty output audits, and drives research workshops.
-                  </p>
-                  
-                  <div class="row g-3 mb-4">
-                    <div class="col-sm-6">
-                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
-                        <i class="fas fa-envelope text-danger fs-5"></i>
-                        <div>
-                          <div class="text-muted" style="font-size: 0.72rem;">Official Email</div>
-                          <div class="fw-bold small text-dark"><a href="mailto:researchcoordinator.uic@cumail.in" class="text-dark text-decoration-none">researchcoordinator.uic@cumail.in</a></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6">
-                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
-                        <i class="fas fa-phone-alt text-success fs-5"></i>
-                        <div>
-                          <div class="text-muted" style="font-size: 0.72rem;">Phone Number</div>
-                          <div class="fw-bold small text-dark"><a href="tel:9034388155" class="text-dark text-decoration-none">+91 9034388155</a></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6">
-                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
-                        <i class="fas fa-map-marker-alt text-primary fs-5"></i>
-                        <div>
-                          <div class="text-muted" style="font-size: 0.72rem;">Office Location</div>
-                          <div class="fw-bold small text-dark">North Campus, E2-212 Lab, UIC Department, Chandigarh University</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6">
-                      <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border h-100">
-                        <i class="fas fa-clock text-warning fs-5"></i>
-                        <div>
-                          <div class="text-muted" style="font-size: 0.72rem;">Consultation Hours</div>
-                          <div class="fw-bold small text-dark">9:30 AM to 4:30 PM (Mon to Sat)</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="d-flex gap-2">
-                  <a href="/portal" class="btn btn-portal-primary py-2 px-3 small">
-                    <i class="fas fa-tachometer-alt me-1"></i> Access Portal Records
-                  </a>
-                  <a href="/download-master-publications-template" class="btn btn-outline-secondary py-2 px-3 small">
-                    <i class="fas fa-download me-1"></i> Download Excel Format
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- My Campus Section -->
-  <section id="campus" class="py-5 bg-white border-top">
-    <div class="container">
-      <div class="section-title-wrap">
-        <span class="section-badge"><i class="fas fa-map-marked-alt me-1"></i> World-Class Infrastructure</span>
-        <h2 class="section-title display-font">My Campus — Chandigarh University</h2>
-        <p class="text-muted">
-          A lush green, digitally-enabled 200+ acre campus offering cutting-edge computing laboratories, high-performance GPU clusters, and modern innovation incubators.
-        </p>
-      </div>
-
-      <div class="row g-4 mb-5">
-        <div class="col-lg-4 col-md-6">
-          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
-            <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Main Academic Block" style="height: 220px; object-fit: cover;">
-            <div class="card-body p-4">
-              <span class="badge bg-primary mb-2">Central Landmark</span>
-              <h5 class="fw-bold text-dark">Academic & Research Blocks</h5>
-              <p class="text-muted small mb-0">
-                Spacious smart classrooms, seminar auditoriums, high-speed Wi-Fi, and specialized digital innovation suites for computing research scholars.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6">
-          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
-            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Computing Labs" style="height: 220px; object-fit: cover;">
-            <div class="card-body p-4">
-              <span class="badge bg-danger mb-2">State-of-the-Art</span>
-              <h5 class="fw-bold text-dark">Advanced Computing & AI Labs</h5>
-              <p class="text-muted small mb-0">
-                Equipped with NVIDIA DGX Supercomputing stations, cloud testbeds, IoT sensor kits, and robotic workstations for graduate and faculty research.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6">
-          <div class="card border-0 rounded-4 overflow-hidden shadow-sm h-100">
-            <img src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=800&q=80" class="card-img-top" alt="Digital Library" style="height: 220px; object-fit: cover;">
-            <div class="card-body p-4">
-              <span class="badge bg-success mb-2">Resource Center</span>
-              <h5 class="fw-bold text-dark">Central Knowledge Resource Center</h5>
-              <p class="text-muted small mb-0">
-                Full-text subscription to IEEE Xplore, ScienceDirect, ACM Digital Library, Scopus, SpringerLink, and Web of Science repositories.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Call to Action Banner -->
-      <div class="cta-banner">
-        <div class="row align-items-center g-4">
-          <div class="col-lg-8">
-            <div class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2">
-              <i class="fas fa-database me-1"></i> Ready to Manage or Track Output?
-            </div>
-            <h3 class="display-font fw-bold text-white mb-2" style="font-size: 2rem;">
-              Access the UIC Research Record Portal
-            </h3>
-            <p class="text-light opacity-90 mb-0">
-              Directly view faculty research profiles, upload publication spreadsheets by author names, track zero-publication alerts, and export Excel reports.
-            </p>
-          </div>
-          <div class="col-lg-4 text-lg-end">
-            <a href="/portal" class="btn btn-light btn-lg px-4 py-3 fw-bold text-primary shadow">
-              <i class="fas fa-sign-in-alt me-1"></i> Open Faculty Portal
-            </a>
           </div>
         </div>
       </div>
