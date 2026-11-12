@@ -147,8 +147,30 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Department</label>
-              <input type="text" name="department" class="form-control portal-input" placeholder="e.g. Computer Science"
+              <input type="text" name="department" class="form-control portal-input" placeholder="e.g. UIC"
                      value="<%= (typeof formData !== 'undefined' && formData && formData.department) ? formData.department : '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Scopus Author ID</label>
+              <input type="text" name="scopus_id" class="form-control portal-input" placeholder="e.g. 57201234567"
+                     value="<%= (typeof formData !== 'undefined' && formData && formData.scopus_id) ? formData.scopus_id : '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Category / Role</label>
+              <% const selType = (typeof formData !== 'undefined' && formData && formData.member_type) ? formData.member_type : 'Faculty'; %>
+              <select name="member_type" class="form-select portal-input">
+                <option value="Faculty" <%= selType === 'Faculty' ? 'selected' : '' %>>Faculty</option>
+                <option value="Research Fellow" <%= selType === 'Research Fellow' ? 'selected' : '' %>>Research Fellow</option>
+                <option value="Student" <%= selType === 'Student' ? 'selected' : '' %>>Student</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Active / Inactive Status</label>
+              <% const selStatus = (typeof formData !== 'undefined' && formData && formData.status) ? formData.status : 'Active'; %>
+              <select name="status" class="form-select portal-input">
+                <option value="Active" <%= selStatus !== 'Inactive' ? 'selected' : '' %>>Active (Green Dot)</option>
+                <option value="Inactive" <%= selStatus === 'Inactive' ? 'selected' : '' %>>Inactive / Left (Red Dot)</option>
+              </select>
             </div>
           </div>
         </div>

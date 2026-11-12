@@ -589,29 +589,41 @@
               <span><i class="fas fa-chart-pie me-2 text-warning"></i> UIC Research Footprint</span>
               <span class="badge bg-danger rounded-pill px-3 py-1 small">Live Analytics</span>
             </h5>
-            <div class="row g-3 text-center mb-4">
-              <div class="col-6">
-                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
-                  <div class="display-6 fw-bold text-warning display-font"><%= totalFaculty %></div>
-                  <div class="small text-light opacity-75">Faculty Members</div>
+            <div class="row g-2 text-center mb-3">
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-warning display-font"><%= memberStats.facultyCount %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Faculty Members</div>
                 </div>
               </div>
-              <div class="col-6">
-                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
-                  <div class="display-6 fw-bold text-info display-font"><%= totalPubs %></div>
-                  <div class="small text-light opacity-75">Research Publications</div>
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-light display-font"><%= memberStats.fellowCount %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Research Fellows</div>
                 </div>
               </div>
-              <div class="col-6">
-                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
-                  <div class="display-6 fw-bold text-success display-font"><%= q1Count %></div>
-                  <div class="small text-light opacity-75">Scopus Q1 Journals</div>
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-info display-font"><%= memberStats.studentCount %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Students</div>
                 </div>
               </div>
-              <div class="col-6">
-                <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
-                  <div class="display-6 fw-bold text-danger display-font"><%= activeCount %></div>
-                  <div class="small text-light opacity-75">Active Researchers</div>
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-info display-font"><%= totalPubs %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Research Publications</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-success display-font"><%= q1Count %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Scopus Q1 Journals</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 py-3 rounded-3 h-100" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="fs-2 fw-bold text-danger display-font"><%= activeCount %></div>
+                  <div class="text-light opacity-75" style="font-size: 0.78rem;">Active Contributors</div>
                 </div>
               </div>
             </div>
@@ -619,6 +631,10 @@
               <div class="d-flex justify-content-between align-items-center text-light small">
                 <span><i class="fas fa-award text-warning me-1"></i> Average Dept ROS:</span>
                 <span class="fw-bold fs-6 text-white"><%= avgROS %> Points</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center text-light small mt-1 opacity-75">
+                <span><i class="fas fa-users me-1 text-info"></i> Total Registered (<%= memberStats.activeStatusCount %> Active, <%= memberStats.inactiveStatusCount %> Left):</span>
+                <span class="fw-semibold"><%= totalFaculty %></span>
               </div>
             </div>
           </div>

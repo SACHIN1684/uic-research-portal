@@ -92,11 +92,29 @@ function setupPhotoPreview() {
 // ── Dashboard Filter ─────────────────────────────────────
 function setupFilters() {
   const filterBtns = document.querySelectorAll('.filter-btn');
-  if (!filterBtns.length) return;
-
   filterBtns.forEach(btn => {
     btn.addEventListener('click', function () {
       filterBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      applyFilters();
+    });
+  });
+
+  const catBtns = document.querySelectorAll('.cat-filter-btn');
+  catBtns.forEach(btn => {
+    btn.addEventListener('click', function () {
+      catBtns.forEach(b => b.classList.remove('active', 'btn-primary', 'text-white'));
+      catBtns.forEach(b => b.classList.add('btn-outline-primary'));
+      this.classList.remove('btn-outline-primary');
+      this.classList.add('active', 'btn-primary', 'text-white');
+      applyFilters();
+    });
+  });
+
+  const statusBtns = document.querySelectorAll('.status-filter-btn');
+  statusBtns.forEach(btn => {
+    btn.addEventListener('click', function () {
+      statusBtns.forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       applyFilters();
     });
@@ -125,6 +143,10 @@ function setupSearch() {
 function applyFilters() {
   const activeBtn   = document.querySelector('.filter-btn.active');
   const filterType  = activeBtn ? activeBtn.dataset.filter : 'all';
+  const activeCatBtn = document.querySelector('.cat-filter-btn.active');
+  const catType     = activeCatBtn ? activeCatBtn.dataset.cat : 'all';
+  const activeStatusBtn = document.querySelector('.status-filter-btn.active');
+  const statusType  = activeStatusBtn ? activeStatusBtn.dataset.statusFilter : 'all';
   const searchQuery = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
 
   const cards = document.querySelectorAll('.faculty-card-wrap');
@@ -134,6 +156,9 @@ function applyFilters() {
     const ros  = parseFloat(card.dataset.ros) || 0;
     const name = card.dataset.name || '';
     const code = card.dataset.code || '';
+    const scopus = card.dataset.scopus || '';
+    const memberType = card.dataset.memberType || 'Faculty';
+    const memberStatus = card.dataset.status || 'Active';
 
     let rosMatch = true;
     if (filterType === 'zero')          rosMatch = ros === 0;
@@ -141,9 +166,11 @@ function applyFilters() {
     else if (filterType === 'moderate') rosMatch = ros >= 0.3 && ros < 0.6;
     else if (filterType === 'good')     rosMatch = ros >= 0.6;
 
-    const searchMatch = !searchQuery || name.includes(searchQuery) || code.includes(searchQuery);
+    const catMatch = catType === 'all' || memberType === catType;
+    const statusMatch = statusType === 'all' || memberStatus === statusType;
+    const searchMatch = !searchQuery || name.includes(searchQuery) || code.includes(searchQuery) || scopus.includes(searchQuery);
 
-    const show = rosMatch && searchMatch;
+    const show = rosMatch && catMatch && statusMatch && searchMatch;
     card.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });

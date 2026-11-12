@@ -231,9 +231,10 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
     </div>
 
     <!-- Profile Hero Card -->
+    <% const isMemberActive = (faculty.status || 'Active') !== 'Inactive'; %>
     <div class="profile-hero mb-4">
       <div class="profile-hero-left">
-        <div class="profile-photo-wrap">
+        <div class="profile-photo-wrap position-relative">
           <% if (faculty.photo) { %>
             <img src="/uploads/<%= faculty.photo %>" alt="<%= faculty.name %>" class="profile-photo">
           <% } else { %>
@@ -241,12 +242,30 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
               <span><%= initials %></span>
             </div>
           <% } %>
+          <span title="<%= isMemberActive ? 'Active Member' : 'Inactive / Left Department' %>"
+                style="position:absolute; bottom:4px; right:4px; width:18px; height:18px; border-radius:50%; border:3px solid #fff; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>; box-shadow:0 2px 6px rgba(0,0,0,0.25);"></span>
         </div>
       </div>
       <div class="profile-hero-right">
-        <h1 class="profile-name"><%= faculty.name %></h1>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <h1 class="profile-name mb-0"><%= faculty.name %></h1>
+          <span class="badge <%= isMemberActive ? 'bg-success-subtle text-success border border-success' : 'bg-danger-subtle text-danger border border-danger' %> px-2 py-1 d-inline-flex align-items-center gap-1">
+            <span style="width:9px; height:9px; border-radius:50%; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>; display:inline-block;"></span>
+            <%= isMemberActive ? 'Active' : 'Inactive / Left' %>
+          </span>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+            <%= faculty.member_type || 'Faculty' %>
+          </span>
+        </div>
         <div class="profile-meta">
           <span class="emp-badge-lg"><i class="fas fa-id-card me-1"></i><%= faculty.employee_code %></span>
+          <% if (faculty.scopus_id) { %>
+          <a href="https://www.scopus.com/authid/detail.uri?authorId=<%= encodeURIComponent(faculty.scopus_id) %>" target="_blank" class="meta-chip text-decoration-none" style="background:#fef3c7;color:#92400e;font-weight:600">
+            <i class="fas fa-fingerprint me-1"></i>Scopus ID: <%= faculty.scopus_id %> <i class="fas fa-external-link-alt ms-1 small"></i>
+          </a>
+          <% } else { %>
+          <span class="meta-chip text-muted"><i class="fas fa-fingerprint me-1"></i>Scopus ID: Not Set</span>
+          <% } %>
           <% if (faculty.designation) { %>
           <span class="meta-chip"><i class="fas fa-graduation-cap me-1"></i><%= faculty.designation %></span>
           <% } %>

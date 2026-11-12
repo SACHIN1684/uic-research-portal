@@ -332,8 +332,11 @@ app.get('/', (req, res) => {
     const allYearsTopPerformers = db.getAllYearsTopPerformers(yearsList, 20, pubCountingMode);
     const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20, pubCountingMode);
 
+    const memberStats = db.getMemberBifurcationStats(faculty);
+
     res.render('home', {
       totalFaculty,
+      memberStats,
       totalPubs,
       q1Count,
       activeCount,
@@ -382,6 +385,7 @@ app.get('/portal', (req, res) => {
     const activeCount = faculty.filter(f => f.ros > 0).length;
     const viewMode = req.query.view || 'grid';
     const pubCountingMode = db.getPubCountingMode();
+    const memberStats = db.getMemberBifurcationStats(faculty);
     const pendingReport = (req.isAdmin && req.query.pending_id)
       ? (pendingMasterUploads.get(String(req.query.pending_id)) || null)
       : null;
@@ -389,6 +393,7 @@ app.get('/portal', (req, res) => {
     res.render('index', {
       faculty,
       totalFaculty,
+      memberStats,
       avgROS,
       zeroCount,
       activeCount,
@@ -429,6 +434,9 @@ app.get('/export/excel', (req, res) => {
         'S.No': idx + 1,
         'Employee Code': f.employee_code,
         'Faculty Name': f.name,
+        'Category': f.member_type || 'Faculty',
+        'Scopus ID': f.scopus_id || '',
+        'Member Status': f.status || 'Active',
         'Designation': f.designation || 'N/A',
         'Department': f.department || 'N/A',
         'Total Publications': f.total_pubs,
@@ -733,12 +741,14 @@ app.get('/download-master-publications-template', (req, res) => {
   }
 });
 
-// Download sample Excel template for faculty members list
+// Download sample Excel template for faculty / research fellow / student list
 app.get('/download-template', (req, res) => {
   try {
     const sampleRows = [
-      { 'Sr. No': 1, 'Faculty Name': 'Neeraj Narwat', 'Employee Code': 'EMP101', 'Designation': 'Associate Professor', 'Department': 'Agriculture' },
-      { 'Sr. No': 2, 'Faculty Name': 'Dr. Sarah Ahmed', 'Employee Code': 'EMP102', 'Designation': 'Professor', 'Department': 'Computer Science' }
+      { 'Sr. No': 1, 'Faculty Name': 'Neeraj Narwat', 'Employee Code': 'EMP101', 'Designation': 'Associate Professor', 'Department': 'UIC', 'Category': 'Faculty', 'Scopus ID': '57201234567', 'Status': 'Active' },
+      { 'Sr. No': 2, 'Faculty Name': 'Ms. Damanpreet Kaur', 'Employee Code': 'R258', 'Designation': 'Research Scholar', 'Department': 'UIC', 'Category': 'Research Fellow', 'Scopus ID': '57219876543', 'Status': 'Active' },
+      { 'Sr. No': 3, 'Faculty Name': 'Vipin Bansal', 'Employee Code': '20MCA10254', 'Designation': 'Student', 'Department': 'UIC', 'Category': 'Student', 'Scopus ID': '', 'Status': 'Active' },
+      { 'Sr. No': 4, 'Faculty Name': 'Dr. Former Faculty', 'Employee Code': 'EMP099', 'Designation': 'Assistant Professor', 'Department': 'UIC', 'Category': 'Faculty', 'Scopus ID': '57190001122', 'Status': 'Inactive' }
     ];
 
     const wb = XLSX.utils.book_new();
@@ -1000,15 +1010,21 @@ app.post('/faculty/upload-excel', requireAdmin, upload.single('faculty_excel'), 
 
     const parsedRows = rawData.map(r => {
       const name = r['Faculty Name'] || r['Name of faculty'] || r['Name'] || r['faculty_name'] || r['name'];
-      const code = r['Employee Code'] || r['employee code'] || r['Code'] || r['employee_code'] || r['EMP Code'] || r['emp_code'];
+      const code = r['Employee Code'] || r['employee code'] || r['Code'] || r['employee_code'] || r['EMP Code'] || r['emp_code'] || r['UID'] || r['Roll No'];
       const designation = r['Designation'] || r['designation'] || '';
       const department = r['Department'] || r['department'] || '';
+      const scopusId = r['Scopus ID'] || r['scopus_id'] || r['Scopus Author ID'] || r['Scopus'] || '';
+      const memberType = r['Category'] || r['category'] || r['Member Type'] || r['member_type'] || r['Role'] || r['Type'] || '';
+      const status = r['Status'] || r['status'] || r['Active Status'] || r['Active/Inactive'] || r['Member Status'] || 'Active';
 
       return {
         name: name ? String(name).trim() : '',
         employee_code: code ? String(code).trim() : '',
         designation: designation ? String(designation).trim() : '',
-        department: department ? String(department).trim() : ''
+        department: department ? String(department).trim() : '',
+        scopus_id: scopusId ? String(scopusId).trim() : '',
+        member_type: db.normalizeMemberType(memberType, designation, code),
+        status: db.normalizeMemberStatus(status)
       };
     }).filter(r => r.name && r.employee_code);
 
@@ -1102,14 +1118,14 @@ app.get('/faculty/add', requireAdmin, (req, res) => {
 // Add single faculty POST (checks BOTH Name and Employee Code and asks to replace if existing)
 app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
   try {
-    const { name, employee_code, designation, department, confirm_replace, replace_id, pending_photo } = req.body;
+    const { name, employee_code, designation, department, scopus_id, member_type, status, confirm_replace, replace_id, pending_photo } = req.body;
 
     if (!name || !employee_code) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.render('add', {
         error: 'Name and Employee Code are required.',
         duplicateMatch: null,
-        formData: { name, employee_code, designation, department }
+        formData: { name, employee_code, designation, department, scopus_id, member_type, status }
       });
     }
 
@@ -1122,7 +1138,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
         return res.render('add', {
           error: `Cannot replace: Employee code "${employee_code.trim()}" is already assigned to another faculty member (${codeOwner.name}).`,
           duplicateMatch: null,
-          formData: { name, employee_code, designation, department }
+          formData: { name, employee_code, designation, department, scopus_id, member_type, status }
         });
       }
 
@@ -1133,6 +1149,9 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
         employee_code: employee_code.trim(),
         designation: designation || '',
         department: department || '',
+        scopus_id: scopus_id || '',
+        member_type,
+        status,
         photo: newPhoto
       });
 
@@ -1154,6 +1173,9 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
           employee_code: employee_code.trim(),
           designation: designation || '',
           department: department || '',
+          scopus_id: scopus_id || '',
+          member_type: member_type || 'Faculty',
+          status: status || 'Active',
           pending_photo: savedPendingPhoto
         }
       });
@@ -1166,6 +1188,9 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
       employee_code: employee_code.trim(),
       designation,
       department,
+      scopus_id,
+      member_type,
+      status,
       photo
     });
 
@@ -1424,7 +1449,7 @@ app.get('/faculty/:id/edit', requireAdmin, (req, res) => {
 app.post('/faculty/:id/edit', requireAdmin, upload.single('photo'), (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, employee_code, designation, department } = req.body;
+    const { name, employee_code, designation, department, scopus_id, member_type, status } = req.body;
 
     if (!name || !employee_code) {
       const faculty = db.getFacultyById(id);
@@ -1445,6 +1470,9 @@ app.post('/faculty/:id/edit', requireAdmin, upload.single('photo'), (req, res) =
       employee_code: employee_code.trim(),
       designation,
       department,
+      scopus_id,
+      member_type,
+      status,
       photo
     });
 

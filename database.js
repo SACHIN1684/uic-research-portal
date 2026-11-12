@@ -121,8 +121,68 @@ async function initDB() {
     db.run("UPDATE publications SET pub_department = 'UIC' WHERE pub_department IS NULL OR TRIM(pub_department) = ''");
   }
 
+  ensureFacultySchemaColumns(true);
+
   saveDB();
   return db;
+}
+
+function normalizeMemberType(rawType, designation = '', employeeCode = '') {
+  const t = String(rawType || '').trim().toLowerCase();
+  if (t) {
+    if (t.includes('student')) return 'Student';
+    if (t.includes('fellow') || t.includes('scholar') || t.includes('jrf') || t.includes('srf') || t.includes('phd')) {
+      return 'Research Fellow';
+    }
+    if (t.includes('faculty') || t.includes('prof') || t.includes('teacher') || t.includes('staff')) {
+      return 'Faculty';
+    }
+  }
+  const d = String(designation || '').trim().toLowerCase();
+  const c = String(employeeCode || '').trim();
+  if (/research\s*(scholar|fellow)|reseach\s*scholar|jrf|srf|phd/i.test(d) || /^R\d+/i.test(c)) {
+    return 'Research Fellow';
+  }
+  if (/student/i.test(d) || /^\d{2}[a-z]{2,}\d+/i.test(c)) {
+    return 'Student';
+  }
+  return 'Faculty';
+}
+
+function normalizeMemberStatus(rawStatus) {
+  const s = String(rawStatus || '').trim().toLowerCase();
+  if (!s) return 'Active';
+  if (/(inactive|left|resigned|relieved|ex\b|former|no|0|false)/i.test(s)) {
+    return 'Inactive';
+  }
+  return 'Active';
+}
+
+function ensureFacultySchemaColumns(backfillTypes = false) {
+  const facCols = queryAll("PRAGMA table_info('faculty')");
+  const hasScopus = facCols.some(c => c.name === 'scopus_id');
+  const hasType = facCols.some(c => c.name === 'member_type');
+  const hasStatus = facCols.some(c => c.name === 'status');
+
+  if (!hasScopus) {
+    db.run("ALTER TABLE faculty ADD COLUMN scopus_id TEXT DEFAULT ''");
+  }
+  if (!hasType) {
+    db.run("ALTER TABLE faculty ADD COLUMN member_type TEXT DEFAULT 'Faculty'");
+    if (backfillTypes) {
+      const all = queryAll('SELECT id, employee_code, designation FROM faculty');
+      all.forEach(f => {
+        const inferred = normalizeMemberType('', f.designation, f.employee_code);
+        if (inferred !== 'Faculty') {
+          db.run('UPDATE faculty SET member_type = ? WHERE id = ?', [inferred, f.id]);
+        }
+      });
+    }
+  }
+  if (!hasStatus) {
+    db.run("ALTER TABLE faculty ADD COLUMN status TEXT DEFAULT 'Active'");
+    db.run("UPDATE faculty SET status = 'Active' WHERE status IS NULL OR TRIM(status) = ''");
+  }
 }
 
 function captureSnapshot(label) {
@@ -155,6 +215,7 @@ function restoreSnapshot(snap) {
   if (!pubCols.some(c => c.name === 'pub_department')) {
     db.run("ALTER TABLE publications ADD COLUMN pub_department TEXT DEFAULT 'UIC'");
   }
+  ensureFacultySchemaColumns(false);
 
   if (currentAdmin) {
     db.run(
@@ -564,20 +625,32 @@ function analyzeFacultyUpload(rows) {
     seenCodes.add(codeKey);
 
     const dup = findDuplicateFaculty(name, code);
+    const desig = (row.designation || '').trim();
+    const dept = (row.department || '').trim();
+    const scopusId = (row.scopus_id || '').trim();
+    const memberType = normalizeMemberType(row.member_type, desig, code);
+    const status = normalizeMemberStatus(row.status);
+
     if (dup) {
       duplicateRows.push({
         incoming: {
           name,
           employee_code: code,
-          designation: (row.designation || '').trim(),
-          department: (row.department || '').trim()
+          designation: desig,
+          department: dept,
+          scopus_id: scopusId,
+          member_type: memberType,
+          status
         },
         existing: {
           id: dup.existing.id,
           name: dup.existing.name,
           employee_code: dup.existing.employee_code,
           designation: dup.existing.designation,
-          department: dup.existing.department
+          department: dup.existing.department,
+          scopus_id: dup.existing.scopus_id || '',
+          member_type: dup.existing.member_type || 'Faculty',
+          status: dup.existing.status || 'Active'
         },
         matchReason: dup.matchReason
       });
@@ -585,8 +658,11 @@ function analyzeFacultyUpload(rows) {
       newRows.push({
         name,
         employee_code: code,
-        designation: (row.designation || '').trim(),
-        department: (row.department || '').trim()
+        designation: desig,
+        department: dept,
+        scopus_id: scopusId,
+        member_type: memberType,
+        status
       });
     }
   }
@@ -635,11 +711,19 @@ function applyFacultyUpload(newRows, duplicateRows, replaceExisting) {
 }
 
 function addFaculty(data) {
+  const memberType = normalizeMemberType(data.member_type, data.designation, data.employee_code);
+  const status = normalizeMemberStatus(data.status);
   db.run(`
-    INSERT INTO faculty (name, employee_code, designation, department, photo)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO faculty (name, employee_code, designation, department, scopus_id, member_type, status, photo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `, [
-    data.name.trim(), data.employee_code.trim(), data.designation || '', data.department || '',
+    data.name.trim(),
+    data.employee_code.trim(),
+    data.designation || '',
+    data.department || '',
+    (data.scopus_id || '').trim(),
+    memberType,
+    status,
     data.photo || null
   ]);
   saveDB();
@@ -671,7 +755,10 @@ function addFacultyBulk(rows) {
       name,
       employee_code: code,
       designation: (row.designation || '').trim(),
-      department: (row.department || '').trim()
+      department: (row.department || '').trim(),
+      scopus_id: (row.scopus_id || '').trim(),
+      member_type: row.member_type,
+      status: row.status
     });
     addedCount++;
   }
@@ -683,15 +770,47 @@ function addFacultyBulk(rows) {
 function updateFaculty(id, data) {
   const existing = getFacultyById(id);
   const photo = data.photo || (existing ? existing.photo : null);
+  const scopusId = data.scopus_id !== undefined ? String(data.scopus_id || '').trim() : (existing ? (existing.scopus_id || '') : '');
+  const memberType = data.member_type !== undefined
+    ? normalizeMemberType(data.member_type, data.designation, data.employee_code)
+    : (existing ? (existing.member_type || 'Faculty') : 'Faculty');
+  const status = data.status !== undefined
+    ? normalizeMemberStatus(data.status)
+    : (existing ? (existing.status || 'Active') : 'Active');
+
   db.run(`
     UPDATE faculty SET
-      name = ?, employee_code = ?, designation = ?, department = ?, photo = ?
+      name = ?, employee_code = ?, designation = ?, department = ?, scopus_id = ?, member_type = ?, status = ?, photo = ?
     WHERE id = ?
   `, [
-    data.name.trim(), data.employee_code.trim(), (data.designation || '').trim(), (data.department || '').trim(),
-    photo, id
+    data.name.trim(),
+    data.employee_code.trim(),
+    (data.designation || '').trim(),
+    (data.department || '').trim(),
+    scopusId,
+    memberType,
+    status,
+    photo,
+    id
   ]);
   saveDB();
+}
+
+function getMemberBifurcationStats(facultyList) {
+  const list = facultyList || getAllFacultyWithStats();
+  const facultyCount = list.filter(f => (f.member_type || 'Faculty') === 'Faculty').length;
+  const fellowCount = list.filter(f => f.member_type === 'Research Fellow').length;
+  const studentCount = list.filter(f => f.member_type === 'Student').length;
+  const activeStatusCount = list.filter(f => (f.status || 'Active') !== 'Inactive').length;
+  const inactiveStatusCount = list.filter(f => f.status === 'Inactive').length;
+  return {
+    totalCount: list.length,
+    facultyCount,
+    fellowCount,
+    studentCount,
+    activeStatusCount,
+    inactiveStatusCount
+  };
 }
 
 function deleteFaculty(id) {
@@ -1550,6 +1669,9 @@ module.exports = {
   setPubCountingMode,
   normalizePubDepartment,
   isUicDepartment,
+  normalizeMemberType,
+  normalizeMemberStatus,
+  getMemberBifurcationStats,
   getDepartmentPublicationOverview,
   getAllFacultyWithStats,
   getDepartmentMonthlyROS,

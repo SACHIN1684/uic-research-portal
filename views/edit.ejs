@@ -108,6 +108,27 @@
               <label class="form-label">Department</label>
               <input type="text" name="department" class="form-control portal-input" value="<%= faculty.department %>">
             </div>
+            <div class="col-md-4">
+              <label class="form-label">Scopus Author ID</label>
+              <input type="text" name="scopus_id" class="form-control portal-input" placeholder="e.g. 57201234567" value="<%= faculty.scopus_id || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Category / Role</label>
+              <% const curType = faculty.member_type || 'Faculty'; %>
+              <select name="member_type" class="form-select portal-input">
+                <option value="Faculty" <%= curType === 'Faculty' ? 'selected' : '' %>>Faculty</option>
+                <option value="Research Fellow" <%= curType === 'Research Fellow' ? 'selected' : '' %>>Research Fellow</option>
+                <option value="Student" <%= curType === 'Student' ? 'selected' : '' %>>Student</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Active / Inactive Status</label>
+              <% const curStatus = faculty.status || 'Active'; %>
+              <select name="status" class="form-select portal-input">
+                <option value="Active" <%= curStatus !== 'Inactive' ? 'selected' : '' %>>Active (Green Dot)</option>
+                <option value="Inactive" <%= curStatus === 'Inactive' ? 'selected' : '' %>>Inactive / Left (Red Dot)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

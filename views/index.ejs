@@ -417,33 +417,80 @@
     <% } %>
 
     <!-- Stats Bar -->
-    <div class="stats-row row g-3 mb-4">
-      <div class="col-6 col-md-3">
+    <div class="stats-row row g-3 mb-3">
+      <div class="col-6 col-md-2">
         <div class="stat-card stat-total">
-          <div class="stat-icon"><i class="fas fa-users"></i></div>
-          <div class="stat-num"><%= totalFaculty %></div>
-          <div class="stat-label">Total Faculty Registered</div>
+          <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+          <div class="stat-num"><%= memberStats.facultyCount %></div>
+          <div class="stat-label">Faculty Members</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
+        <div class="stat-card stat-avg">
+          <div class="stat-icon"><i class="fas fa-microscope"></i></div>
+          <div class="stat-num"><%= memberStats.fellowCount %></div>
+          <div class="stat-label">Research Fellows</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="stat-card" style="border-top: 3px solid #0891b2;">
+          <div class="stat-icon" style="background: #cffafe; color: #0891b2;"><i class="fas fa-user-graduate"></i></div>
+          <div class="stat-num"><%= memberStats.studentCount %></div>
+          <div class="stat-label">Students</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
         <div class="stat-card stat-avg">
           <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
           <div class="stat-num"><%= avgROS %></div>
-          <div class="stat-label">Average Department ROS</div>
+          <div class="stat-label">Average Dept ROS</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <div class="stat-card stat-zero">
           <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
           <div class="stat-num"><%= zeroCount %></div>
-          <div class="stat-label">Zero Publications / ROS</div>
+          <div class="stat-label">Zero Pubs / ROS</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <div class="stat-card stat-active">
           <div class="stat-icon"><i class="fas fa-award"></i></div>
           <div class="stat-num"><%= activeCount %></div>
-          <div class="stat-label">Active Research Contributors</div>
+          <div class="stat-label">Active Contributors</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bifurcation & Active/Inactive Filter Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 p-3 bg-white rounded-3 shadow-sm border">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="small fw-bold text-muted me-1"><i class="fas fa-users-cog me-1 text-primary"></i>Category:</span>
+        <button type="button" class="btn btn-sm btn-primary text-white fw-semibold cat-filter-btn active" data-cat="all">
+          All (<%= totalFaculty %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Faculty">
+          Faculty (<%= memberStats.facultyCount %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Research Fellow">
+          Research Fellows (<%= memberStats.fellowCount %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Student">
+          Students (<%= memberStats.studentCount %>)
+        </button>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="small fw-bold text-muted me-1"><i class="fas fa-circle me-1 text-success"></i>Status:</span>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary fw-semibold status-filter-btn active" data-status-filter="all">
+            All (<%= totalFaculty %>)
+          </button>
+          <button type="button" class="btn btn-outline-success fw-semibold status-filter-btn" data-status-filter="Active">
+            <span style="width:9px;height:9px;border-radius:50%;background:#16a34a;display:inline-block;margin-right:4px;"></span>Active (<%= memberStats.activeStatusCount %>)
+          </button>
+          <button type="button" class="btn btn-outline-danger fw-semibold status-filter-btn" data-status-filter="Inactive">
+            <span style="width:9px;height:9px;border-radius:50%;background:#dc2626;display:inline-block;margin-right:4px;"></span>Left / Inactive (<%= memberStats.inactiveStatusCount %>)
+          </button>
         </div>
       </div>
     </div>
@@ -592,11 +639,16 @@
                     const rc = rosColor(f.ros);
                     const rl = rosLabel(f.ros);
                     const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                    const isMemberActive = (f.status || 'Active') !== 'Inactive';
+                    const memberType = f.member_type || 'Faculty';
                   %>
                   <tr class="faculty-card-wrap"
                       data-ros="<%= f.ros %>"
                       data-name="<%= f.name.toLowerCase() %>"
-                      data-code="<%= f.employee_code.toLowerCase() %>">
+                      data-code="<%= f.employee_code.toLowerCase() %>"
+                      data-scopus="<%= (f.scopus_id || '').toLowerCase() %>"
+                      data-member-type="<%= memberType %>"
+                      data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>">
                     <% if (isAdmin) { %>
                     <td class="text-center">
                       <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm" class="form-check-input faculty-select-cb" style="cursor:pointer;">
@@ -605,16 +657,27 @@
                     <td class="text-muted fw-bold serial-col"><%= idx + 1 %></td>
                     <td>
                       <div class="d-flex align-items-center gap-2">
-                        <% if (f.photo) { %>
-                          <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
-                        <% } else { %>
-                          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem;">
-                            <%= initials %>
-                          </div>
-                        <% } %>
+                        <div class="position-relative flex-shrink-0">
+                          <% if (f.photo) { %>
+                            <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                          <% } else { %>
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem;">
+                              <%= initials %>
+                            </div>
+                          <% } %>
+                          <span title="<%= isMemberActive ? 'Active Member' : 'Inactive / Left Department' %>"
+                                style="position:absolute; bottom:-1px; right:-1px; width:12px; height:12px; border-radius:50%; border:2px solid #fff; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>;"></span>
+                        </div>
                         <div>
-                          <div class="fw-bold text-dark"><%= f.name %></div>
-                          <div class="text-muted small"><%= f.designation || 'Faculty' %></div>
+                          <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">
+                            <span><%= f.name %></span>
+                            <span class="badge bg-light text-secondary border" style="font-size:0.68rem;"><%= memberType %></span>
+                            <% if (!isMemberActive) { %><span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.66rem;">Left</span><% } %>
+                          </div>
+                          <div class="text-muted small">
+                            <%= f.designation || memberType %>
+                            <% if (f.scopus_id) { %> &bull; <span class="font-monospace">Scopus: <%= f.scopus_id %></span><% } %>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -669,11 +732,16 @@
             const rl = rosLabel(f.ros);
             const rosPercent = Math.min(Math.round(f.ros * 100), 100);
             const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+            const isMemberActive = (f.status || 'Active') !== 'Inactive';
+            const memberType = f.member_type || 'Faculty';
           %>
           <div class="col-12 col-md-6 col-lg-4 faculty-card-wrap"
                data-ros="<%= f.ros %>"
                data-name="<%= f.name.toLowerCase() %>"
-               data-code="<%= f.employee_code.toLowerCase() %>">
+               data-code="<%= f.employee_code.toLowerCase() %>"
+               data-scopus="<%= (f.scopus_id || '').toLowerCase() %>"
+               data-member-type="<%= memberType %>"
+               data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>">
             <div class="faculty-card position-relative">
               <% if (isAdmin) { %>
               <div class="position-absolute" style="top: 14px; right: 14px; z-index: 5;">
@@ -685,7 +753,7 @@
               <div class="card-top-accent"></div>
               <div class="faculty-card-inner">
                 <div class="faculty-header">
-                  <div class="faculty-photo-wrap">
+                  <div class="faculty-photo-wrap position-relative">
                     <% if (f.photo) { %>
                       <img src="/uploads/<%= f.photo %>" alt="<%= f.name %>" class="faculty-photo">
                     <% } else { %>
@@ -693,13 +761,28 @@
                         <span><%= initials %></span>
                       </div>
                     <% } %>
+                    <span title="<%= isMemberActive ? 'Active Member' : 'Inactive / Left Department' %>"
+                          style="position:absolute; top:-3px; left:-3px; width:14px; height:14px; border-radius:50%; border:2px solid #fff; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></span>
                     <div class="ros-badge ros-badge-<%= rc %>"><%= f.ros.toFixed(2) %></div>
                   </div>
                   <div class="faculty-info">
-                    <h3 class="faculty-name"><%= f.name %></h3>
-                    <span class="emp-badge"><i class="fas fa-id-card me-1"></i><%= f.employee_code %></span>
+                    <h3 class="faculty-name d-flex align-items-center gap-2 flex-wrap">
+                      <span><%= f.name %></span>
+                      <span title="<%= isMemberActive ? 'Active' : 'Inactive / Left' %>"
+                            style="width:10px; height:10px; border-radius:50%; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>; display:inline-block; flex-shrink:0;"></span>
+                    </h3>
+                    <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                      <span class="emp-badge"><i class="fas fa-id-card me-1"></i><%= f.employee_code %></span>
+                      <span class="badge <%= memberType === 'Student' ? 'bg-info-subtle text-info-emphasis border border-info-subtle' : (memberType === 'Research Fellow' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle') %>" style="font-size:0.7rem;">
+                        <%= memberType %>
+                      </span>
+                      <% if (!isMemberActive) { %>
+                        <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.68rem;">Left / Inactive</span>
+                      <% } %>
+                    </div>
                     <% if (f.designation) { %><div class="faculty-desig"><%= f.designation %></div><% } %>
                     <% if (f.department) { %><div class="faculty-dept"><i class="fas fa-building me-1"></i><%= f.department %></div><% } %>
+                    <% if (f.scopus_id) { %><div class="small text-muted font-monospace" style="font-size:0.72rem;"><i class="fas fa-fingerprint me-1 text-warning"></i>Scopus: <%= f.scopus_id %></div><% } %>
                   </div>
                 </div>
 
@@ -878,8 +961,11 @@
             <ul class="small text-muted mb-0 ps-3">
               <li><strong>Sr. No</strong> / <strong>S.No</strong></li>
               <li><strong>Faculty Name</strong> / <strong>Name of faculty</strong> (Required)</li>
-              <li><strong>Employee Code</strong> (Required & Unique)</li>
-              <li><strong>Designation</strong> & <strong>Department</strong> (Optional)</li>
+              <li><strong>Employee Code</strong> / <strong>UID</strong> (Required &amp; Unique)</li>
+              <li><strong>Designation</strong> &amp; <strong>Department</strong> (Optional)</li>
+              <li><strong>Category</strong>: <code>Faculty</code>, <code>Research Fellow</code>, or <code>Student</code> (Optional, auto-detected if omitted)</li>
+              <li><strong>Scopus ID</strong> (Optional)</li>
+              <li><strong>Status</strong>: <code>Active</code> or <code>Inactive</code> / <code>Left</code> (Optional, defaults to Active)</li>
             </ul>
             <div class="alert alert-info py-2 px-2 mt-2 mb-0 small">
               <i class="fas fa-sync-alt me-1"></i>
