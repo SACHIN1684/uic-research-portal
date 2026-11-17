@@ -514,6 +514,144 @@ app.post('/publications/upload-master', requireAdmin, upload.single('master_exce
   }
 });
 
+// API Get single master publication by id (JSON for modal editing)
+app.get('/api/publications/:id', (req, res) => {
+  try {
+    const pub = db.getMasterPublicationById(req.params.id);
+    if (!pub) return res.status(404).json({ ok: false, error: 'Publication not found' });
+    res.json({ ok: true, publication: pub });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin add new publication entry
+app.post('/publications/add', requireAdmin, (req, res) => {
+  try {
+    db.addMasterPublication(req.body);
+    res.redirect('/publications?added=1');
+  } catch (err) {
+    res.redirect('/publications?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin edit publication entry
+app.post('/publications/:id/edit', requireAdmin, (req, res) => {
+  try {
+    db.updateMasterPublication(req.params.id, req.body);
+    res.redirect('/publications?edited=1');
+  } catch (err) {
+    res.redirect('/publications?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin delete single publication entry
+app.post('/publications/:id/delete', requireAdmin, (req, res) => {
+  try {
+    db.deleteMasterPublication(req.params.id);
+    res.redirect('/publications?deleted=1');
+  } catch (err) {
+    res.redirect('/publications?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin delete multiple publication entries
+app.post('/publications/delete-multiple', requireAdmin, (req, res) => {
+  try {
+    let ids = req.body.ids;
+    if (typeof ids === 'string') {
+      ids = ids.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.redirect('/publications?err=' + encodeURIComponent('No publications selected for deletion.'));
+    }
+    const count = db.deleteMasterPublicationsMultiple(ids);
+    res.redirect('/publications?deleted_multiple=' + count);
+  } catch (err) {
+    res.redirect('/publications?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// ─── UPCOMING CONFERENCES ROUTES ───────────────────────────────────
+// 4. Dedicated Upcoming Conferences Page
+app.get('/conferences', (req, res) => {
+  try {
+    const filters = {
+      search: req.query.search || '',
+      status: req.query.status || 'all',
+      indexing: req.query.indexing || 'all'
+    };
+    const conferences = db.getAllConferences(filters);
+    const stats = db.getConferenceStats();
+    res.render('conferences', {
+      conferences,
+      stats,
+      filters,
+      query: req.query
+    });
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// API Get single conference
+app.get('/api/conferences/:id', (req, res) => {
+  try {
+    const conf = db.getConferenceById(req.params.id);
+    if (!conf) return res.status(404).json({ ok: false, error: 'Conference not found' });
+    res.json({ ok: true, conference: conf });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin Add Conference
+app.post('/conferences/add', requireAdmin, (req, res) => {
+  try {
+    db.addConference(req.body);
+    res.redirect('/conferences?added=1');
+  } catch (err) {
+    res.redirect('/conferences?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Edit Conference
+app.post('/conferences/:id/edit', requireAdmin, (req, res) => {
+  try {
+    db.updateConference(req.params.id, req.body);
+    res.redirect('/conferences?edited=1');
+  } catch (err) {
+    res.redirect('/conferences?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Delete Conference
+app.post('/conferences/:id/delete', requireAdmin, (req, res) => {
+  try {
+    db.deleteConference(req.params.id);
+    res.redirect('/conferences?deleted=1');
+  } catch (err) {
+    res.redirect('/conferences?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Delete Multiple Conferences
+app.post('/conferences/delete-multiple', requireAdmin, (req, res) => {
+  try {
+    let ids = req.body.ids;
+    if (typeof ids === 'string') {
+      ids = ids.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.redirect('/conferences?err=' + encodeURIComponent('No conferences selected for deletion.'));
+    }
+    const count = db.deleteConferencesMultiple(ids);
+    res.redirect('/conferences?deleted_multiple=' + count);
+  } catch (err) {
+    res.redirect('/conferences?err=' + encodeURIComponent(err.message));
+  }
+});
+
 // Excel Download Route
 app.get('/export/excel', (req, res) => {
   try {

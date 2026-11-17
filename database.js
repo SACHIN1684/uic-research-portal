@@ -148,8 +148,29 @@ async function initDB() {
     );
   `);
 
+  // Upcoming Conferences table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS upcoming_conferences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      acronym TEXT DEFAULT '',
+      organizer TEXT DEFAULT '',
+      venue TEXT DEFAULT '',
+      conference_date TEXT DEFAULT '',
+      submission_deadline TEXT DEFAULT '',
+      notification_date TEXT DEFAULT '',
+      indexing TEXT DEFAULT 'Scopus',
+      website_url TEXT DEFAULT '',
+      cfp_link TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      status TEXT DEFAULT 'Upcoming',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
+  seedConferencesIfEmpty();
 
   saveDB();
   return db;
@@ -2009,6 +2030,363 @@ function updateMasterPublicationsMonth(monthName, newRows) {
   return newRows.length;
 }
 
+function syncMasterPublicationsToExcel() {
+  try {
+    const allRows = getMasterPublications();
+    const xlsx = require('xlsx');
+    const exportData = [];
+    exportData.push([
+      'Sr. No.', 'Title', 'Year', 'Source title', 'Author names (CU)',
+      'Scopus ID', 'Cluster', 'Institute', 'Department', 'ROS',
+      'Source quartile (Q)', 'DOI', 'Link', 'Document Type',
+      'EID', 'EID based Scopus Link', 'APN'
+    ]);
+
+    let lastMonth = '';
+    allRows.forEach(row => {
+      if (row.month_section && row.month_section !== lastMonth) {
+        lastMonth = row.month_section;
+        exportData.push([lastMonth]);
+      }
+      exportData.push([
+        row.sr_no ? (isNaN(Number(row.sr_no)) ? row.sr_no : Number(row.sr_no)) : '',
+        row.title,
+        row.year ? (isNaN(Number(row.year)) ? row.year : Number(row.year)) : '',
+        row.source_title,
+        row.author_name,
+        row.scopus_id ? (isNaN(Number(row.scopus_id)) ? row.scopus_id : Number(row.scopus_id)) : '',
+        row.cluster,
+        row.institute,
+        row.department,
+        row.ros ? (isNaN(Number(row.ros)) ? row.ros : Number(row.ros)) : '',
+        row.quartile,
+        row.doi,
+        row.link,
+        row.document_type,
+        row.eid ? (isNaN(Number(row.eid)) ? row.eid : Number(row.eid)) : '',
+        row.scopus_link,
+        row.apn
+      ]);
+    });
+
+    const wb = xlsx.utils.book_new();
+    const ws = xlsx.utils.aoa_to_sheet(exportData);
+    xlsx.utils.book_append_sheet(wb, ws, 'Published Paper 2026');
+    const dlPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx');
+    const dir = path.dirname(dlPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    xlsx.writeFile(wb, dlPath);
+  } catch (e) {
+    console.error('Failed to sync Published_Paper_2026.xlsx:', e.message);
+  }
+}
+
+function getMasterPublicationById(id) {
+  return queryOne('SELECT * FROM master_publications WHERE id = ?', [Number(id)]);
+}
+
+function updateMasterPublication(id, data) {
+  const existing = getMasterPublicationById(id);
+  if (!existing) throw new Error('Publication entry not found');
+  recordUndoState(`Edit Publication #${existing.sr_no || existing.id} (${(existing.title || '').slice(0, 25)})`);
+  db.run(
+    `UPDATE master_publications SET
+      sr_no = ?, title = ?, year = ?, source_title = ?, author_name = ?,
+      scopus_id = ?, cluster = ?, institute = ?, department = ?, ros = ?,
+      quartile = ?, doi = ?, link = ?, document_type = ?, eid = ?,
+      scopus_link = ?, apn = ?, month_section = ?
+    WHERE id = ?`,
+    [
+      data.sr_no !== undefined ? String(data.sr_no).trim() : existing.sr_no,
+      data.title !== undefined ? String(data.title).trim() : existing.title,
+      data.year !== undefined ? String(data.year).trim() : existing.year,
+      data.source_title !== undefined ? String(data.source_title).trim() : existing.source_title,
+      data.author_name !== undefined ? String(data.author_name).trim() : existing.author_name,
+      data.scopus_id !== undefined ? String(data.scopus_id).trim() : existing.scopus_id,
+      data.cluster !== undefined ? String(data.cluster).trim() : existing.cluster,
+      data.institute !== undefined ? String(data.institute).trim() : existing.institute,
+      data.department !== undefined ? String(data.department).trim() : existing.department,
+      data.ros !== undefined ? String(data.ros).trim() : existing.ros,
+      data.quartile !== undefined ? String(data.quartile).trim() : existing.quartile,
+      data.doi !== undefined ? String(data.doi).trim() : existing.doi,
+      data.link !== undefined ? String(data.link).trim() : existing.link,
+      data.document_type !== undefined ? String(data.document_type).trim() : existing.document_type,
+      data.eid !== undefined ? String(data.eid).trim() : existing.eid,
+      data.scopus_link !== undefined ? String(data.scopus_link).trim() : existing.scopus_link,
+      data.apn !== undefined ? String(data.apn).trim() : existing.apn,
+      data.month_section !== undefined ? String(data.month_section).trim() : existing.month_section,
+      Number(id)
+    ]
+  );
+  syncMasterPublicationsToExcel();
+  saveDB();
+  return getMasterPublicationById(id);
+}
+
+function deleteMasterPublication(id) {
+  const existing = getMasterPublicationById(id);
+  if (!existing) throw new Error('Publication entry not found');
+  recordUndoState(`Delete Publication #${existing.sr_no || existing.id} (${(existing.title || '').slice(0, 25)})`);
+  db.run('DELETE FROM master_publications WHERE id = ?', [Number(id)]);
+  syncMasterPublicationsToExcel();
+  saveDB();
+  return existing;
+}
+
+function deleteMasterPublicationsMultiple(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const cleanIds = ids.map(Number).filter(n => !isNaN(n) && n > 0);
+  if (cleanIds.length === 0) return 0;
+  recordUndoState(`Delete ${cleanIds.length} Publications`);
+  const placeholders = cleanIds.map(() => '?').join(',');
+  db.run(`DELETE FROM master_publications WHERE id IN (${placeholders})`, cleanIds);
+  syncMasterPublicationsToExcel();
+  saveDB();
+  return cleanIds.length;
+}
+
+function addMasterPublication(data) {
+  recordUndoState(`Add Publication: ${(data.title || '').slice(0, 25)}`);
+  const maxOrderRow = queryOne('SELECT MAX(row_order) as m FROM master_publications');
+  const nextOrder = (maxOrderRow && maxOrderRow.m ? maxOrderRow.m : 0) + 1;
+  db.run(
+    `INSERT INTO master_publications (
+      row_order, month_section, sr_no, title, year, source_title,
+      author_name, scopus_id, cluster, institute, department,
+      ros, quartile, doi, link, document_type, eid, scopus_link, apn
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      nextOrder,
+      String(data.month_section || 'January').trim(),
+      String(data.sr_no || '').trim(),
+      String(data.title || '').trim(),
+      String(data.year || '2026').trim(),
+      String(data.source_title || '').trim(),
+      String(data.author_name || '').trim(),
+      String(data.scopus_id || '').trim(),
+      String(data.cluster || 'Engineering').trim(),
+      String(data.institute || 'UIC').trim(),
+      String(data.department || 'UIC').trim(),
+      String(data.ros || '1').trim(),
+      String(data.quartile || 'Q1').trim(),
+      String(data.doi || '').trim(),
+      String(data.link || '').trim(),
+      String(data.document_type || 'Article').trim(),
+      String(data.eid || '').trim(),
+      String(data.scopus_link || '').trim(),
+      String(data.apn || '').trim()
+    ]
+  );
+  syncMasterPublicationsToExcel();
+  saveDB();
+  const lastId = queryOne('SELECT last_insert_rowid() as id');
+  return lastId ? lastId.id : null;
+}
+
+// ─── UPCOMING CONFERENCES ──────────────────────────────────────────
+function seedConferencesIfEmpty() {
+  if (!db) return;
+  const countRow = queryOne('SELECT COUNT(*) as c FROM upcoming_conferences');
+  if (countRow && countRow.c > 0) return;
+
+  const seeds = [
+    {
+      title: "2026 IEEE International Conference on Computing, Communication and Automation",
+      acronym: "IEEE ICCCA 2026",
+      organizer: "IEEE & Chandigarh University",
+      venue: "Chandigarh University, Mohali (Hybrid)",
+      conference_date: "18-20 December 2026",
+      submission_deadline: "30 October 2026",
+      notification_date: "15 November 2026",
+      indexing: "IEEE Xplore, Scopus, Web of Science",
+      website_url: "https://ieee.org",
+      cfp_link: "https://easychair.org",
+      description: "Premier international forum for academic and industrial researchers in Artificial Intelligence, Cloud Systems, Autonomous Computing, and Next-Gen Cyber Defense.",
+      status: "Call for Papers Open"
+    },
+    {
+      title: "16th International Conference on Advances in Computing, Control, and Telecommunication Technologies",
+      acronym: "ACT 2026",
+      organizer: "ACEEE & Springer Nature",
+      venue: "New Delhi / Hybrid",
+      conference_date: "22-24 January 2027",
+      submission_deadline: "10 December 2026",
+      notification_date: "28 December 2026",
+      indexing: "Scopus, Springer CCIS / LNCS",
+      website_url: "https://springer.com",
+      cfp_link: "https://cmt3.research.microsoft.com",
+      description: "Covering advanced algorithms in Machine Learning, 6G communications, edge robotics, and intelligent software engineering.",
+      status: "Call for Papers Open"
+    },
+    {
+      title: "2027 International Conference on Intelligent and Secure Engineering Solutions",
+      acronym: "IEEE CISES 2027",
+      organizer: "IEEE Computer Society",
+      venue: "Chandigarh, India",
+      conference_date: "12-14 February 2027",
+      submission_deadline: "15 December 2026",
+      notification_date: "10 January 2027",
+      indexing: "IEEE Xplore, Scopus Indexed",
+      website_url: "https://ieee.org",
+      cfp_link: "https://easychair.org",
+      description: "Focuses on trustworthy AI, zero-trust architectures, quantum cryptography, and resilient socio-technical frameworks.",
+      status: "Upcoming"
+    },
+    {
+      title: "14th International Conference on Computing for Sustainable Global Development",
+      acronym: "INDIACom 2027",
+      organizer: "BVICAM & IEEE Delhi Section",
+      venue: "Bharati Vidyapeeth, New Delhi",
+      conference_date: "11-13 March 2027",
+      submission_deadline: "15 January 2027",
+      notification_date: "05 February 2027",
+      indexing: "IEEE Xplore, Scopus, WoS",
+      website_url: "https://bvicam.ac.in/indiacom",
+      cfp_link: "https://bvicam.ac.in/indiacom",
+      description: "High-visibility conference bridging computing technologies with UN Sustainable Development Goals (SDGs), Green AI, and Smart Cities.",
+      status: "Upcoming"
+    }
+  ];
+
+  seeds.forEach(s => {
+    db.run(
+      `INSERT INTO upcoming_conferences (
+        title, acronym, organizer, venue, conference_date,
+        submission_deadline, notification_date, indexing,
+        website_url, cfp_link, description, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        s.title, s.acronym, s.organizer, s.venue, s.conference_date,
+        s.submission_deadline, s.notification_date, s.indexing,
+        s.website_url, s.cfp_link, s.description, s.status
+      ]
+    );
+  });
+  saveDB();
+}
+
+function getAllConferences(filters = {}) {
+  let sql = 'SELECT * FROM upcoming_conferences WHERE 1=1';
+  const params = [];
+
+  if (filters.search) {
+    const q = `%${filters.search.trim().toLowerCase()}%`;
+    sql += ' AND (LOWER(title) LIKE ? OR LOWER(acronym) LIKE ? OR LOWER(organizer) LIKE ? OR LOWER(venue) LIKE ? OR LOWER(indexing) LIKE ? OR LOWER(description) LIKE ?)';
+    params.push(q, q, q, q, q, q);
+  }
+
+  if (filters.status && filters.status !== 'all') {
+    sql += ' AND LOWER(status) = LOWER(?)';
+    params.push(filters.status);
+  }
+
+  if (filters.indexing && filters.indexing !== 'all') {
+    sql += ' AND LOWER(indexing) LIKE ?';
+    params.push(`%${filters.indexing.toLowerCase()}%`);
+  }
+
+  sql += ' ORDER BY id DESC';
+  return queryAll(sql, params);
+}
+
+function getConferenceById(id) {
+  return queryOne('SELECT * FROM upcoming_conferences WHERE id = ?', [Number(id)]);
+}
+
+function addConference(data) {
+  recordUndoState(`Add Conference: ${(data.title || '').slice(0, 25)}`);
+  db.run(
+    `INSERT INTO upcoming_conferences (
+      title, acronym, organizer, venue, conference_date,
+      submission_deadline, notification_date, indexing,
+      website_url, cfp_link, description, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      String(data.title || '').trim(),
+      String(data.acronym || '').trim(),
+      String(data.organizer || '').trim(),
+      String(data.venue || '').trim(),
+      String(data.conference_date || '').trim(),
+      String(data.submission_deadline || '').trim(),
+      String(data.notification_date || '').trim(),
+      String(data.indexing || 'Scopus').trim(),
+      String(data.website_url || '').trim(),
+      String(data.cfp_link || '').trim(),
+      String(data.description || '').trim(),
+      String(data.status || 'Upcoming').trim()
+    ]
+  );
+  saveDB();
+  const last = queryOne('SELECT last_insert_rowid() as id');
+  return last ? last.id : null;
+}
+
+function updateConference(id, data) {
+  const existing = getConferenceById(id);
+  if (!existing) throw new Error('Conference not found');
+  recordUndoState(`Edit Conference: ${(existing.title || '').slice(0, 25)}`);
+  db.run(
+    `UPDATE upcoming_conferences SET
+      title = ?, acronym = ?, organizer = ?, venue = ?, conference_date = ?,
+      submission_deadline = ?, notification_date = ?, indexing = ?,
+      website_url = ?, cfp_link = ?, description = ?, status = ?
+    WHERE id = ?`,
+    [
+      data.title !== undefined ? String(data.title).trim() : existing.title,
+      data.acronym !== undefined ? String(data.acronym).trim() : existing.acronym,
+      data.organizer !== undefined ? String(data.organizer).trim() : existing.organizer,
+      data.venue !== undefined ? String(data.venue).trim() : existing.venue,
+      data.conference_date !== undefined ? String(data.conference_date).trim() : existing.conference_date,
+      data.submission_deadline !== undefined ? String(data.submission_deadline).trim() : existing.submission_deadline,
+      data.notification_date !== undefined ? String(data.notification_date).trim() : existing.notification_date,
+      data.indexing !== undefined ? String(data.indexing).trim() : existing.indexing,
+      data.website_url !== undefined ? String(data.website_url).trim() : existing.website_url,
+      data.cfp_link !== undefined ? String(data.cfp_link).trim() : existing.cfp_link,
+      data.description !== undefined ? String(data.description).trim() : existing.description,
+      data.status !== undefined ? String(data.status).trim() : existing.status,
+      Number(id)
+    ]
+  );
+  saveDB();
+  return getConferenceById(id);
+}
+
+function deleteConference(id) {
+  const existing = getConferenceById(id);
+  if (!existing) throw new Error('Conference not found');
+  recordUndoState(`Delete Conference: ${(existing.title || '').slice(0, 25)}`);
+  db.run('DELETE FROM upcoming_conferences WHERE id = ?', [Number(id)]);
+  saveDB();
+  return existing;
+}
+
+function deleteConferencesMultiple(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const cleanIds = ids.map(Number).filter(n => !isNaN(n) && n > 0);
+  if (cleanIds.length === 0) return 0;
+  recordUndoState(`Delete ${cleanIds.length} Conferences`);
+  const placeholders = cleanIds.map(() => '?').join(',');
+  db.run(`DELETE FROM upcoming_conferences WHERE id IN (${placeholders})`, cleanIds);
+  saveDB();
+  return cleanIds.length;
+}
+
+function getConferenceStats() {
+  const all = queryAll('SELECT * FROM upcoming_conferences');
+  const total = all.length;
+  let scopusCount = 0;
+  let openCfpCount = 0;
+  all.forEach(c => {
+    if (/scopus/i.test(c.indexing || '')) scopusCount++;
+    if (/open/i.test(c.status || '') || /extended/i.test(c.status || '')) openCfpCount++;
+  });
+  return {
+    total,
+    scopusCount,
+    openCfpCount
+  };
+}
+
 module.exports = {
   initDB,
   getAdminConfig,
@@ -2060,5 +2438,19 @@ module.exports = {
   getMasterPublications,
   getMasterPublicationsStats,
   replaceMasterPublications,
-  updateMasterPublicationsMonth
+  updateMasterPublicationsMonth,
+  syncMasterPublicationsToExcel,
+  getMasterPublicationById,
+  updateMasterPublication,
+  deleteMasterPublication,
+  deleteMasterPublicationsMultiple,
+  addMasterPublication,
+  seedConferencesIfEmpty,
+  getAllConferences,
+  getConferenceById,
+  addConference,
+  updateConference,
+  deleteConference,
+  deleteConferencesMultiple,
+  getConferenceStats
 };
