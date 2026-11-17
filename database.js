@@ -1920,6 +1920,95 @@ function replaceMasterPublications(fileInput) {
   return order;
 }
 
+function updateMasterPublicationsMonth(monthName, newRows) {
+  recordUndoState(`Update ${monthName} Master Publications`);
+
+  // First delete rows for that month
+  db.run('DELETE FROM master_publications WHERE LOWER(month_section) = LOWER(?)', [monthName]);
+
+  newRows.forEach((r, idx) => {
+    db.run(
+      `INSERT INTO master_publications (
+        row_order, month_section, sr_no, title, year, source_title,
+        author_name, scopus_id, cluster, institute, department,
+        ros, quartile, doi, link, document_type, eid, scopus_link, apn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        r.row_order || (idx + 1),
+        monthName,
+        r.sr_no !== undefined && r.sr_no !== null ? String(r.sr_no).trim() : '',
+        r.title !== undefined && r.title !== null ? String(r.title).trim() : '',
+        r.year !== undefined && r.year !== null ? String(r.year).trim() : '',
+        r.source_title !== undefined && r.source_title !== null ? String(r.source_title).trim() : '',
+        r.author_name !== undefined && r.author_name !== null ? String(r.author_name).trim() : '',
+        r.scopus_id !== undefined && r.scopus_id !== null ? String(r.scopus_id).trim() : '',
+        r.cluster !== undefined && r.cluster !== null ? String(r.cluster).trim() : '',
+        r.institute !== undefined && r.institute !== null ? String(r.institute).trim() : '',
+        r.department !== undefined && r.department !== null ? String(r.department).trim() : '',
+        r.ros !== undefined && r.ros !== null ? String(r.ros).trim() : '',
+        r.quartile !== undefined && r.quartile !== null ? String(r.quartile).trim() : '',
+        r.doi !== undefined && r.doi !== null ? String(r.doi).trim() : '',
+        r.link !== undefined && r.link !== null ? String(r.link).trim() : '',
+        r.document_type !== undefined && r.document_type !== null ? String(r.document_type).trim() : '',
+        r.eid !== undefined && r.eid !== null ? String(r.eid).trim() : '',
+        r.scopus_link !== undefined && r.scopus_link !== null ? String(r.scopus_link).trim() : '',
+        r.apn !== undefined && r.apn !== null ? String(r.apn).trim() : ''
+      ]
+    );
+  });
+
+  // Re-generate and sync the Excel file in public/downloads/Published_Paper_2026.xlsx
+  try {
+    const allRows = getMasterPublications();
+    const xlsx = require('xlsx');
+    const exportData = [];
+    exportData.push([
+      'Sr. No.', 'Title', 'Year', 'Source title', 'Author names (CU)',
+      'Scopus ID', 'Cluster', 'Institute', 'Department', 'ROS',
+      'Source quartile (Q)', 'DOI', 'Link', 'Document Type',
+      'EID', 'EID based Scopus Link', 'APN'
+    ]);
+
+    let lastMonth = '';
+    allRows.forEach(row => {
+      if (row.month_section && row.month_section !== lastMonth) {
+        lastMonth = row.month_section;
+        exportData.push([lastMonth]);
+      }
+      exportData.push([
+        row.sr_no ? (isNaN(Number(row.sr_no)) ? row.sr_no : Number(row.sr_no)) : '',
+        row.title,
+        row.year ? (isNaN(Number(row.year)) ? row.year : Number(row.year)) : '',
+        row.source_title,
+        row.author_name,
+        row.scopus_id ? (isNaN(Number(row.scopus_id)) ? row.scopus_id : Number(row.scopus_id)) : '',
+        row.cluster,
+        row.institute,
+        row.department,
+        row.ros ? (isNaN(Number(row.ros)) ? row.ros : Number(row.ros)) : '',
+        row.quartile,
+        row.doi,
+        row.link,
+        row.document_type,
+        row.eid ? (isNaN(Number(row.eid)) ? row.eid : Number(row.eid)) : '',
+        row.scopus_link,
+        row.apn
+      ]);
+    });
+
+    const wb = xlsx.utils.book_new();
+    const ws = xlsx.utils.aoa_to_sheet(exportData);
+    xlsx.utils.book_append_sheet(wb, ws, 'Published Paper 2026');
+    const dlPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx');
+    xlsx.writeFile(wb, dlPath);
+  } catch (e) {
+    console.error('Failed to sync Published_Paper_2026.xlsx:', e.message);
+  }
+
+  saveDB();
+  return newRows.length;
+}
+
 module.exports = {
   initDB,
   getAdminConfig,
@@ -1970,5 +2059,6 @@ module.exports = {
   seedMasterPublicationsFromExcel,
   getMasterPublications,
   getMasterPublicationsStats,
-  replaceMasterPublications
+  replaceMasterPublications,
+  updateMasterPublicationsMonth
 };
