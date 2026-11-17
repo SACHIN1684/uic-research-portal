@@ -415,6 +415,105 @@ app.get('/dashboard', (req, res) => {
   res.redirect('/portal');
 });
 
+// 3. Dedicated Publications Database (Master Published Papers 2026 Table)
+app.get('/publications', (req, res) => {
+  try {
+    const filters = {
+      search: req.query.search || '',
+      month: req.query.month || 'all',
+      quartile: req.query.quartile || 'all',
+      department: req.query.department || 'all',
+      document_type: req.query.document_type || 'all'
+    };
+
+    const publications = db.getMasterPublications(filters);
+    const stats = db.getMasterPublicationsStats();
+
+    res.render('publications', {
+      publications,
+      stats,
+      filters,
+      query: req.query
+    });
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Download Master Publications Excel Sheet (.xlsx)
+app.get(['/publications/download', '/export/master-publications'], (req, res) => {
+  try {
+    const filePath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx');
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Disposition', 'attachment; filename="Published_Paper_2026.xlsx"');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      return res.sendFile(filePath);
+    }
+
+    // Dynamic fallback generation using XLSX
+    const rows = db.getMasterPublications();
+    const exportData = [];
+    exportData.push([
+      'Sr. No.', 'Title', 'Year', 'Source title', 'Author names (CU)',
+      'Scopus ID', 'Cluster', 'Institute', 'Department', 'ROS',
+      'Source quartile (Q)', 'DOI', 'Link', 'Document Type',
+      'EID', 'EID based Scopus Link', 'APN'
+    ]);
+
+    let lastMonth = '';
+    rows.forEach(r => {
+      if (r.month_section && r.month_section !== lastMonth) {
+        lastMonth = r.month_section;
+        exportData.push([lastMonth]);
+      }
+      exportData.push([
+        r.sr_no ? (isNaN(Number(r.sr_no)) ? r.sr_no : Number(r.sr_no)) : '',
+        r.title,
+        r.year ? (isNaN(Number(r.year)) ? r.year : Number(r.year)) : '',
+        r.source_title,
+        r.author_name,
+        r.scopus_id ? (isNaN(Number(r.scopus_id)) ? r.scopus_id : Number(r.scopus_id)) : '',
+        r.cluster,
+        r.institute,
+        r.department,
+        r.ros ? (isNaN(Number(r.ros)) ? r.ros : Number(r.ros)) : '',
+        r.quartile,
+        r.doi,
+        r.link,
+        r.document_type,
+        r.eid ? (isNaN(Number(r.eid)) ? r.eid : Number(r.eid)) : '',
+        r.scopus_link,
+        r.apn
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Published Paper 2026');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="Published_Paper_2026.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).send('Export error: ' + err.message);
+  }
+});
+
+// Admin upload/replace Master Publications Excel Sheet
+app.post('/publications/upload-master', requireAdmin, upload.single('master_excel'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.redirect('/publications?upload_err=' + encodeURIComponent('No file selected.'));
+    }
+    const count = db.replaceMasterPublications(req.file.path);
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
+    res.redirect('/publications?uploaded=' + encodeURIComponent(count));
+  } catch (err) {
+    res.redirect('/publications?upload_err=' + encodeURIComponent(err.message));
+  }
+});
+
 // Excel Download Route
 app.get('/export/excel', (req, res) => {
   try {

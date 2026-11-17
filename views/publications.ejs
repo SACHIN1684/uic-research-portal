@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publications Database — UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --cu-red: #c8102e;
+      --cu-red-dark: #960c22;
+      --cu-navy: #0b1f3f;
+      --cu-navy-light: #163665;
+      --cu-gold: #d4af37;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #1e293b;
+      background-color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .display-font {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .cu-topbar {
+      background: var(--cu-navy);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.8rem;
+      padding: 6px 0;
+      border-bottom: 2px solid var(--cu-red);
+    }
+    .home-navbar {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+    }
+    .brand-logo-badge {
+      background: linear-gradient(135deg, var(--cu-red), #e63946);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      padding: 8px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(200, 16, 46, 0.35);
+    }
+    .pub-banner {
+      background: linear-gradient(135deg, #07152b 0%, #0b1f3f 60%, #163665 100%);
+      color: white;
+      padding: 42px 0 38px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pub-banner::before {
+      content: "";
+      position: absolute;
+      top: -40%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(200, 16, 46, 0.22) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .kpi-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      transition: all 0.25s ease;
+      height: 100%;
+    }
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(11, 31, 63, 0.08);
+      border-color: #cbd5e1;
+    }
+    .kpi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .month-pill-btn {
+      border: 1px solid #e2e8f0;
+      background: white;
+      color: #475569;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .month-pill-btn:hover {
+      background: #f8fafc;
+      color: var(--cu-red);
+      border-color: #cbd5e1;
+    }
+    .month-pill-btn.active {
+      background: var(--cu-navy);
+      color: white;
+      border-color: var(--cu-navy);
+      box-shadow: 0 4px 10px rgba(11, 31, 63, 0.2);
+    }
+    .month-pill-btn .badge {
+      font-size: 0.72rem;
+    }
+    .pub-table-wrap {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    .pub-table {
+      margin-bottom: 0;
+      font-size: 0.84rem;
+      vertical-align: middle;
+    }
+    .pub-table thead th {
+      background: var(--cu-navy);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 14px 12px;
+      border: none;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .pub-table tbody td {
+      padding: 12px 12px;
+      border-color: #f1f5f9;
+    }
+    .pub-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+    .pub-table .month-divider-row {
+      background: #f1f5f9 !important;
+      font-weight: 800;
+      color: var(--cu-navy);
+      border-top: 2px solid #cbd5e1;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    .q-badge-Q1 { background-color: #10b981; color: white; }
+    .q-badge-Q2 { background-color: #3b82f6; color: white; }
+    .q-badge-Q3 { background-color: #f59e0b; color: white; }
+    .q-badge-Q4 { background-color: #8b5cf6; color: white; }
+    .q-badge-NA { background-color: #94a3b8; color: white; }
+    .truncate-text {
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="cu-topbar">
+    <div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <span><i class="fas fa-university me-1 text-danger"></i> Chandigarh University &bull; NAAC A+ Accredited</span>
+        <span class="d-none d-md-inline text-secondary">|</span>
+        <span class="d-none d-md-inline"><i class="fas fa-microscope me-1 text-warning"></i> UIC Research Publications Master Repository</span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <a href="/portal" class="text-white text-decoration-none small"><i class="fas fa-database me-1"></i> Faculty Directory</a>
+        <% if (isAdmin) { %>
+          <span class="badge bg-success"><i class="fas fa-user-shield me-1"></i> Admin Logged In</span>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar navbar-expand-lg home-navbar py-2">
+    <div class="container-fluid px-3 px-lg-4">
+      <a class="navbar-brand d-flex align-items-center gap-2 text-nowrap" href="/">
+        <div class="brand-logo-badge py-1 px-2 fs-6">
+          <i class="fas fa-laptop-code me-1"></i> UIC
+        </div>
+        <div>
+          <div class="fw-bold fs-6 text-dark lh-1 display-font">UIC Research Portal</div>
+          <div class="text-muted" style="font-size: 0.68rem; letter-spacing: 0.2px;">
+            University Institute of Computing &bull; Chandigarh University
+          </div>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navPublications">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navPublications">
+        <ul class="navbar-nav ms-auto align-items-center gap-1 gap-xl-2 my-2 my-lg-0" style="font-size: 0.88rem;">
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#overview">Research Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#leadership">Leadership</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#monthly-ros">ROS &amp; Growth</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold text-danger text-nowrap px-2 active" href="/publications">
+              <i class="fas fa-book me-1"></i>Publications
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/portal">
+              <i class="fas fa-users me-1 text-primary"></i>Faculty Directory
+            </a>
+          </li>
+          <li class="nav-item ms-lg-2">
+            <a href="/publications/download" class="btn btn-success btn-sm fw-bold px-3 py-2 shadow-sm rounded-pill text-nowrap">
+              <i class="fas fa-file-excel me-1"></i> Download Excel
+            </a>
+          </li>
+          <li class="nav-item ms-lg-1">
+            <% if (isAdmin) { %>
+              <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-outline-danger btn-sm fw-bold py-2 px-3 text-nowrap" data-bs-toggle="modal" data-bs-target="#uploadMasterModal">
+                  <i class="fas fa-upload me-1"></i> Upload Master Excel
+                </button>
+                <form action="/admin/logout" method="POST" class="d-inline">
+                  <input type="hidden" name="return_to" value="/publications">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm py-2 px-2" title="Logout Admin">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </button>
+                </form>
+              </div>
+            <% } else { %>
+              <a href="/?admin_login_required=1" class="btn btn-outline-danger btn-sm fw-bold py-2 px-3 text-nowrap">
+                <i class="fas fa-lock me-1"></i> Admin Login
+              </a>
+            <% } %>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Banner Section -->
+  <section class="pub-banner">
+    <div class="container-fluid px-3 px-lg-4 position-relative" style="z-index: 2;">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-10 text-warning small fw-bold mb-2">
+            <i class="fas fa-database"></i> Complete Master Research Archive &bull; Published Papers 2026
+          </div>
+          <h1 class="display-font fw-bold text-white mb-2" style="font-size: 2.2rem;">
+            Department Publications Database
+          </h1>
+          <p class="text-white text-opacity-80 mb-0" style="max-width: 820px; font-size: 0.95rem;">
+            Online repository displaying the exact master publication dataset of the University Institute of Computing (UIC). Complete with original columns, Scopus indexing, quartiles (Q1-Q4), DOIs, author allocations, and exportable spreadsheet format.
+          </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="/publications/download" class="btn btn-success fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="fas fa-file-excel me-2"></i> Download Excel (.xlsx)
+          </a>
+          <button type="button" class="btn btn-outline-light fw-semibold px-3 py-2 rounded-pill" onclick="exportCurrentView()">
+            <i class="fas fa-download me-1"></i> Export Filtered Table
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Alerts -->
+  <div class="container-fluid px-3 px-lg-4 mt-3">
+    <% if (query.uploaded) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2"></i><strong>Master Excel Uploaded Successfully!</strong> <%= query.uploaded %> publication rows loaded into database and online table updated.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.upload_err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i><strong>Upload Failed:</strong> <%= query.upload_err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- KPI Metric Summary Cards -->
+  <div class="container-fluid px-3 px-lg-4 my-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+            <i class="fas fa-book"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.uniquePapers %></div>
+            <div class="text-muted small mt-1">Unique Papers</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+            <i class="fas fa-users"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.totalRecords %></div>
+            <div class="text-muted small mt-1">CU Author Entries</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-success bg-opacity-10 text-success">
+            <i class="fas fa-award"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-success display-font lh-1"><%= stats.q1Count %></div>
+            <div class="text-muted small mt-1">Q1 Quartile Papers</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-info bg-opacity-10 text-info">
+            <i class="fas fa-star"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-primary display-font lh-1"><%= stats.q2Count %></div>
+            <div class="text-muted small mt-1">Q2 Quartile Papers</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.q3Count + stats.q4Count %></div>
+            <div class="text-muted small mt-1">Q3 &amp; Q4 Papers</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card d-flex align-items-center gap-3">
+          <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary">
+            <i class="fas fa-building"></i>
+          </div>
+          <div>
+            <div class="fs-4 fw-bold text-danger display-font lh-1"><%= stats.uicCount %></div>
+            <div class="text-muted small mt-1">UIC Dept Entries</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Controls Section -->
+  <div class="container-fluid px-3 px-lg-4 mb-4">
+    <div class="bg-white p-3 p-lg-4 rounded-4 border shadow-sm">
+      <div class="row g-3 align-items-center">
+        <!-- Live Search -->
+        <div class="col-12 col-md-5 col-lg-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-search"></i></span>
+            <input type="text" id="liveSearchInput" class="form-control border-start-0 ps-0" placeholder="Search title, author, Scopus ID, DOI, source..." value="<%= filters.search || '' %>" onkeyup="filterTable()">
+            <% if (filters.search) { %>
+              <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearSearch()"><i class="fas fa-times"></i></button>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Quartile Dropdown -->
+        <div class="col-6 col-md-3 col-lg-2">
+          <select id="quartileSelect" class="form-select form-select-sm py-2" onchange="filterTable()">
+            <option value="all">All Quartiles</option>
+            <option value="Q1" <%= (filters.quartile || '').toUpperCase() === 'Q1' ? 'selected' : '' %>>Q1 Quartile</option>
+            <option value="Q2" <%= (filters.quartile || '').toUpperCase() === 'Q2' ? 'selected' : '' %>>Q2 Quartile</option>
+            <option value="Q3" <%= (filters.quartile || '').toUpperCase() === 'Q3' ? 'selected' : '' %>>Q3 Quartile</option>
+            <option value="Q4" <%= (filters.quartile || '').toUpperCase() === 'Q4' ? 'selected' : '' %>>Q4 Quartile</option>
+          </select>
+        </div>
+
+        <!-- Department Dropdown -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <select id="deptSelect" class="form-select form-select-sm py-2" onchange="filterTable()">
+            <option value="all">All Departments</option>
+            <option value="uic" <%= (filters.department || '').toLowerCase() === 'uic' ? 'selected' : '' %>>UIC Department</option>
+            <option value="other" <%= (filters.department || '').toLowerCase() === 'other' ? 'selected' : '' %>>Other Departments</option>
+            <% (stats.departments || []).forEach(d => { if (d.toUpperCase() !== 'UIC') { %>
+              <option value="<%= d %>" <%= filters.department === d ? 'selected' : '' %>><%= d %></option>
+            <% }}) %>
+          </select>
+        </div>
+
+        <!-- Table Count & Quick Reset -->
+        <div class="col-12 col-lg-4 d-flex align-items-center justify-content-lg-end gap-2">
+          <span class="badge bg-light text-dark border px-3 py-2 fw-semibold" style="font-size: 0.85rem;">
+            Showing <strong id="visibleCount" class="text-danger"><%= publications.length %></strong> of <%= stats.totalRecords %> records
+          </span>
+          <button type="button" class="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold" onclick="resetAllFilters()">
+            <i class="fas fa-redo me-1"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Month Tabs / Filter Pills -->
+      <div class="border-top mt-3 pt-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span class="text-muted small fw-bold me-1 text-uppercase"><i class="fas fa-calendar-alt me-1"></i> Month:</span>
+          <button type="button" class="month-pill-btn <%= (!filters.month || filters.month === 'all') ? 'active' : '' %>" data-month="all" onclick="selectMonthFilter('all', this)">
+            All Months <span class="badge bg-secondary rounded-pill"><%= stats.totalRecords %></span>
+          </button>
+          <% 
+            const monthList = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept'];
+            monthList.forEach(m => {
+              const count = stats.monthsMap[m] || 0;
+              const isActive = (filters.month || '').toLowerCase() === m.toLowerCase();
+          %>
+            <button type="button" class="month-pill-btn <%= isActive ? 'active' : '' %>" data-month="<%= m %>" onclick="selectMonthFilter('<%= m %>', this)">
+              <%= m %> <span class="badge <%= isActive ? 'bg-danger' : 'bg-light text-dark border' %> rounded-pill"><%= count %></span>
+            </button>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Master Publications Table -->
+  <div class="container-fluid px-3 px-lg-4 mb-5">
+    <div class="pub-table-wrap">
+      <div class="table-responsive" style="max-height: 75vh; overflow-y: auto;">
+        <table class="table pub-table align-middle" id="masterTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;" class="text-center">Sr. No.</th>
+              <th style="min-width: 280px;">Title</th>
+              <th style="width: 70px;" class="text-center">Year</th>
+              <th style="min-width: 220px;">Source Title</th>
+              <th style="min-width: 170px;">Author Names (CU)</th>
+              <th style="min-width: 120px;">Scopus ID</th>
+              <th style="width: 110px;">Cluster</th>
+              <th style="width: 90px;">Institute</th>
+              <th style="width: 90px;">Department</th>
+              <th style="width: 70px;" class="text-center">ROS</th>
+              <th style="width: 80px;" class="text-center">Quartile</th>
+              <th style="min-width: 150px;">DOI</th>
+              <th style="width: 90px;" class="text-center">Link</th>
+              <th style="min-width: 130px;">Document Type</th>
+              <th style="min-width: 120px;">EID</th>
+              <th style="min-width: 110px;" class="text-center">Scopus Link</th>
+              <th style="min-width: 110px;">APN</th>
+            </tr>
+          </thead>
+          <tbody id="masterTableBody">
+            <% 
+              let currentMonthSection = '';
+              publications.forEach((row, idx) => { 
+                const isNewMonth = row.month_section && row.month_section !== currentMonthSection;
+                if (isNewMonth) {
+                  currentMonthSection = row.month_section;
+                }
+                const isCoAuthor = !row.sr_no || String(row.sr_no).trim() === '';
+                const qClass = 'q-badge-' + (row.quartile ? row.quartile.toUpperCase() : 'NA');
+                const isUic = (row.department || '').toUpperCase().includes('UIC');
+            %>
+              <% if (isNewMonth) { %>
+                <tr class="month-divider-row" data-is-month-header="true" data-month-name="<%= row.month_section %>">
+                  <td colspan="17" class="py-2 px-3 fw-bold bg-light">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="text-primary text-uppercase" style="letter-spacing: 0.5px;">
+                        <i class="fas fa-calendar-alt text-danger me-2"></i><strong><%= row.month_section %> 2026</strong>
+                      </span>
+                      <span class="badge bg-secondary rounded-pill small">
+                        <%= stats.monthsMap[row.month_section] || '' %> Records
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              <% } %>
+              <tr class="pub-data-row <%= isCoAuthor ? 'bg-light-subtle' : '' %>"
+                  data-row-order="<%= row.row_order %>"
+                  data-month="<%= row.month_section %>"
+                  data-quartile="<%= (row.quartile || '').toUpperCase() %>"
+                  data-department="<%= (row.department || '').toUpperCase() %>"
+                  data-search="<%= [row.title, row.author_name, row.source_title, row.scopus_id, row.doi, row.apn, row.eid, row.department, row.month_section].join(' ').toLowerCase() %>">
+                
+                <!-- 1. Sr. No. -->
+                <td class="text-center fw-semibold">
+                  <% if (row.sr_no) { %>
+                    <span class="badge bg-dark bg-opacity-75 text-white px-2 py-1"><%= row.sr_no %></span>
+                  <% } else { %>
+                    <span class="badge bg-light text-secondary border small" title="Co-author continuation row">↳ Co</span>
+                  <% } %>
+                </td>
+
+                <!-- 2. Title -->
+                <td>
+                  <% if (row.title) { %>
+                    <div class="fw-semibold text-dark" style="line-height: 1.35;"><%= row.title %></div>
+                  <% } else { %>
+                    <span class="text-muted fst-italic small">↳ (Shared paper continuation row)</span>
+                  <% } %>
+                </td>
+
+                <!-- 3. Year -->
+                <td class="text-center text-muted"><%= row.year || '' %></td>
+
+                <!-- 4. Source title -->
+                <td>
+                  <span class="text-dark small"><%= row.source_title || '—' %></span>
+                </td>
+
+                <!-- 5. Author names (CU) -->
+                <td>
+                  <div class="fw-bold text-dark d-flex align-items-center gap-1">
+                    <i class="fas fa-user-circle text-secondary small"></i>
+                    <span><%= row.author_name || '—' %></span>
+                  </div>
+                </td>
+
+                <!-- 6. Scopus ID -->
+                <td>
+                  <% if (row.scopus_id) { %>
+                    <a href="https://www.scopus.com/authid/detail.uri?authorId=<%= row.scopus_id %>" target="_blank" class="badge bg-light text-dark border text-decoration-none" title="View Scopus Author Profile">
+                      <i class="fas fa-id-badge text-warning me-1"></i><%= row.scopus_id %>
+                    </a>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+                <!-- 7. Cluster -->
+                <td><span class="small text-muted"><%= row.cluster || 'Engineering' %></span></td>
+
+                <!-- 8. Institute -->
+                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border"><%= row.institute || 'UIC' %></span></td>
+
+                <!-- 9. Department -->
+                <td>
+                  <% if (isUic) { %>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle fw-semibold">UIC</span>
+                  <% } else { %>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-semibold"><%= row.department || 'Other' %></span>
+                  <% } %>
+                </td>
+
+                <!-- 10. ROS -->
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border fw-bold px-2 py-1"><%= row.ros || '0' %></span>
+                </td>
+
+                <!-- 11. Quartile -->
+                <td class="text-center">
+                  <% if (row.quartile) { %>
+                    <span class="badge <%= qClass %> fw-bold"><%= row.quartile %></span>
+                  <% } else { %>
+                    <span class="badge bg-light text-muted border">N/A</span>
+                  <% } %>
+                </td>
+
+                <!-- 12. DOI -->
+                <td>
+                  <% if (row.doi && (row.doi.startsWith('10.') || row.doi.startsWith('http'))) { 
+                       const doiUrl = row.doi.startsWith('http') ? row.doi : ('https://doi.org/' + row.doi);
+                  %>
+                    <a href="<%= doiUrl %>" target="_blank" class="truncate-text text-decoration-none text-primary small" title="<%= row.doi %>">
+                      <i class="fas fa-external-link-alt me-1 text-muted" style="font-size: 0.7rem;"></i><%= row.doi %>
+                    </a>
+                  <% } else if (row.doi) { %>
+                    <span class="truncate-text small text-muted" title="<%= row.doi %>"><%= row.doi %></span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+                <!-- 13. Link -->
+                <td class="text-center">
+                  <% if (row.link && row.link.startsWith('http')) { %>
+                    <a href="<%= row.link %>" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2" title="Open Scopus Record">
+                      <i class="fas fa-link"></i>
+                    </a>
+                  <% } else if (row.link) { %>
+                    <span class="small text-muted"><%= row.link %></span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+                <!-- 14. Document Type -->
+                <td>
+                  <span class="badge bg-light text-dark border small"><%= row.document_type || 'Article' %></span>
+                </td>
+
+                <!-- 15. EID -->
+                <td>
+                  <% if (row.eid && String(row.eid).startsWith('http')) { %>
+                    <a href="<%= row.eid %>" target="_blank" class="small text-truncate d-inline-block" style="max-width: 110px;">Link</a>
+                  <% } else if (row.eid) { %>
+                    <span class="small text-muted font-monospace"><%= row.eid %></span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+                <!-- 16. Scopus Link -->
+                <td class="text-center">
+                  <% if (row.scopus_link && String(row.scopus_link).startsWith('http')) { %>
+                    <a href="<%= row.scopus_link %>" target="_blank" class="btn btn-outline-info btn-sm py-0 px-2" title="EID Based Scopus Link">
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                  <% } else if (row.scopus_link) { %>
+                    <span class="small text-muted font-monospace"><%= row.scopus_link %></span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+                <!-- 17. APN -->
+                <td>
+                  <% if (row.apn) { %>
+                    <span class="badge bg-light text-secondary border font-monospace small"><%= row.apn %></span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Upload Master Modal -->
+  <% if (isAdmin) { %>
+    <div class="modal fade" id="uploadMasterModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <form action="/publications/upload-master" method="POST" enctype="multipart/form-data">
+            <div class="modal-header bg-navy text-white" style="background: var(--cu-navy); color: white;">
+              <h5 class="modal-title fw-bold">
+                <i class="fas fa-file-excel me-2 text-warning"></i> Upload Master Publications Excel
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+              <p class="text-muted small mb-3">
+                Upload a replacement Master Publications Excel spreadsheet (<code>.xlsx</code> or <code>.xls</code>).
+                The sheet must have the same columns (<code>Sr. No.</code>, <code>Title</code>, <code>Author names (CU)</code>, <code>Scopus ID</code>, etc.) and will immediately update the online database and downloadable copy.
+              </p>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Select Master Excel File</label>
+                <input type="file" name="master_excel" class="form-control" accept=".xlsx,.xls" required>
+              </div>
+              <div class="alert alert-warning small mb-0">
+                <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> Uploading will replace the current online master table with the rows in the new file. Previous states are automatically protected in undo history.
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger fw-bold">
+                <i class="fas fa-cloud-upload-alt me-1"></i> Upload &amp; Update Online Table
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Footer -->
+  <footer class="portal-footer bg-white border-top py-4 text-center mt-auto">
+    <div class="container-fluid px-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span class="text-muted small">
+          <i class="fas fa-university me-1 text-danger"></i> UIC Research Portal &bull; Department of Computing, Chandigarh University &copy; <%= new Date().getFullYear() %>
+        </span>
+        <div class="d-flex align-items-center gap-3 small">
+          <a href="/" class="text-muted text-decoration-none">Home</a>
+          <a href="/publications" class="text-danger fw-bold text-decoration-none">Publications</a>
+          <a href="/portal" class="text-muted text-decoration-none">Faculty Directory</a>
+          <a href="/publications/download" class="text-success fw-bold text-decoration-none">
+            <i class="fas fa-file-excel me-1"></i>Download Excel
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let activeMonthFilter = '<%= filters.month || "all" %>';
+
+    function selectMonthFilter(month, btnElem) {
+      activeMonthFilter = month;
+      document.querySelectorAll('.month-pill-btn').forEach(b => {
+        b.classList.remove('active');
+        const badge = b.querySelector('.badge');
+        if (badge) {
+          badge.className = 'badge bg-light text-dark border rounded-pill';
+        }
+      });
+      btnElem.classList.add('active');
+      const activeBadge = btnElem.querySelector('.badge');
+      if (activeBadge) {
+        activeBadge.className = 'badge bg-danger rounded-pill';
+      }
+      filterTable();
+    }
+
+    function filterTable() {
+      const searchVal = (document.getElementById('liveSearchInput').value || '').toLowerCase().trim();
+      const quartileVal = (document.getElementById('quartileSelect').value || 'all').toUpperCase();
+      const deptVal = (document.getElementById('deptSelect').value || 'all').toLowerCase();
+      const monthVal = (activeMonthFilter || 'all').toLowerCase();
+
+      const rows = document.querySelectorAll('.pub-data-row');
+      let visibleCount = 0;
+      const visibleMonths = new Set();
+
+      rows.forEach(row => {
+        const rowSearch = row.getAttribute('data-search') || '';
+        const rowMonth = (row.getAttribute('data-month') || '').toLowerCase();
+        const rowQuartile = (row.getAttribute('data-quartile') || '').toUpperCase();
+        const rowDept = (row.getAttribute('data-department') || '').toLowerCase();
+
+        const matchesSearch = !searchVal || rowSearch.includes(searchVal);
+        const matchesMonth = (monthVal === 'all') || (rowMonth === monthVal);
+        const matchesQuartile = (quartileVal === 'ALL') || (rowQuartile === quartileVal);
+        
+        let matchesDept = true;
+        if (deptVal === 'uic') {
+          matchesDept = rowDept.includes('uic');
+        } else if (deptVal === 'other') {
+          matchesDept = !rowDept.includes('uic');
+        } else if (deptVal !== 'all') {
+          matchesDept = rowDept.includes(deptVal);
+        }
+
+        if (matchesSearch && matchesMonth && matchesQuartile && matchesDept) {
+          row.style.display = '';
+          visibleCount++;
+          if (row.getAttribute('data-month')) {
+            visibleMonths.add(row.getAttribute('data-month'));
+          }
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Update month divider headers
+      document.querySelectorAll('.month-divider-row').forEach(header => {
+        const monthName = header.getAttribute('data-month-name');
+        if (visibleMonths.has(monthName) && monthVal === 'all') {
+          header.style.display = '';
+        } else {
+          header.style.display = 'none';
+        }
+      });
+
+      const countDisplay = document.getElementById('visibleCount');
+      if (countDisplay) countDisplay.textContent = visibleCount;
+    }
+
+    function clearSearch() {
+      document.getElementById('liveSearchInput').value = '';
+      filterTable();
+    }
+
+    function resetAllFilters() {
+      document.getElementById('liveSearchInput').value = '';
+      document.getElementById('quartileSelect').value = 'all';
+      document.getElementById('deptSelect').value = 'all';
+      const allBtn = document.querySelector('.month-pill-btn[data-month="all"]');
+      if (allBtn) {
+        selectMonthFilter('all', allBtn);
+      } else {
+        activeMonthFilter = 'all';
+        filterTable();
+      }
+    }
+
+    function exportCurrentView() {
+      const table = document.getElementById('masterTable');
+      if (!table) return;
+
+      const wb = XLSX.utils.book_new();
+      const exportRows = [];
+
+      // Headers
+      const ths = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+      exportRows.push(ths);
+
+      // Visible rows
+      const rows = table.querySelectorAll('tbody tr.pub-data-row');
+      rows.forEach(tr => {
+        if (tr.style.display !== 'none') {
+          const cells = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+          exportRows.push(cells);
+        }
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(exportRows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Published Papers Filtered');
+      XLSX.writeFile(wb, 'UIC_Publications_Export.xlsx');
+    }
+  </script>
+</body>
+</html>

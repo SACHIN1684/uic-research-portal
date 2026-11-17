@@ -121,7 +121,35 @@ async function initDB() {
     db.run("UPDATE publications SET pub_department = 'UIC' WHERE pub_department IS NULL OR TRIM(pub_department) = ''");
   }
 
+  // Master publications table representing the exact uploaded master spreadsheet
+  db.run(`
+    CREATE TABLE IF NOT EXISTS master_publications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      row_order INTEGER DEFAULT 0,
+      month_section TEXT DEFAULT '',
+      sr_no TEXT DEFAULT '',
+      title TEXT DEFAULT '',
+      year TEXT DEFAULT '',
+      source_title TEXT DEFAULT '',
+      author_name TEXT DEFAULT '',
+      scopus_id TEXT DEFAULT '',
+      cluster TEXT DEFAULT '',
+      institute TEXT DEFAULT '',
+      department TEXT DEFAULT '',
+      ros TEXT DEFAULT '',
+      quartile TEXT DEFAULT '',
+      doi TEXT DEFAULT '',
+      link TEXT DEFAULT '',
+      document_type TEXT DEFAULT '',
+      eid TEXT DEFAULT '',
+      scopus_link TEXT DEFAULT '',
+      apn TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
+  seedMasterPublicationsFromExcel();
 
   saveDB();
   return db;
@@ -1656,6 +1684,242 @@ function updateAdminCredentials(newUsername, newPassword) {
   return uname;
 }
 
+function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx')) {
+  if (!db) return;
+  const countRow = queryOne('SELECT COUNT(*) as c FROM master_publications');
+  if (countRow && countRow.c > 0) return;
+
+  let sourcePath = excelPath;
+  if (!fs.existsSync(sourcePath)) {
+    const fallbackPath = 'C:/Users/sachi/.gemini/antigravity/brain/6a9810d4-f537-4d26-9f66-fa00f61621c8/.user_uploaded/media_1794904047244_ee376e2c.xlsx';
+    if (fs.existsSync(fallbackPath)) {
+      const dir = path.dirname(excelPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.copyFileSync(fallbackPath, excelPath);
+      sourcePath = excelPath;
+    } else {
+      return;
+    }
+  }
+
+  const xlsx = require('xlsx');
+  const wb = xlsx.readFile(sourcePath);
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+
+  let curMonth = '';
+  let order = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => String(c).trim() === '')) continue;
+    const nonEmpties = r.filter(c => String(c).trim() !== '');
+    if (nonEmpties.length === 1 && typeof r[0] === 'string' && isNaN(Number(r[0]))) {
+      curMonth = String(r[0]).trim();
+      continue;
+    }
+
+    order++;
+    db.run(
+      `INSERT INTO master_publications (
+        row_order, month_section, sr_no, title, year, source_title,
+        author_name, scopus_id, cluster, institute, department,
+        ros, quartile, doi, link, document_type, eid, scopus_link, apn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        order,
+        curMonth,
+        r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
+        r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
+        r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '',
+        r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
+        r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
+        r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
+        r[6] !== undefined && r[6] !== null ? String(r[6]).trim() : '',
+        r[7] !== undefined && r[7] !== null ? String(r[7]).trim() : '',
+        r[8] !== undefined && r[8] !== null ? String(r[8]).trim() : '',
+        r[9] !== undefined && r[9] !== null ? String(r[9]).trim() : '',
+        r[10] !== undefined && r[10] !== null ? String(r[10]).trim() : '',
+        r[11] !== undefined && r[11] !== null ? String(r[11]).trim() : '',
+        r[12] !== undefined && r[12] !== null ? String(r[12]).trim() : '',
+        r[13] !== undefined && r[13] !== null ? String(r[13]).trim() : '',
+        r[14] !== undefined && r[14] !== null ? String(r[14]).trim() : '',
+        r[15] !== undefined && r[15] !== null ? String(r[15]).trim() : '',
+        r[16] !== undefined && r[16] !== null ? String(r[16]).trim() : ''
+      ]
+    );
+  }
+  saveDB();
+}
+
+function getMasterPublications(filters = {}) {
+  let sql = 'SELECT * FROM master_publications WHERE 1=1';
+  const params = [];
+
+  if (filters.month && filters.month !== 'all') {
+    sql += ' AND LOWER(month_section) = LOWER(?)';
+    params.push(filters.month);
+  }
+
+  if (filters.quartile && filters.quartile !== 'all') {
+    sql += ' AND UPPER(quartile) = UPPER(?)';
+    params.push(filters.quartile);
+  }
+
+  if (filters.department && filters.department !== 'all') {
+    if (filters.department.toLowerCase() === 'uic') {
+      sql += " AND (UPPER(department) = 'UIC' OR UPPER(department) LIKE '%UIC%')";
+    } else if (filters.department.toLowerCase() === 'other') {
+      sql += " AND (UPPER(department) != 'UIC' AND UPPER(department) NOT LIKE '%UIC%')";
+    } else {
+      sql += ' AND LOWER(department) = LOWER(?)';
+      params.push(filters.department);
+    }
+  }
+
+  if (filters.document_type && filters.document_type !== 'all') {
+    sql += ' AND LOWER(document_type) = LOWER(?)';
+    params.push(filters.document_type);
+  }
+
+  if (filters.search) {
+    const q = `%${filters.search.trim().toLowerCase()}%`;
+    sql += ` AND (
+      LOWER(title) LIKE ? OR
+      LOWER(author_name) LIKE ? OR
+      LOWER(source_title) LIKE ? OR
+      LOWER(scopus_id) LIKE ? OR
+      LOWER(doi) LIKE ? OR
+      LOWER(apn) LIKE ? OR
+      LOWER(eid) LIKE ? OR
+      LOWER(department) LIKE ?
+    )`;
+    params.push(q, q, q, q, q, q, q, q);
+  }
+
+  sql += ' ORDER BY row_order ASC';
+  return queryAll(sql, params);
+}
+
+function getMasterPublicationsStats() {
+  const all = queryAll('SELECT * FROM master_publications ORDER BY row_order ASC');
+  const totalRecords = all.length;
+  const uniquePapers = all.filter(r => r.sr_no && r.sr_no.trim() !== '').length;
+
+  let q1 = 0, q2 = 0, q3 = 0, q4 = 0;
+  let uicCount = 0, otherCount = 0;
+  const monthsMap = {};
+  const deptsSet = new Set();
+  const docTypesSet = new Set();
+
+  all.forEach(r => {
+    const q = (r.quartile || '').toUpperCase().trim();
+    if (q === 'Q1') q1++;
+    else if (q === 'Q2') q2++;
+    else if (q === 'Q3') q3++;
+    else if (q === 'Q4') q4++;
+
+    const dept = (r.department || '').trim();
+    if (dept) deptsSet.add(dept);
+    if (/uic/i.test(dept)) uicCount++;
+    else otherCount++;
+
+    const m = (r.month_section || '').trim();
+    if (m) {
+      monthsMap[m] = (monthsMap[m] || 0) + 1;
+    }
+
+    const dt = (r.document_type || '').trim();
+    if (dt && !dt.includes('http') && !dt.includes('/') && dt.length < 30) {
+      docTypesSet.add(dt);
+    }
+  });
+
+  return {
+    totalRecords,
+    uniquePapers,
+    q1Count: q1,
+    q2Count: q2,
+    q3Count: q3,
+    q4Count: q4,
+    uicCount,
+    otherCount,
+    monthsMap,
+    departments: Array.from(deptsSet).sort(),
+    documentTypes: Array.from(docTypesSet).sort()
+  };
+}
+
+function replaceMasterPublications(fileInput) {
+  recordUndoState('Update Master Publications Excel');
+  const xlsx = require('xlsx');
+  let wb;
+  if (Buffer.isBuffer(fileInput)) {
+    wb = xlsx.read(fileInput, { type: 'buffer' });
+  } else {
+    wb = xlsx.readFile(fileInput);
+  }
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = xlsx.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+
+  db.run('DELETE FROM master_publications');
+
+  let curMonth = '';
+  let order = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => String(c).trim() === '')) continue;
+    const nonEmpties = r.filter(c => String(c).trim() !== '');
+    if (nonEmpties.length === 1 && typeof r[0] === 'string' && isNaN(Number(r[0]))) {
+      curMonth = String(r[0]).trim();
+      continue;
+    }
+
+    order++;
+    db.run(
+      `INSERT INTO master_publications (
+        row_order, month_section, sr_no, title, year, source_title,
+        author_name, scopus_id, cluster, institute, department,
+        ros, quartile, doi, link, document_type, eid, scopus_link, apn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        order,
+        curMonth,
+        r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
+        r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
+        r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '',
+        r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
+        r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
+        r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
+        r[6] !== undefined && r[6] !== null ? String(r[6]).trim() : '',
+        r[7] !== undefined && r[7] !== null ? String(r[7]).trim() : '',
+        r[8] !== undefined && r[8] !== null ? String(r[8]).trim() : '',
+        r[9] !== undefined && r[9] !== null ? String(r[9]).trim() : '',
+        r[10] !== undefined && r[10] !== null ? String(r[10]).trim() : '',
+        r[11] !== undefined && r[11] !== null ? String(r[11]).trim() : '',
+        r[12] !== undefined && r[12] !== null ? String(r[12]).trim() : '',
+        r[13] !== undefined && r[13] !== null ? String(r[13]).trim() : '',
+        r[14] !== undefined && r[14] !== null ? String(r[14]).trim() : '',
+        r[15] !== undefined && r[15] !== null ? String(r[15]).trim() : '',
+        r[16] !== undefined && r[16] !== null ? String(r[16]).trim() : ''
+      ]
+    );
+  }
+
+  try {
+    const dlPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx');
+    if (Buffer.isBuffer(fileInput)) {
+      fs.writeFileSync(dlPath, fileInput);
+    } else {
+      fs.copyFileSync(fileInput, dlPath);
+    }
+  } catch (e) {
+    console.error('Failed to update public download copy:', e.message);
+  }
+
+  saveDB();
+  return order;
+}
+
 module.exports = {
   initDB,
   getAdminConfig,
@@ -1702,5 +1966,9 @@ module.exports = {
   deletePublication,
   getPublicationById,
   deletePublicationsMultiple,
-  seedIfEmpty
+  seedIfEmpty,
+  seedMasterPublicationsFromExcel,
+  getMasterPublications,
+  getMasterPublicationsStats,
+  replaceMasterPublications
 };

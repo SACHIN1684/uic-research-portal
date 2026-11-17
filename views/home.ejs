@@ -464,6 +464,11 @@
               <i class="fas fa-trophy me-1 text-warning"></i>Top Performers
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link fw-bold text-danger text-nowrap px-2" href="/publications">
+              <i class="fas fa-book-open me-1"></i>Publications
+            </a>
+          </li>
           <li class="nav-item ms-lg-1">
             <a href="/portal" class="btn btn-portal-primary py-2 px-3 text-nowrap" style="font-size: 0.86rem;">
               <i class="fas fa-database me-1"></i> Go to Research Portal
@@ -575,8 +580,12 @@
           </p>
           <div class="d-flex flex-wrap gap-3 pt-2">
             <a href="/portal" class="btn-portal-primary">
-              <i class="fas fa-search me-1"></i> Explore Faculty Profiles & ROS
+              <i class="fas fa-search me-1"></i> Explore Faculty Profiles &amp; ROS
               <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+            <a href="/publications" class="btn btn-warning fw-bold text-dark px-4 py-3 rounded-pill shadow-sm" style="font-size: 0.95rem;">
+              <i class="fas fa-book-open me-2 text-danger"></i> Publications Database
+              <i class="fas fa-external-link-alt ms-1 small"></i>
             </a>
             <a href="#leadership" class="btn-portal-outline">
               <i class="fas fa-user-tie me-1"></i> Meet Our Leadership
@@ -697,6 +706,27 @@
               Computational genomics, precision agriculture models, biosurfactant optimization, and data-driven ecological management.
             </p>
           </div>
+        </div>
+      </div>
+
+      <!-- Master Publications Online Table Banner -->
+      <div class="mt-4 p-4 rounded-4 shadow-sm border bg-white d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-3 rounded-circle bg-danger bg-opacity-10 text-danger fs-3">
+            <i class="fas fa-book-reader"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-1 text-dark">Looking for the Complete Master Publications Spreadsheet?</h5>
+            <p class="text-muted small mb-0">Browse all 233+ published papers across January–September 2026, complete with Scopus IDs, Quartiles (Q1–Q4), DOIs, and instant Excel download.</p>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="/publications" class="btn btn-danger fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="fas fa-table me-1"></i> View Publications Table
+          </a>
+          <a href="/publications/download" class="btn btn-outline-success fw-bold px-3 py-2 rounded-pill">
+            <i class="fas fa-file-excel me-1"></i> Download Excel
+          </a>
         </div>
       </div>
     </div>
@@ -1624,6 +1654,8 @@
         <div class="col-lg-2 col-md-6">
           <h6>Quick Links</h6>
           <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="/publications"><i class="fas fa-angle-right me-1 text-danger"></i> Publications Database</a></li>
+            <li><a href="/publications/download"><i class="fas fa-angle-right me-1 text-danger"></i> Download Master Excel</a></li>
             <li><a href="/portal"><i class="fas fa-angle-right me-1 text-danger"></i> Research Portal</a></li>
             <li><a href="/portal?view=list"><i class="fas fa-angle-right me-1 text-danger"></i> Faculty List View</a></li>
             <li><a href="/export/excel"><i class="fas fa-angle-right me-1 text-danger"></i> Export Excel</a></li>
