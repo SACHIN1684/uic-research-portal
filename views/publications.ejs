@@ -219,25 +219,67 @@
       </button>
       <div class="collapse navbar-collapse" id="navPublications">
         <ul class="navbar-nav ms-auto align-items-center gap-1 gap-xl-2 my-2 my-lg-0" style="font-size: 0.88rem;">
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#overview">Research Overview</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#leadership">Leadership</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/#monthly-ros">ROS &amp; Growth</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link fw-bold text-danger text-nowrap px-2 active" href="/publications">
-              <i class="fas fa-book me-1"></i>Publications
+          <!-- 1. Research Menu (Dropdown) -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle fw-bold text-dark px-2" href="#" id="pubResearchDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-flask text-danger me-1"></i> Research
             </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2 rounded-3" aria-labelledby="pubResearchDropdown" style="min-width: 250px;">
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#overview">
+                  <i class="fas fa-chart-pie text-secondary me-2 fa-fw"></i> Research Overview
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#leadership">
+                  <i class="fas fa-users-cog text-danger me-2 fa-fw"></i> My Director and Heads
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#coordinator">
+                  <i class="fas fa-user-tie text-success me-2 fa-fw"></i> Research Coordinator
+                </a>
+              </li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-bold text-danger active d-flex align-items-center justify-content-between" href="/publications">
+                  <span><i class="fas fa-book-open text-danger me-2 fa-fw"></i> Publications</span>
+                  <span class="badge bg-danger rounded-pill small">Current</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-primary d-flex align-items-center justify-content-between" href="/conferences">
+                  <span><i class="fas fa-calendar-alt text-primary me-2 fa-fw"></i> Upcoming Conferences</span>
+                  <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill small">Indexed</span>
+                </a>
+              </li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link fw-bold text-primary text-nowrap px-2" href="/conferences">
-              <i class="fas fa-calendar-alt me-1"></i>Conferences
+
+          <!-- 2. My Campus Menu (Dropdown) -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle fw-bold text-dark px-2" href="#" id="pubCampusDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-university text-primary me-1"></i> My Campus
             </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2 rounded-3" aria-labelledby="pubCampusDropdown" style="min-width: 230px;">
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#campus">
+                  <i class="fas fa-building text-secondary me-2 fa-fw"></i> Campus Infrastructure
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-bold text-danger" href="/#monthly-ros">
+                  <i class="fas fa-chart-line text-danger me-2 fa-fw"></i> ROS &amp; Growth
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#top-performers">
+                  <i class="fas fa-trophy text-warning me-2 fa-fw"></i> Top Performers
+                </a>
+              </li>
+            </ul>
           </li>
+
           <li class="nav-item">
             <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/portal">
               <i class="fas fa-users me-1 text-primary"></i>Faculty Directory
@@ -748,6 +790,8 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow">
         <form id="editPubForm" action="" method="POST">
+          <input type="hidden" name="pub_id" id="edit_pub_id" value="">
+          <input type="hidden" name="id" id="edit_id" value="">
           <div class="modal-header bg-navy text-white" style="background: var(--cu-navy); color: white;">
             <h5 class="modal-title fw-bold">
               <i class="fas fa-edit me-2 text-warning"></i> Edit Publication Entry
@@ -755,6 +799,11 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
+            <div id="editModalAlert" class="alert alert-danger py-2 px-3 small d-none mb-3"></div>
+            <div id="editCoAuthorNotice" class="alert alert-info py-2 px-3 small d-none mb-3">
+              <i class="fas fa-info-circle me-1"></i>
+              <span><strong>Co-Author Continuation Entry:</strong> This is a continuation record for a shared multi-author paper. You can edit this author's name, Scopus ID, Department, ROS share, or paper details.</span>
+            </div>
             <div class="row g-3">
               <div class="col-md-3">
                 <label class="form-label fw-bold small">Month Section</label>
@@ -1254,12 +1303,15 @@
       }
       document.getElementById('bulkDeleteIdsInput').value = selected.join(',');
       document.getElementById('bulkDeleteCountText').textContent = selected.length;
-      new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkDeleteModal')).show();
     }
 
     // ─── SINGLE ROW EDIT & DELETE MODALS ─────────────────────────────
     async function openEditModal(pubId) {
       try {
+        const modalAlert = document.getElementById('editModalAlert');
+        if (modalAlert) { modalAlert.classList.add('d-none'); modalAlert.textContent = ''; }
+
         const res = await fetch('/api/publications/' + pubId);
         const data = await res.json();
         if (!data.ok || !data.publication) {
@@ -1268,6 +1320,9 @@
         }
         const p = data.publication;
         document.getElementById('editPubForm').action = '/publications/' + pubId + '/edit';
+        document.getElementById('edit_pub_id').value = pubId;
+        document.getElementById('edit_id').value = pubId;
+
         document.getElementById('edit_month_section').value = p.month_section || 'January';
         document.getElementById('edit_sr_no').value = p.sr_no || '';
         document.getElementById('edit_title').value = p.title || '';
@@ -1287,10 +1342,194 @@
         document.getElementById('edit_scopus_link').value = p.scopus_link || '';
         document.getElementById('edit_apn').value = p.apn || '';
 
-        new bootstrap.Modal(document.getElementById('editPubModal')).show();
+        const notice = document.getElementById('editCoAuthorNotice');
+        if (notice) {
+          if (!p.sr_no) {
+            notice.classList.remove('d-none');
+          } else {
+            notice.classList.add('d-none');
+          }
+        }
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('editPubModal')).show();
       } catch (e) {
         alert('Error fetching publication: ' + e.message);
       }
+    }
+
+    // Handle AJAX Form Submission for Editing
+    document.getElementById('editPubForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const pubId = document.getElementById('edit_pub_id').value || document.getElementById('edit_id').value;
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalBtnHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+      const modalAlert = document.getElementById('editModalAlert');
+      if (modalAlert) modalAlert.classList.add('d-none');
+
+      try {
+        const formData = new FormData(this);
+        const dataObj = Object.fromEntries(formData.entries());
+
+        const res = await fetch('/publications/' + pubId + '/edit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(dataObj)
+        });
+
+        const result = await res.json();
+        if (!result.ok) {
+          throw new Error(result.error || 'Server error saving changes');
+        }
+
+        const p = result.publication;
+
+        // Hide modal
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('editPubModal')).hide();
+
+        // Update DOM row in real-time
+        updateRowInDOM(pubId, p);
+
+        // Show toast notification
+        showToast('Publication #' + (p.sr_no || p.id) + ' updated and saved successfully!', 'success');
+
+      } catch (err) {
+        console.error('Save failed:', err);
+        if (modalAlert) {
+          modalAlert.textContent = 'Failed to save changes: ' + err.message;
+          modalAlert.classList.remove('d-none');
+        } else {
+          alert('Failed to save changes: ' + err.message);
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+      }
+    });
+
+    function updateRowInDOM(pubId, p) {
+      const tr = document.querySelector('tr[data-pub-id="' + pubId + '"]');
+      if (!tr) return;
+
+      // Update data attributes for live filtering
+      tr.setAttribute('data-month', p.month_section || '');
+      tr.setAttribute('data-quartile', (p.quartile || '').toUpperCase());
+      tr.setAttribute('data-department', (p.department || '').toUpperCase());
+      tr.setAttribute('data-search', [
+        p.title, p.author_name, p.source_title, p.scopus_id, p.doi, p.apn, p.eid, p.department, p.month_section
+      ].join(' ').toLowerCase());
+
+      const cells = tr.querySelectorAll('td');
+      // cells[0]: Checkbox
+      // cells[1]: Actions
+      // cells[2]: 1. Sr. No.
+      if (cells[2]) {
+        cells[2].innerHTML = p.sr_no
+          ? '<span class="badge bg-dark bg-opacity-75 text-white px-2 py-1">' + escapeHtml(p.sr_no) + '</span>'
+          : '<span class="badge bg-light text-secondary border small" title="Co-author continuation row">↳ Co</span>';
+      }
+      // cells[3]: 2. Title
+      if (cells[3]) {
+        cells[3].innerHTML = p.title
+          ? '<div class="fw-semibold text-dark" style="line-height: 1.35;">' + escapeHtml(p.title) + '</div>'
+          : '<span class="text-muted fst-italic small">↳ (Shared paper continuation row)</span>';
+      }
+      // cells[4]: 3. Year
+      if (cells[4]) {
+        cells[4].textContent = p.year || '';
+      }
+      // cells[5]: 4. Source title
+      if (cells[5]) {
+        cells[5].innerHTML = '<span class="text-dark small">' + escapeHtml(p.source_title || '—') + '</span>';
+      }
+      // cells[6]: 5. Author names (CU)
+      if (cells[6]) {
+        cells[6].innerHTML = '<div class="fw-bold text-dark d-flex align-items-center gap-1"><i class="fas fa-user-circle text-secondary small"></i><span>' + escapeHtml(p.author_name || '—') + '</span></div>';
+      }
+      // cells[7]: 6. Scopus ID
+      if (cells[7]) {
+        cells[7].innerHTML = p.scopus_id
+          ? '<a href="https://www.scopus.com/authid/detail.uri?authorId=' + encodeURIComponent(p.scopus_id) + '" target="_blank" class="badge bg-light text-dark border text-decoration-none" title="View Scopus Author Profile"><i class="fas fa-id-badge text-warning me-1"></i>' + escapeHtml(p.scopus_id) + '</a>'
+          : '<span class="text-muted small">—</span>';
+      }
+      // cells[8]: 7. Cluster
+      if (cells[8]) {
+        cells[8].innerHTML = '<span class="small text-muted">' + escapeHtml(p.cluster || 'Engineering') + '</span>';
+      }
+      // cells[9]: 8. Institute
+      if (cells[9]) {
+        cells[9].innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border">' + escapeHtml(p.institute || 'UIC') + '</span>';
+      }
+      // cells[10]: 9. Department
+      if (cells[10]) {
+        const isUic = (p.department || '').toUpperCase().includes('UIC');
+        cells[10].innerHTML = isUic
+          ? '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle fw-semibold">UIC</span>'
+          : '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-semibold">' + escapeHtml(p.department || 'Other') + '</span>';
+      }
+      // cells[11]: 10. ROS
+      if (cells[11]) {
+        cells[11].innerHTML = '<span class="badge bg-light text-dark border fw-bold px-2 py-1">' + escapeHtml(p.ros || '0') + '</span>';
+      }
+      // cells[12]: 11. Quartile
+      if (cells[12]) {
+        const qUpper = (p.quartile || '').toUpperCase();
+        const qClass = 'q-badge-' + (qUpper || 'NA');
+        cells[12].innerHTML = qUpper
+          ? '<span class="badge ' + qClass + ' fw-bold">' + escapeHtml(qUpper) + '</span>'
+          : '<span class="badge bg-light text-muted border">N/A</span>';
+      }
+      // cells[13]: 12. DOI
+      if (cells[13]) {
+        if (p.doi && (p.doi.startsWith('10.') || p.doi.startsWith('http'))) {
+          const doiUrl = p.doi.startsWith('http') ? p.doi : ('https://doi.org/' + p.doi);
+          cells[13].innerHTML = '<a href="' + escapeHtml(doiUrl) + '" target="_blank" class="truncate-text text-decoration-none text-primary small" title="' + escapeHtml(p.doi) + '"><i class="fas fa-external-link-alt me-1 text-muted" style="font-size: 0.7rem;"></i>' + escapeHtml(p.doi) + '</a>';
+        } else if (p.doi) {
+          cells[13].innerHTML = '<span class="truncate-text small text-muted" title="' + escapeHtml(p.doi) + '">' + escapeHtml(p.doi) + '</span>';
+        } else {
+          cells[13].innerHTML = '<span class="text-muted small">—</span>';
+        }
+      }
+      // cells[14]: 13. Link
+      if (cells[14]) {
+        cells[14].innerHTML = (p.link && p.link.startsWith('http'))
+          ? '<a href="' + escapeHtml(p.link) + '" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2" title="Open Scopus Record"><i class="fas fa-link"></i></a>'
+          : (p.link ? '<span class="small text-muted">' + escapeHtml(p.link) + '</span>' : '<span class="text-muted small">—</span>');
+      }
+
+      // Visual highlight animation
+      tr.style.transition = 'background-color 0.4s ease';
+      const originalBg = tr.style.backgroundColor;
+      tr.style.backgroundColor = '#d1e7dd';
+      setTimeout(() => {
+        tr.style.backgroundColor = originalBg;
+      }, 2500);
+
+      tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(msg, type = 'success') {
+      const toastEl = document.getElementById('liveToast');
+      const toastMsg = document.getElementById('toastMessage');
+      if (!toastEl || !toastMsg) return;
+      toastEl.className = 'toast align-items-center text-white border-0 shadow ' + (type === 'success' ? 'bg-success' : 'bg-danger');
+      toastMsg.innerHTML = (type === 'success' ? '<i class="fas fa-check-circle me-2"></i>' : '<i class="fas fa-exclamation-triangle me-2"></i>') + msg;
+      bootstrap.Toast.getOrCreateInstance(toastEl).show();
     }
 
     function openDeleteModal(pubId, srNo, encodedTitle) {
@@ -1298,8 +1537,48 @@
       document.getElementById('deletePubForm').action = '/publications/' + pubId + '/delete';
       document.getElementById('deletePubMsg').innerHTML = 
         'Are you sure you want to delete publication <strong>#' + srNo + ' &mdash; ' + title + '</strong>?<br><span class="text-danger small">This action will be synchronized with the database and Excel file.</span>';
-      new bootstrap.Modal(document.getElementById('deletePubModal')).show();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('deletePubModal')).show();
     }
+
+    // Handle AJAX Form Submission for Delete
+    document.getElementById('deletePubForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const action = this.action;
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalBtnHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Deleting...';
+
+      try {
+        const res = await fetch(action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' }
+        });
+        const result = await res.json();
+        if (!result.ok) throw new Error(result.error || 'Server error deleting entry');
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deletePubModal')).hide();
+
+        // Extract pubId from action URL
+        const match = action.match(/\/publications\/(\d+)\/delete/);
+        if (match && match[1]) {
+          const tr = document.querySelector('tr[data-pub-id="' + match[1] + '"]');
+          if (tr) {
+            tr.style.transition = 'all 0.4s ease';
+            tr.style.opacity = '0';
+            tr.style.transform = 'translateX(-30px)';
+            setTimeout(() => tr.remove(), 400);
+          }
+        }
+        showToast('Publication entry deleted successfully!', 'success');
+      } catch (err) {
+        console.error('Delete failed:', err);
+        alert('Failed to delete: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+      }
+    });
 
     function exportCurrentView() {
       const table = document.getElementById('masterTable');
@@ -1325,6 +1604,19 @@
       XLSX.utils.book_append_sheet(wb, ws, 'Published Papers Filtered');
       XLSX.writeFile(wb, 'UIC_Publications_Export.xlsx');
     }
+  </script>
+
+  <!-- Live Toast Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
+    <div id="liveToast" class="toast align-items-center text-white bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body fw-semibold" id="toastMessage">
+          <i class="fas fa-check-circle me-2"></i> Action completed successfully!
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
   </script>
 </body>
 </html>

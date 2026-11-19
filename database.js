@@ -2086,9 +2086,30 @@ function getMasterPublicationById(id) {
 }
 
 function updateMasterPublication(id, data) {
-  const existing = getMasterPublicationById(id);
-  if (!existing) throw new Error('Publication entry not found');
+  const numId = Number(id);
+  const existing = getMasterPublicationById(numId);
+  if (!existing) throw new Error('Publication entry not found (id: ' + id + ')');
   recordUndoState(`Edit Publication #${existing.sr_no || existing.id} (${(existing.title || '').slice(0, 25)})`);
+
+  const updatedSrNo = data.sr_no !== undefined ? String(data.sr_no).trim() : (existing.sr_no || '');
+  const updatedTitle = data.title !== undefined ? String(data.title).trim() : (existing.title || '');
+  const updatedYear = data.year !== undefined ? String(data.year).trim() : (existing.year || '');
+  const updatedSourceTitle = data.source_title !== undefined ? String(data.source_title).trim() : (existing.source_title || '');
+  const updatedAuthor = data.author_name !== undefined ? String(data.author_name).trim() : (existing.author_name || '');
+  const updatedScopusId = data.scopus_id !== undefined ? String(data.scopus_id).trim() : (existing.scopus_id || '');
+  const updatedCluster = data.cluster !== undefined ? String(data.cluster).trim() : (existing.cluster || 'Engineering');
+  const updatedInstitute = data.institute !== undefined ? String(data.institute).trim() : (existing.institute || 'UIC');
+  const updatedDepartment = data.department !== undefined ? String(data.department).trim() : (existing.department || 'UIC');
+  const updatedRos = data.ros !== undefined ? String(data.ros).trim() : (existing.ros || '0');
+  const updatedQuartile = data.quartile !== undefined ? String(data.quartile).trim() : (existing.quartile || 'Q1');
+  const updatedDoi = data.doi !== undefined ? String(data.doi).trim() : (existing.doi || '');
+  const updatedLink = data.link !== undefined ? String(data.link).trim() : (existing.link || '');
+  const updatedDocType = data.document_type !== undefined ? String(data.document_type).trim() : (existing.document_type || 'Article');
+  const updatedEid = data.eid !== undefined ? String(data.eid).trim() : (existing.eid || '');
+  const updatedScopusLink = data.scopus_link !== undefined ? String(data.scopus_link).trim() : (existing.scopus_link || '');
+  const updatedApn = data.apn !== undefined ? String(data.apn).trim() : (existing.apn || '');
+  const updatedMonth = data.month_section !== undefined ? String(data.month_section).trim() : (existing.month_section || 'January');
+
   db.run(
     `UPDATE master_publications SET
       sr_no = ?, title = ?, year = ?, source_title = ?, author_name = ?,
@@ -2097,30 +2118,38 @@ function updateMasterPublication(id, data) {
       scopus_link = ?, apn = ?, month_section = ?
     WHERE id = ?`,
     [
-      data.sr_no !== undefined ? String(data.sr_no).trim() : existing.sr_no,
-      data.title !== undefined ? String(data.title).trim() : existing.title,
-      data.year !== undefined ? String(data.year).trim() : existing.year,
-      data.source_title !== undefined ? String(data.source_title).trim() : existing.source_title,
-      data.author_name !== undefined ? String(data.author_name).trim() : existing.author_name,
-      data.scopus_id !== undefined ? String(data.scopus_id).trim() : existing.scopus_id,
-      data.cluster !== undefined ? String(data.cluster).trim() : existing.cluster,
-      data.institute !== undefined ? String(data.institute).trim() : existing.institute,
-      data.department !== undefined ? String(data.department).trim() : existing.department,
-      data.ros !== undefined ? String(data.ros).trim() : existing.ros,
-      data.quartile !== undefined ? String(data.quartile).trim() : existing.quartile,
-      data.doi !== undefined ? String(data.doi).trim() : existing.doi,
-      data.link !== undefined ? String(data.link).trim() : existing.link,
-      data.document_type !== undefined ? String(data.document_type).trim() : existing.document_type,
-      data.eid !== undefined ? String(data.eid).trim() : existing.eid,
-      data.scopus_link !== undefined ? String(data.scopus_link).trim() : existing.scopus_link,
-      data.apn !== undefined ? String(data.apn).trim() : existing.apn,
-      data.month_section !== undefined ? String(data.month_section).trim() : existing.month_section,
-      Number(id)
+      updatedSrNo, updatedTitle, updatedYear, updatedSourceTitle, updatedAuthor,
+      updatedScopusId, updatedCluster, updatedInstitute, updatedDepartment, updatedRos,
+      updatedQuartile, updatedDoi, updatedLink, updatedDocType, updatedEid,
+      updatedScopusLink, updatedApn, updatedMonth,
+      numId
     ]
   );
+
+  // If this paper has co-author continuation rows right after it (sr_no is empty), update their title/source_title too
+  if (updatedSrNo && updatedTitle) {
+    try {
+      const coAuthors = queryAll(
+        'SELECT id, sr_no FROM master_publications WHERE row_order > ? ORDER BY row_order ASC',
+        [existing.row_order]
+      );
+      for (const row of coAuthors) {
+        if (row.sr_no && String(row.sr_no).trim() !== '') break;
+        db.run('UPDATE master_publications SET title = ?, source_title = ?, year = ? WHERE id = ?', [
+          updatedTitle,
+          updatedSourceTitle,
+          updatedYear,
+          row.id
+        ]);
+      }
+    } catch (e) {
+      console.warn('Could not sync co-author rows:', e.message);
+    }
+  }
+
   syncMasterPublicationsToExcel();
   saveDB();
-  return getMasterPublicationById(id);
+  return getMasterPublicationById(numId);
 }
 
 function deleteMasterPublication(id) {

@@ -418,6 +418,10 @@ app.get('/dashboard', (req, res) => {
 // 3. Dedicated Publications Database (Master Published Papers 2026 Table)
 app.get('/publications', (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const filters = {
       search: req.query.search || '',
       month: req.query.month || 'all',
@@ -528,46 +532,104 @@ app.get('/api/publications/:id', (req, res) => {
 // Admin add new publication entry
 app.post('/publications/add', requireAdmin, (req, res) => {
   try {
-    db.addMasterPublication(req.body);
+    const newId = db.addMasterPublication(req.body);
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.json({ ok: true, id: newId });
+    }
     res.redirect('/publications?added=1');
   } catch (err) {
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.redirect('/publications?err=' + encodeURIComponent(err.message));
   }
 });
 
-// Admin edit publication entry
-app.post('/publications/:id/edit', requireAdmin, (req, res) => {
+// Admin edit publication entry - supports both POST /publications/:id/edit and POST /publications/edit
+app.post(['/publications/:id/edit', '/publications/edit', '/api/publications/:id/edit'], requireAdmin, (req, res) => {
   try {
-    db.updateMasterPublication(req.params.id, req.body);
-    res.redirect('/publications?edited=1');
+    const id = req.params.id || req.body.id || req.body.pub_id;
+    if (!id) {
+      if (req.xhr || req.headers.accept?.includes('application/json')) {
+        return res.status(400).json({ ok: false, error: 'Missing publication ID' });
+      }
+      return res.redirect('/publications?err=' + encodeURIComponent('Missing publication ID'));
+    }
+    const updated = db.updateMasterPublication(id, req.body);
+    if (req.xhr || req.headers.accept?.includes('application/json') || req.is('json')) {
+      return res.json({ ok: true, message: 'Publication updated successfully', publication: updated });
+    }
+    res.redirect('/publications?edited=' + encodeURIComponent(id));
   } catch (err) {
+    console.error('Error editing master publication:', err);
+    if (req.xhr || req.headers.accept?.includes('application/json') || req.is('json')) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+    res.redirect('/publications?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Fallback POST /publications (for forms submitting to current URL)
+app.post('/publications', requireAdmin, (req, res) => {
+  try {
+    const id = req.body.id || req.body.pub_id;
+    if (id) {
+      const updated = db.updateMasterPublication(id, req.body);
+      if (req.xhr || req.headers.accept?.includes('application/json') || req.is('json')) {
+        return res.json({ ok: true, message: 'Publication updated successfully', publication: updated });
+      }
+      return res.redirect('/publications?edited=' + encodeURIComponent(id));
+    }
+    db.addMasterPublication(req.body);
+    res.redirect('/publications?added=1');
+  } catch (err) {
+    console.error('Error in POST /publications:', err);
+    if (req.xhr || req.headers.accept?.includes('application/json') || req.is('json')) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.redirect('/publications?err=' + encodeURIComponent(err.message));
   }
 });
 
 // Admin delete single publication entry
-app.post('/publications/:id/delete', requireAdmin, (req, res) => {
+app.post(['/publications/:id/delete', '/publications/delete', '/api/publications/:id/delete'], requireAdmin, (req, res) => {
   try {
-    db.deleteMasterPublication(req.params.id);
+    const id = req.params.id || req.body.id || req.body.pub_id;
+    const deleted = db.deleteMasterPublication(id);
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.json({ ok: true, message: 'Publication deleted successfully', deleted });
+    }
     res.redirect('/publications?deleted=1');
   } catch (err) {
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.redirect('/publications?err=' + encodeURIComponent(err.message));
   }
 });
 
 // Admin delete multiple publication entries
-app.post('/publications/delete-multiple', requireAdmin, (req, res) => {
+app.post(['/publications/delete-multiple', '/api/publications/delete-multiple'], requireAdmin, (req, res) => {
   try {
     let ids = req.body.ids;
     if (typeof ids === 'string') {
       ids = ids.split(',').map(s => s.trim()).filter(Boolean);
     }
     if (!Array.isArray(ids) || ids.length === 0) {
+      if (req.xhr || req.headers.accept?.includes('application/json')) {
+        return res.status(400).json({ ok: false, error: 'No publications selected for deletion.' });
+      }
       return res.redirect('/publications?err=' + encodeURIComponent('No publications selected for deletion.'));
     }
     const count = db.deleteMasterPublicationsMultiple(ids);
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.json({ ok: true, message: `${count} publications deleted`, count });
+    }
     res.redirect('/publications?deleted_multiple=' + count);
   } catch (err) {
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.redirect('/publications?err=' + encodeURIComponent(err.message));
   }
 });
