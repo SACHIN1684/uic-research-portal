@@ -695,13 +695,42 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
               </form>
             </div>
 
-            <!-- Admin: show document list -->
+            <!-- Admin: show document list & bulk control -->
             <% if (isAdmin && typeof faculty.documents !== 'undefined' && faculty.documents.length > 0) { %>
-              <h6 class="fw-bold mb-3" style="color:#e6edf3;"><i class="fas fa-list me-2"></i>Uploaded Documents (<%= faculty.documents.length %>)</h6>
+              <form id="bulkDetailDocsForm" method="POST" class="mb-3">
+                <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>?tab=docs">
+                <div class="card border-0 shadow-sm rounded-3 mb-3" style="background:#1c2128; border:1px solid #30363d !important;">
+                  <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="form-check mb-0">
+                        <input type="checkbox" class="form-check-input" id="selectAllDetailDocs" style="cursor:pointer; transform:scale(1.15);">
+                        <label class="form-check-label fw-bold text-light ms-1" for="selectAllDetailDocs" style="cursor:pointer;">
+                          Select All (<span id="detailDocsTotal"><%= faculty.documents.length %></span>)
+                        </label>
+                      </div>
+                      <span class="badge bg-primary px-2 py-1 ms-2">
+                        <span id="selectedDetailDocsCount">0</span> Selected
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <button type="submit" formaction="/admin/documents/bulk-review" id="bulkReviewDetailDocsBtn" class="btn btn-sm btn-outline-success fw-semibold" disabled>
+                        <i class="fas fa-check-double me-1"></i>Mark Selected Reviewed (<span id="detailReviewCount">0</span>)
+                      </button>
+                      <button type="submit" formaction="/admin/documents/bulk-delete" id="bulkDeleteDetailDocsBtn" class="btn btn-sm btn-outline-danger fw-semibold" disabled onclick="return confirm('Permanently delete selected documents for <%= faculty.name %>?');">
+                        <i class="fas fa-trash-alt me-1"></i>Delete Selected (<span id="detailDeleteCount">0</span>)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+
               <div class="table-responsive">
                 <table class="table mb-0" style="color:#c9d1d9;border-color:#30363d;">
                   <thead style="background:#1c2128;">
                     <tr style="border-color:#30363d;">
+                      <th style="width:3%;border-color:#30363d;" class="text-center">
+                        <input type="checkbox" id="tableSelectAllDetailDocs" class="form-check-input" style="cursor:pointer;">
+                      </th>
                       <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">#</th>
                       <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">File</th>
                       <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Description</th>
@@ -714,6 +743,9 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
                   <tbody>
                     <% faculty.documents.forEach((doc, di) => { %>
                     <tr style="border-color:#30363d;">
+                      <td class="text-center" style="border-color:#30363d;">
+                        <input type="checkbox" name="document_ids" value="<%= doc.id %>" form="bulkDetailDocsForm" class="form-check-input detail-doc-cb" style="cursor:pointer;">
+                      </td>
                       <td style="border-color:#30363d;"><%= di+1 %></td>
                       <td style="border-color:#30363d;">
                         <i class="<%= doc.file_type === 'pdf' ? 'fas fa-file-pdf' : 'fas fa-file-word' %> me-2" style="color:<%= doc.file_type === 'pdf' ? '#f85149' : '#58a6ff' %>;"></i>
@@ -1176,6 +1208,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   checkboxes.forEach(cb => {
     cb.addEventListener('change', updateDeleteBtn);
+  });
+
+  // ── Research Documents Bulk Controls ──
+  const detailDocsAllTop = document.getElementById('selectAllDetailDocs');
+  const detailDocsAllTable = document.getElementById('tableSelectAllDetailDocs');
+  const detailReviewBtn = document.getElementById('bulkReviewDetailDocsBtn');
+  const detailDeleteBtn = document.getElementById('bulkDeleteDetailDocsBtn');
+  const detailCountSpan = document.getElementById('selectedDetailDocsCount');
+  const detailRevCountSpan = document.getElementById('detailReviewCount');
+  const detailDelCountSpan = document.getElementById('detailDeleteCount');
+
+  function getDetailDocCheckboxes() {
+    return Array.from(document.querySelectorAll('.detail-doc-cb'));
+  }
+
+  function updateDetailDocsSelectionUI() {
+    const checked = getDetailDocCheckboxes().filter(cb => cb.checked);
+    const count = checked.length;
+    if (detailCountSpan) detailCountSpan.textContent = count;
+    if (detailRevCountSpan) detailRevCountSpan.textContent = count;
+    if (detailDelCountSpan) detailDelCountSpan.textContent = count;
+    if (detailReviewBtn) detailReviewBtn.disabled = count === 0;
+    if (detailDeleteBtn) detailDeleteBtn.disabled = count === 0;
+
+    const all = getDetailDocCheckboxes();
+    const allChecked = all.length > 0 && all.every(cb => cb.checked);
+    if (detailDocsAllTop) detailDocsAllTop.checked = allChecked;
+    if (detailDocsAllTable) detailDocsAllTable.checked = allChecked;
+  }
+
+  function toggleAllDetailDocs(checked) {
+    getDetailDocCheckboxes().forEach(cb => cb.checked = checked);
+    updateDetailDocsSelectionUI();
+  }
+
+  if (detailDocsAllTop) {
+    detailDocsAllTop.addEventListener('change', function() { toggleAllDetailDocs(this.checked); });
+  }
+  if (detailDocsAllTable) {
+    detailDocsAllTable.addEventListener('change', function() { toggleAllDetailDocs(this.checked); });
+  }
+
+  getDetailDocCheckboxes().forEach(cb => {
+    cb.addEventListener('change', updateDetailDocsSelectionUI);
   });
 });
 </script>

@@ -147,12 +147,12 @@
         </p>
       </div>
       <div class="btn-group shadow-sm" role="group">
-        <a href="/portal?view=grid&sort=<%= sortMode %>" id="gridViewLink" class="btn btn-sm <%= viewMode !== 'list' ? 'btn-primary' : 'btn-outline-primary' %>">
+        <button type="button" id="gridViewBtn" onclick="setPortalViewMode('grid')" class="btn btn-sm <%= viewMode !== 'list' ? 'btn-primary' : 'btn-outline-primary' %>" title="Switch to Grid View">
           <i class="fas fa-th-large me-1"></i>Grid View
-        </a>
-        <a href="/portal?view=list&sort=<%= sortMode %>" id="listViewLink" class="btn btn-sm <%= viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary' %>">
+        </button>
+        <button type="button" id="listViewBtn" onclick="setPortalViewMode('list')" class="btn btn-sm <%= viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary' %>" title="Switch to List View">
           <i class="fas fa-list me-1"></i>List View
-        </a>
+        </button>
       </div>
     </div>
 
@@ -175,6 +175,13 @@
       <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
         <i class="fas fa-key me-2 fs-5 align-middle"></i>
         <strong>Admin Credentials Updated!</strong> Username and password have been saved.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.vis_updated) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-<%= query.vis === 'private' ? 'lock' : 'lock-open' %> me-2 fs-5 align-middle"></i>
+        <strong>Visibility Updated!</strong> Successfully set <strong><%= query.vis_updated %></strong> faculty profile(s) to <strong><%= (query.vis || 'public').toUpperCase() %></strong>.
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <% } %>
@@ -633,15 +640,18 @@
     <% } else { %>
 
       <% if (isAdmin) { %>
-      <!-- Bulk Selection & Delete Action Bar -->
-      <form id="bulkDeleteForm" action="/faculty/delete-multiple" method="POST"></form>
+      <!-- Unified Bulk Action Form (Visibility Public/Private & Delete) -->
+      <form id="bulkFacultyForm" action="/faculty/bulk-action" method="POST">
+        <input type="hidden" name="return_to" id="bulkFacultyReturnTo" value="/portal<%= viewMode === 'list' ? '?view=list' : '' %>">
+        <input type="hidden" name="bulk_action" id="bulkFacultyActionInput" value="">
+      </form>
       <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
         <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="d-flex align-items-center gap-3">
             <div class="form-check mb-0">
               <input type="checkbox" class="form-check-input" id="selectAllFaculty" style="cursor:pointer; transform: scale(1.15);">
               <label class="form-check-label fw-bold text-dark ms-1" for="selectAllFaculty" style="cursor:pointer;">
-                Select All Visible Faculty
+                Select All Visible (<span id="visibleFacultyCount"><%= faculty.length %></span>)
               </label>
             </div>
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
@@ -649,10 +659,18 @@
             </span>
           </div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button type="submit" form="bulkDeleteForm" id="deleteSelectedFacultyBtn" class="btn btn-outline-danger btn-sm fw-semibold" disabled
-                    onclick="return confirm('Are you sure you want to delete all selected faculty profiles and their publications? This cannot be undone.');">
+            <button type="button" id="makePublicFacultyBtn" class="btn btn-outline-success btn-sm fw-semibold" disabled>
+              <i class="fas fa-globe me-1"></i>Make Public (<span id="publicBtnCount">0</span>)
+            </button>
+            <button type="button" id="makePrivateFacultyBtn" class="btn btn-outline-warning btn-sm text-dark fw-semibold" disabled>
+              <i class="fas fa-lock me-1"></i>Make Private (<span id="privateBtnCount">0</span>)
+            </button>
+            <button type="button" id="deleteSelectedFacultyBtn" class="btn btn-outline-danger btn-sm fw-semibold" disabled>
               <i class="fas fa-trash-alt me-1"></i>Delete Selected (<span id="deleteBtnCount">0</span>)
             </button>
+            <a href="/admin/documents" class="btn btn-outline-primary btn-sm fw-semibold" title="Manage Research Proof Documents">
+              <i class="fas fa-file-shield me-1"></i>Research Docs Panel
+            </a>
             <form action="/faculty/delete-all" method="POST" class="d-inline"
                   onsubmit="return confirm('WARNING: This will permanently delete ALL <%= faculty.length %> faculty members and ALL their publication records! Are you absolutely sure?');">
               <button type="submit" class="btn btn-danger btn-sm fw-semibold shadow-sm">
@@ -665,10 +683,10 @@
       <% } %>
 
       <!-- 1. TABLE / LIST VIEW -->
-      <% if (viewMode === 'list') { %>
+      <div id="facultyListViewWrap" style="<%= viewMode === 'list' ? '' : 'display:none;' %>">
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
-          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-table me-2"></i>Faculty Records (List View)</h5>
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Faculty Records (List View)</h5>
             <span class="badge bg-light text-dark border"><%= faculty.length %> Entries</span>
           </div>
           <div class="table-responsive">
@@ -677,16 +695,19 @@
                 <tr>
                   <% if (isAdmin) { %>
                   <th style="width: 3%;" class="text-center">
-                    <input type="checkbox" id="tableSelectAll" class="form-check-input" title="Select All">
+                    <input type="checkbox" id="tableSelectAll" class="form-check-input" title="Select All Visible" style="cursor:pointer;">
                   </th>
                   <% } %>
-                  <th style="width: 4%;">S.No</th>
-                  <th style="width: 24%;">Faculty Name & Details</th>
-                  <th style="width: 13%;">Employee Code</th>
-                  <th style="width: 12%;">Department</th>
-                  <th style="width: 18%;" class="text-center">Publications Breakdown</th>
-                  <th style="width: 12%;" class="text-center">Total ROS</th>
-                  <th style="width: 14%;" class="text-end">Actions</th>
+                  <th style="width: 3%;">#</th>
+                  <th style="width: 20%;">Faculty Name & Details</th>
+                  <th style="width: 10%;">Category</th>
+                  <th style="width: 11%;">Employee Code / Scopus</th>
+                  <th style="width: 10%;">Department</th>
+                  <th style="width: 10%;" class="text-center">Visibility</th>
+                  <th style="width: 10%;" class="text-center">Research Docs</th>
+                  <th style="width: 11%;" class="text-center">Publications</th>
+                  <th style="width: 6%;" class="text-center">ROS</th>
+                  <th style="width: 6%;" class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody id="facultyTableBody">
@@ -698,19 +719,21 @@
                     const isMemberActive = (f.status || 'Active') !== 'Inactive';
                     const memberType = f.member_type || 'Faculty';
                     const theme = getMemberTypeTheme(memberType);
+                    const isPriv = (f.visibility || 'public') === 'private';
                   %>
                   <tr class="faculty-card-wrap"
+                      data-id="<%= f.id %>"
                       data-ros="<%= f.ros %>"
                       data-name="<%= f.name.toLowerCase() %>"
                       data-code="<%= f.employee_code.toLowerCase() %>"
                       data-scopus="<%= (f.scopus_id || '').toLowerCase() %>"
                       data-member-type="<%= memberType %>"
                       data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>"
-                      data-visibility="<%= (f.visibility || 'public').toLowerCase() %>"
+                      data-visibility="<%= isPriv ? 'private' : 'public' %>"
                       style="border-left: 3px solid <%= theme.color %>;">
                     <% if (isAdmin) { %>
                     <td class="text-center">
-                      <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm" class="form-check-input faculty-select-cb" style="cursor:pointer;">
+                      <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkFacultyForm" class="form-check-input faculty-select-cb" data-faculty-id="<%= f.id %>" style="cursor:pointer;">
                     </td>
                     <% } %>
                     <td class="text-muted fw-bold serial-col"><%= idx + 1 %></td>
@@ -718,63 +741,96 @@
                       <div class="d-flex align-items-center gap-2">
                         <div class="position-relative flex-shrink-0">
                           <% if (f.photo) { %>
-                            <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover; border-color: <%= theme.borderColor %> !important;">
+                            <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 38px; height: 38px; object-fit: cover; border-color: <%= theme.borderColor %> !important;">
                           <% } else { %>
-                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem; background: <%= theme.avatarBg %>;">
+                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; font-size: 0.8rem; background: <%= theme.avatarBg %>;">
                               <%= initials %>
                             </div>
                           <% } %>
                           <span title="<%= isMemberActive ? 'Active Member' : 'Inactive / Left Department' %>"
-                                style="position:absolute; bottom:-1px; right:-1px; width:12px; height:12px; border-radius:50%; border:2px solid #fff; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>;"></span>
+                                style="position:absolute; bottom:-1px; right:-1px; width:11px; height:11px; border-radius:50%; border:2px solid #fff; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>;"></span>
                         </div>
                         <div>
                           <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">
-                            <span><%= f.name %></span>
-                            <span class="badge <%= theme.badgeClass %>" style="<%= theme.badgeStyle %>; font-size:0.68rem;"><i class="<%= theme.icon %> me-1"></i><%= memberType %></span>
-                            <% if (!isMemberActive) { %><span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.66rem;">Left</span><% } %>
-                            <% if (f.visibility === 'private') { %><span class="badge bg-warning text-dark border border-warning" style="font-size:0.66rem;"><i class="fas fa-lock me-1"></i>Private</span><% } %>
+                            <a href="/faculty/<%= f.id %>" class="text-dark text-decoration-none"><%= f.name %></a>
+                            <% if (!isMemberActive) { %><span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.62rem;">Left</span><% } %>
                           </div>
-                          <div class="text-muted small">
+                          <div class="text-muted small" style="font-size:0.75rem;">
                             <%= f.designation || memberType %>
-                            <% if (f.scopus_id) { %> &bull; <span class="font-monospace">Scopus: <%= f.scopus_id %></span><% } %>
                           </div>
                           <div class="mt-1"><%- renderStarsHtml(f.ros, 'sm') %></div>
                         </div>
                       </div>
                     </td>
                     <td>
+                      <span class="badge <%= theme.badgeClass %>" style="<%= theme.badgeStyle %>; font-size:0.72rem;">
+                        <i class="<%= theme.icon %> me-1"></i><%= memberType %>
+                      </span>
+                    </td>
+                    <td>
                       <span class="badge bg-light text-primary border font-monospace px-2 py-1 fs-6">
                         <%= f.employee_code %>
                       </span>
+                      <% if (f.scopus_id) { %>
+                        <div class="small text-muted font-monospace mt-1" style="font-size:0.72rem;">
+                          <i class="fas fa-fingerprint me-1 text-warning"></i><%= f.scopus_id %>
+                        </div>
+                      <% } %>
                     </td>
                     <td><%= f.department || '—' %></td>
                     <td class="text-center">
+                      <span class="badge <%= isPriv ? 'bg-warning text-dark border border-warning' : 'bg-success-subtle text-success border border-success' %> px-2 py-1" style="font-size:0.72rem;">
+                        <i class="fas fa-<%= isPriv ? 'lock' : 'globe' %> me-1"></i><%= isPriv ? 'Private' : 'Public' %>
+                      </span>
+                      <% if (isAdmin) { %>
+                        <div class="mt-1">
+                          <form action="/faculty/<%= f.id %>/visibility" method="POST" class="d-inline">
+                            <input type="hidden" name="return_to" value="/portal?view=list">
+                            <button type="submit" class="btn btn-xs <%= isPriv ? 'btn-outline-success' : 'btn-outline-warning text-dark' %> py-0 px-2 fw-semibold" style="font-size:0.68rem;" title="Click to make <%= isPriv ? 'Public' : 'Private' %>">
+                              <i class="fas fa-<%= isPriv ? 'lock-open' : 'lock' %> me-1"></i>Set <%= isPriv ? 'Public' : 'Private' %>
+                            </button>
+                          </form>
+                        </div>
+                      <% } %>
+                    </td>
+                    <td class="text-center">
+                      <a href="/faculty/<%= f.id %>#documents" class="badge <%= f.pending_doc_count > 0 ? 'bg-danger text-white' : (f.doc_count > 0 ? 'bg-info-subtle text-info border border-info' : 'bg-light text-muted border') %> text-decoration-none px-2 py-1" style="font-size:0.72rem;" title="View & Manage Research Proof Documents">
+                        <i class="fas fa-file-shield me-1"></i><%= f.doc_count %> Docs
+                        <% if (f.pending_doc_count > 0) { %>
+                          <span class="badge bg-warning text-dark ms-1"><%= f.pending_doc_count %> new</span>
+                        <% } %>
+                      </a>
+                    </td>
+                    <td class="text-center">
                       <% if (f.total_pubs === 0) { %>
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Zero Publications</span>
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:0.68rem;">0 Papers</span>
                       <% } else { %>
                         <div class="d-flex justify-content-center flex-wrap gap-1">
-                          <span class="badge bg-primary">Journals: <%= f.journal_count %></span>
-                          <% if (f.conf_count > 0) { %><span class="badge bg-warning text-dark">Conf: <%= f.conf_count %></span><% } %>
-                          <% if (f.book_count > 0) { %><span class="badge bg-success">Book: <%= f.book_count %></span><% } %>
-                          <% if (f.patent_count > 0) { %><span class="badge bg-danger">Patent: <%= f.patent_count %></span><% } %>
+                          <span class="badge bg-primary" style="font-size:0.68rem;">J: <%= f.journal_count %></span>
+                          <% if (f.conf_count > 0) { %><span class="badge bg-warning text-dark" style="font-size:0.68rem;">C: <%= f.conf_count %></span><% } %>
+                          <% if (f.book_count > 0) { %><span class="badge bg-success" style="font-size:0.68rem;">B: <%= f.book_count %></span><% } %>
+                          <% if (f.patent_count > 0) { %><span class="badge bg-danger" style="font-size:0.68rem;">P: <%= f.patent_count %></span><% } %>
                         </div>
-                        <small class="text-muted">(<%= f.total_pubs %> Total)</small>
+                        <small class="text-muted" style="font-size:0.72rem;">(<%= f.total_pubs %> Total)</small>
                       <% } %>
                     </td>
                     <td class="text-center">
                       <span class="badge bg-<%= rc %>-subtle text-<%= rc %> border border-<%= rc %>-subtle px-2 py-1 fs-6 fw-bold">
                         <%= f.ros.toFixed(2) %>
                       </span>
-                      <div class="small text-muted"><%= rl %></div>
+                      <div class="small text-muted" style="font-size:0.7rem;"><%= rl %></div>
                     </td>
-                    <td class="text-end">
-                      <a href="/faculty/<%= f.id %>" class="btn btn-sm btn-primary">
-                        <i class="fas fa-folder-open me-1"></i><%= isAdmin ? 'Open' : 'View Details' %>
+                    <td class="text-end text-nowrap">
+                      <a href="/faculty/<%= f.id %>" class="btn btn-sm btn-primary py-0 px-2" style="font-size:0.78rem;" title="Open Record">
+                        <i class="fas fa-folder-open me-1"></i><%= isAdmin ? 'Open' : 'View' %>
                       </a>
                       <% if (isAdmin) { %>
-                      <a href="/faculty/<%= f.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                      <a href="/faculty/<%= f.id %>/edit" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.78rem;" title="Edit Profile">
                         <i class="fas fa-edit"></i>
                       </a>
+                      <form action="/faculty/<%= f.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete <%= f.name %>? This cannot be undone.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:0.78rem;" title="Delete Profile"><i class="fas fa-trash"></i></button>
+                      </form>
                       <% } %>
                     </td>
                   </tr>
@@ -783,9 +839,10 @@
             </table>
           </div>
         </div>
+      </div>
 
       <!-- 2. GRID CARDS VIEW -->
-      <% } else { %>
+      <div id="facultyGridViewWrap" style="<%= viewMode === 'list' ? 'display:none;' : '' %>">
         <div class="row g-4" id="facultyGrid">
           <% faculty.forEach(f => { %>
           <%
@@ -796,21 +853,24 @@
             const isMemberActive = (f.status || 'Active') !== 'Inactive';
             const memberType = f.member_type || 'Faculty';
             const theme = getMemberTypeTheme(memberType);
+            const isPriv = (f.visibility || 'public') === 'private';
           %>
           <div class="col-12 col-md-6 col-lg-4 faculty-card-wrap"
+               data-id="<%= f.id %>"
                data-ros="<%= f.ros %>"
                data-name="<%= f.name.toLowerCase() %>"
                data-code="<%= f.employee_code.toLowerCase() %>"
                data-scopus="<%= (f.scopus_id || '').toLowerCase() %>"
                data-member-type="<%= memberType %>"
                data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>"
-               data-visibility="<%= (f.visibility || 'public').toLowerCase() %>">
+               data-visibility="<%= isPriv ? 'private' : 'public' %>">
             <div class="faculty-card position-relative role-<%= memberType.toLowerCase().replace(/\s+/g, '-') %>" style="border-top: 3px solid <%= theme.color %>;">
               <% if (isAdmin) { %>
               <div class="position-absolute" style="top: 14px; right: 14px; z-index: 5;">
-                <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm"
+                <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkFacultyForm"
                        class="form-check-input faculty-select-cb shadow-sm border-secondary"
-                       style="width: 20px; height: 20px; cursor: pointer;" title="Select for bulk delete">
+                       data-faculty-id="<%= f.id %>"
+                       style="width: 20px; height: 20px; cursor: pointer;" title="Select profile for bulk actions">
               </div>
               <% } %>
               <div class="card-top-accent" style="background: <%= theme.cardAccent %>;"></div>
@@ -842,8 +902,16 @@
                       <% if (!isMemberActive) { %>
                         <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.68rem;">Left / Inactive</span>
                       <% } %>
-                      <% if (f.visibility === 'private') { %>
-                        <span class="badge bg-warning text-dark border border-warning" style="font-size:0.68rem;"><i class="fas fa-lock me-1"></i>Private</span>
+                      <span class="badge <%= isPriv ? 'bg-warning text-dark border border-warning' : 'bg-success-subtle text-success border border-success' %>" style="font-size:0.68rem;">
+                        <i class="fas fa-<%= isPriv ? 'lock' : 'globe' %> me-1"></i><%= isPriv ? 'Private' : 'Public' %>
+                      </span>
+                      <% if (isAdmin) { %>
+                        <form action="/faculty/<%= f.id %>/visibility" method="POST" class="d-inline">
+                          <input type="hidden" name="return_to" value="/portal">
+                          <button type="submit" class="btn btn-xs <%= isPriv ? 'btn-outline-success' : 'btn-outline-warning text-dark' %> py-0 px-1 fw-semibold" style="font-size:0.65rem;" title="Click to make <%= isPriv ? 'Public' : 'Private' %>">
+                            <i class="fas fa-<%= isPriv ? 'lock-open' : 'lock' %> me-1"></i><%= isPriv ? 'Make Public' : 'Make Private' %>
+                          </button>
+                        </form>
                       <% } %>
                     </div>
                     <% if (f.designation) { %><div class="faculty-desig"><%= f.designation %></div><% } %>
@@ -852,10 +920,16 @@
                   </div>
                 </div>
 
-                <!-- Star Rating Display -->
-                <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded-2 mb-2" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                  <span class="small fw-semibold text-muted" style="font-size:0.75rem;"><i class="fas fa-star text-warning me-1"></i>Rating:</span>
-                  <%- renderStarsHtml(f.ros, 'sm') %>
+                <!-- Star Rating & Research Docs Quick Link Row -->
+                <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded-2 mb-2 flex-wrap gap-1" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="small fw-semibold text-muted" style="font-size:0.72rem;"><i class="fas fa-star text-warning me-1"></i>Rating:</span>
+                    <%- renderStarsHtml(f.ros, 'sm') %>
+                  </div>
+                  <a href="/faculty/<%= f.id %>#documents" class="badge <%= f.pending_doc_count > 0 ? 'bg-danger text-white' : (f.doc_count > 0 ? 'bg-info-subtle text-info border border-info' : 'bg-light text-muted border') %> text-decoration-none" style="font-size:0.68rem;" title="View & Manage Research Proof Documents">
+                    <i class="fas fa-file-shield me-1"></i><%= f.doc_count %> Docs
+                    <% if (f.pending_doc_count > 0) { %>(<%= f.pending_doc_count %> new)<% } %>
+                  </a>
                 </div>
 
                 <!-- ROS Bar -->
@@ -895,7 +969,7 @@
           </div>
           <% }) %>
         </div>
-      <% } %>
+      </div>
 
     <% } %>
 
@@ -1382,33 +1456,107 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize with default 0.50
   updateRosterPreview(0.50, null);
 
-  // ── Bulk Selection & Delete Logic ──────────────────────────────────
+  // ── Portal View Switching (Grid vs List) ──────────────────────────
+  window.setPortalViewMode = function(mode) {
+    const listWrap = document.getElementById('facultyListViewWrap');
+    const gridWrap = document.getElementById('facultyGridViewWrap');
+    const listBtn = document.getElementById('listViewBtn');
+    const gridBtn = document.getElementById('gridViewBtn');
+    const returnToInputs = document.querySelectorAll('#bulkFacultyReturnTo');
+
+    if (mode === 'list') {
+      if (listWrap) listWrap.style.display = '';
+      if (gridWrap) gridWrap.style.display = 'none';
+      if (listBtn) { listBtn.classList.remove('btn-outline-primary'); listBtn.classList.add('btn-primary'); }
+      if (gridBtn) { gridBtn.classList.remove('btn-primary'); gridBtn.classList.add('btn-outline-primary'); }
+      returnToInputs.forEach(i => i.value = '/portal?view=list');
+      localStorage.setItem('uic_portal_view', 'list');
+      try {
+        const u = new URL(window.location);
+        u.searchParams.set('view', 'list');
+        window.history.replaceState({}, '', u);
+      } catch (_) {}
+    } else {
+      if (listWrap) listWrap.style.display = 'none';
+      if (gridWrap) gridWrap.style.display = '';
+      if (listBtn) { listBtn.classList.remove('btn-primary'); listBtn.classList.add('btn-outline-primary'); }
+      if (gridBtn) { gridBtn.classList.remove('btn-outline-primary'); gridBtn.classList.add('btn-primary'); }
+      returnToInputs.forEach(i => i.value = '/portal?view=grid');
+      localStorage.setItem('uic_portal_view', 'grid');
+      try {
+        const u = new URL(window.location);
+        u.searchParams.set('view', 'grid');
+        window.history.replaceState({}, '', u);
+      } catch (_) {}
+    }
+
+    if (typeof window.applyFilters === 'function') window.applyFilters();
+    if (typeof window.updateFacultySelectionUI === 'function') window.updateFacultySelectionUI();
+  };
+
+  // Restore preferred view mode from URL param or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const preferredView = urlParams.get('view') || localStorage.getItem('uic_portal_view') || '<%= viewMode %>';
+  if (preferredView === 'list') {
+    window.setPortalViewMode('list');
+  } else {
+    window.setPortalViewMode('grid');
+  }
+
+  // ── Bulk Selection & Visibility / Delete Logic ────────────────────────
+  const bulkFacultyForm = document.getElementById('bulkFacultyForm');
+  const bulkFacultyActionInput = document.getElementById('bulkFacultyActionInput');
+  const makePublicBtn = document.getElementById('makePublicFacultyBtn');
+  const makePrivateBtn = document.getElementById('makePrivateFacultyBtn');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedFacultyBtn');
   const selectAllTop = document.getElementById('selectAllFaculty');
   const selectAllTable = document.getElementById('tableSelectAll');
-  const deleteSelectedBtn = document.getElementById('deleteSelectedFacultyBtn');
   const selectedCountSpan = document.getElementById('selectedFacultyCount');
+  const publicBtnCountSpan = document.getElementById('publicBtnCount');
+  const privateBtnCountSpan = document.getElementById('privateBtnCount');
   const deleteBtnCountSpan = document.getElementById('deleteBtnCount');
+  const visibleCountSpan = document.getElementById('visibleFacultyCount');
 
-  function getCheckboxes() {
-    return Array.from(document.querySelectorAll('.faculty-select-cb'));
+  function getActiveViewWrap() {
+    const listWrap = document.getElementById('facultyListViewWrap');
+    if (listWrap && listWrap.style.display !== 'none') return listWrap;
+    return document.getElementById('facultyGridViewWrap');
+  }
+
+  function getActiveCheckboxes() {
+    const activeWrap = getActiveViewWrap();
+    if (!activeWrap) return Array.from(document.querySelectorAll('.faculty-select-cb'));
+    return Array.from(activeWrap.querySelectorAll('.faculty-select-cb'));
   }
 
   function getVisibleCheckboxes() {
-    return getCheckboxes().filter(cb => {
+    return getActiveCheckboxes().filter(cb => {
       const wrap = cb.closest('.faculty-card-wrap');
       return !wrap || wrap.style.display !== 'none';
     });
   }
 
+  function getSelectedUniqueIds() {
+    const checked = Array.from(document.querySelectorAll('.faculty-select-cb:checked'));
+    return Array.from(new Set(checked.map(cb => cb.value)));
+  }
+
   function updateFacultySelectionUI() {
-    const allChecked = getCheckboxes().filter(cb => cb.checked);
-    const count = allChecked.length;
+    const uniqueIds = getSelectedUniqueIds();
+    const count = uniqueIds.length;
 
     if (selectedCountSpan) selectedCountSpan.textContent = count;
+    if (publicBtnCountSpan) publicBtnCountSpan.textContent = count;
+    if (privateBtnCountSpan) privateBtnCountSpan.textContent = count;
     if (deleteBtnCountSpan) deleteBtnCountSpan.textContent = count;
+
+    if (makePublicBtn) makePublicBtn.disabled = count === 0;
+    if (makePrivateBtn) makePrivateBtn.disabled = count === 0;
     if (deleteSelectedBtn) deleteSelectedBtn.disabled = count === 0;
 
     const visibleCbs = getVisibleCheckboxes();
+    if (visibleCountSpan) visibleCountSpan.textContent = visibleCbs.length;
+
     const allVisibleChecked = visibleCbs.length > 0 && visibleCbs.every(cb => cb.checked);
     if (selectAllTop) selectAllTop.checked = allVisibleChecked;
     if (selectAllTable) selectAllTable.checked = allVisibleChecked;
@@ -1417,8 +1565,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function toggleAllVisible(checked) {
     const visibleCbs = getVisibleCheckboxes();
-    visibleCbs.forEach(cb => cb.checked = checked);
+    visibleCbs.forEach(cb => {
+      cb.checked = checked;
+      const fid = cb.dataset.facultyId || cb.value;
+      const syncMatch = document.querySelectorAll(`.faculty-select-cb[data-faculty-id="${fid}"]`);
+      syncMatch.forEach(m => { m.checked = checked; });
+    });
     updateFacultySelectionUI();
+  }
+
+  function submitBulkAction(action) {
+    const uniqueIds = getSelectedUniqueIds();
+    if (!bulkFacultyForm || uniqueIds.length === 0) return;
+
+    if (bulkFacultyActionInput) bulkFacultyActionInput.value = action;
+
+    // Clear existing dynamic inputs and re-add unique checked IDs
+    bulkFacultyForm.querySelectorAll('input[name="faculty_ids"]').forEach(el => el.remove());
+    uniqueIds.forEach(id => {
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'faculty_ids';
+      hidden.value = id;
+      bulkFacultyForm.appendChild(hidden);
+    });
+
+    bulkFacultyForm.submit();
+  }
+
+  if (makePublicBtn) {
+    makePublicBtn.addEventListener('click', function() {
+      const count = getSelectedUniqueIds().length;
+      if (count === 0) return;
+      if (confirm(`Make ${count} selected faculty profile(s) PUBLIC? Public profiles will be accessible to faculty.`)) {
+        submitBulkAction('set_public');
+      }
+    });
+  }
+
+  if (makePrivateBtn) {
+    makePrivateBtn.addEventListener('click', function() {
+      const count = getSelectedUniqueIds().length;
+      if (count === 0) return;
+      if (confirm(`Make ${count} selected faculty profile(s) PRIVATE? Private profiles can only be accessed by admin.`)) {
+        submitBulkAction('set_private');
+      }
+    });
+  }
+
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', function() {
+      const count = getSelectedUniqueIds().length;
+      if (count === 0) return;
+      if (confirm(`WARNING: Are you sure you want to permanently delete ${count} selected faculty profile(s) and all their publications? This cannot be undone.`)) {
+        submitBulkAction('delete');
+      }
+    });
   }
 
   if (selectAllTop) {
@@ -1433,8 +1635,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  getCheckboxes().forEach(cb => {
-    cb.addEventListener('change', updateFacultySelectionUI);
+  document.querySelectorAll('.faculty-select-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const fid = this.dataset.facultyId || this.value;
+      const matching = document.querySelectorAll(`.faculty-select-cb[data-faculty-id="${fid}"]`);
+      matching.forEach(m => { m.checked = this.checked; });
+      updateFacultySelectionUI();
+    });
   });
 });
 </script>

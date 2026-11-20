@@ -2277,7 +2277,7 @@
           `).join('');
 
           heroSpotEl.innerHTML = `
-            <div id="heroTopPerformersCarousel" class="carousel slide carousel-fade mb-4 shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500" data-bs-pause="hover" data-bs-wrap="true">
+            <div id="heroTopPerformersCarousel" class="carousel slide carousel-fade mb-4 shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500" data-bs-pause="false" data-bs-wrap="true">
               <div class="carousel-indicators mb-2" style="z-index: 5;">
                 ${indicatorsHtml}
               </div>
@@ -2318,12 +2318,7 @@
           }
           const carouselElem = document.getElementById('heroTopPerformersCarousel');
           if (carouselElem && annualWinners.length > 1) {
-            let isHovered = false;
-            carouselElem.addEventListener('mouseenter', () => { isHovered = true; });
-            carouselElem.addEventListener('mouseleave', () => { isHovered = false; });
-
             window.__heroCarouselTimer = setInterval(() => {
-              if (isHovered) return;
               try {
                 if (carouselInst) {
                   carouselInst.next();
@@ -2331,7 +2326,17 @@
                   const nextBtn = carouselElem.querySelector('.carousel-control-next');
                   if (nextBtn) nextBtn.click();
                 }
-              } catch (err) {}
+              } catch (err) {
+                // Direct DOM slide advancement fallback
+                const items = carouselElem.querySelectorAll('.carousel-item');
+                if (items.length > 1) {
+                  const curIdx = Array.from(items).findIndex(el => el.classList.contains('active'));
+                  const nxtIdx = (curIdx + 1) % items.length;
+                  items.forEach((it, i) => it.classList.toggle('active', i === nxtIdx));
+                  const dots = carouselElem.querySelectorAll('.carousel-indicators button');
+                  dots.forEach((d, i) => d.classList.toggle('active', i === nxtIdx));
+                }
+              }
             }, 3500);
           }
         }

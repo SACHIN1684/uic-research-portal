@@ -544,6 +544,14 @@ function getDepartmentPublicationOverview(mode = getPubCountingMode()) {
 
 function getAllFacultyWithStats() {
   const list = queryAll('SELECT * FROM faculty ORDER BY name ASC');
+  const docsList = queryAll('SELECT faculty_id, status FROM faculty_documents');
+  const docsMap = {};
+  docsList.forEach(d => {
+    if (!docsMap[d.faculty_id]) docsMap[d.faculty_id] = { total: 0, pending: 0 };
+    docsMap[d.faculty_id].total++;
+    if (d.status === 'pending') docsMap[d.faculty_id].pending++;
+  });
+
   return list.map(f => {
     const pubs = queryAll('SELECT * FROM publications WHERE faculty_id = ? ORDER BY month DESC, id DESC', [f.id]);
     const journalCount = pubs.filter(p => p.pub_type === 'Journal').length;
@@ -561,6 +569,8 @@ function getAllFacultyWithStats() {
       monthMap[m] = (monthMap[m] || 0) + (parseFloat(p.ros) || 0);
     });
 
+    const docStats = docsMap[f.id] || { total: 0, pending: 0 };
+
     return {
       ...f,
       total_pubs: pubs.length,
@@ -568,6 +578,8 @@ function getAllFacultyWithStats() {
       conf_count: confCount,
       book_count: bookCount,
       patent_count: patentCount,
+      doc_count: docStats.total,
+      pending_doc_count: docStats.pending,
       ...qStats,
       ros: parseFloat(totalRos.toFixed(2)),
       month_ros: monthMap
@@ -923,6 +935,19 @@ function setFacultyVisibility(facultyId, visibility) {
   db.run('UPDATE faculty SET visibility = ? WHERE id = ?', [normVis, Number(facultyId)]);
   saveDB();
   return getFacultyById(facultyId);
+}
+
+function setFacultyVisibilityMultiple(facultyIds = [], visibility = 'public') {
+  if (!Array.isArray(facultyIds) || facultyIds.length === 0) return 0;
+  const normVis = String(visibility || '').trim().toLowerCase() === 'private' ? 'private' : 'public';
+  const cleanIds = facultyIds.map(id => Number(id)).filter(id => !isNaN(id) && id > 0);
+  if (cleanIds.length === 0) return 0;
+
+  recordUndoState(`Set ${cleanIds.length} profiles to ${normVis}`);
+  const placeholders = cleanIds.map(() => '?').join(',');
+  db.run(`UPDATE faculty SET visibility = ? WHERE id IN (${placeholders})`, [normVis, ...cleanIds]);
+  saveDB();
+  return cleanIds.length;
 }
 
 function getMemberBifurcationStats(facultyList) {
@@ -2660,6 +2685,9 @@ module.exports = {
   markDocumentReviewed,
   getUnreadDocumentCount,
   setFacultyVisibility,
+  setFacultyVisibilityMultiple,
+  deleteFacultyDocumentsMultiple,
+  markFacultyDocumentsReviewedMultiple,
   addProfileRequest,
   getPendingProfileRequestsCount,
   getPendingRequestForFaculty,
@@ -2745,6 +2773,29 @@ function markDocumentReviewed(id) {
   db.run("UPDATE faculty_documents SET status = 'reviewed' WHERE id = ?", [Number(id)]);
   saveDB();
   return queryOne('SELECT * FROM faculty_documents WHERE id = ?', [Number(id)]);
+}
+
+function deleteFacultyDocumentsMultiple(ids = []) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const cleanIds = ids.map(id => Number(id)).filter(id => !isNaN(id) && id > 0);
+  if (cleanIds.length === 0) return [];
+
+  const placeholders = cleanIds.map(() => '?').join(',');
+  const docs = queryAll(`SELECT * FROM faculty_documents WHERE id IN (${placeholders})`, cleanIds);
+  db.run(`DELETE FROM faculty_documents WHERE id IN (${placeholders})`, cleanIds);
+  saveDB();
+  return docs;
+}
+
+function markFacultyDocumentsReviewedMultiple(ids = []) {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const cleanIds = ids.map(id => Number(id)).filter(id => !isNaN(id) && id > 0);
+  if (cleanIds.length === 0) return 0;
+
+  const placeholders = cleanIds.map(() => '?').join(',');
+  db.run(`UPDATE faculty_documents SET status = 'reviewed' WHERE id IN (${placeholders})`, cleanIds);
+  saveDB();
+  return cleanIds.length;
 }
 
 function getUnreadDocumentCount() {

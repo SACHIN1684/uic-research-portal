@@ -161,7 +161,8 @@ function applyFilters() {
   const searchQuery = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
 
   const cards = document.querySelectorAll('.faculty-card-wrap');
-  let visibleCount = 0;
+  let visibleActiveCount = 0;
+  const isListView = document.getElementById('facultyListViewWrap') && document.getElementById('facultyListViewWrap').style.display !== 'none';
 
   cards.forEach(card => {
     const ros  = parseFloat(card.dataset.ros) || 0;
@@ -185,18 +186,40 @@ function applyFilters() {
 
     const show = rosMatch && catMatch && statusMatch && visMatch && searchMatch;
     card.style.display = show ? '' : 'none';
-    if (show) visibleCount++;
+
+    const inListWrap = !!card.closest('#facultyListViewWrap');
+    if (show && ((isListView && inListWrap) || (!isListView && !inListWrap))) {
+      visibleActiveCount++;
+    }
+  });
+
+  // Re-number visible table rows
+  let sNo = 1;
+  document.querySelectorAll('#facultyTableBody tr.faculty-card-wrap').forEach(row => {
+    if (row.style.display !== 'none') {
+      const sCell = row.querySelector('.serial-col');
+      if (sCell) sCell.textContent = sNo++;
+    }
   });
 
   const noResults = document.getElementById('noResults');
-  const grid      = document.getElementById('facultyGrid');
+  const gridWrap  = document.getElementById('facultyGridViewWrap');
+  const listWrap  = document.getElementById('facultyListViewWrap');
+
   if (noResults) {
-    if (visibleCount === 0 && cards.length > 0) {
+    if (visibleActiveCount === 0 && cards.length > 0) {
       noResults.style.display = 'block';
-      if (grid) grid.style.display = 'none';
+      if (gridWrap) gridWrap.style.display = 'none';
+      if (listWrap) listWrap.style.display = 'none';
     } else {
       noResults.style.display = 'none';
-      if (grid) grid.style.display = '';
+      if (isListView) {
+        if (listWrap) listWrap.style.display = '';
+        if (gridWrap) gridWrap.style.display = 'none';
+      } else {
+        if (listWrap) listWrap.style.display = 'none';
+        if (gridWrap) gridWrap.style.display = '';
+      }
     }
   }
   if (typeof window.updateFacultySelectionUI === 'function') {

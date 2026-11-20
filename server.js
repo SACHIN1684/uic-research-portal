@@ -1519,7 +1519,7 @@ app.post('/faculty/delete-multiple', requireAdmin, (req, res) => {
     let { faculty_ids } = req.body;
     if (!faculty_ids) return res.redirect('/portal');
     if (!Array.isArray(faculty_ids)) faculty_ids = [faculty_ids];
-    const ids = faculty_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    const ids = Array.from(new Set(faculty_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id))));
 
     if (ids.length > 0) {
       db.recordUndoState(`Delete ${ids.length} Selected Faculty`);
@@ -1527,6 +1527,54 @@ app.post('/faculty/delete-multiple', requireAdmin, (req, res) => {
     const result = db.deleteFacultyMultiple(ids);
 
     res.redirect(`/portal?bulk_deleted=${result.deletedCount}`);
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Bulk Update Faculty Visibility (Public vs Private)
+app.post('/faculty/visibility-multiple', requireAdmin, (req, res) => {
+  try {
+    let { faculty_ids, visibility, return_to } = req.body;
+    if (!faculty_ids) return res.redirect(return_to || '/portal');
+    if (!Array.isArray(faculty_ids)) faculty_ids = typeof faculty_ids === 'string' ? faculty_ids.split(',').map(s => s.trim()) : [faculty_ids];
+    const ids = Array.from(new Set(faculty_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id))));
+
+    const normVis = String(visibility || '').trim().toLowerCase() === 'private' ? 'private' : 'public';
+    const count = db.setFacultyVisibilityMultiple(ids, normVis);
+
+    const back = return_to || '/portal';
+    const sep = back.includes('?') ? '&' : '?';
+    res.redirect(`${back}${sep}vis_updated=${count}&vis=${normVis}`);
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Unified Bulk Action for Faculty (Visibility or Delete)
+app.post('/faculty/bulk-action', requireAdmin, (req, res) => {
+  try {
+    let { faculty_ids, bulk_action, return_to } = req.body;
+    if (!faculty_ids) return res.redirect(return_to || '/portal');
+    if (!Array.isArray(faculty_ids)) faculty_ids = typeof faculty_ids === 'string' ? faculty_ids.split(',').map(s => s.trim()) : [faculty_ids];
+    const ids = Array.from(new Set(faculty_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id))));
+
+    const back = return_to || '/portal';
+    const sep = back.includes('?') ? '&' : '?';
+
+    if (bulk_action === 'set_public' || bulk_action === 'set_private') {
+      const normVis = bulk_action === 'set_private' ? 'private' : 'public';
+      const count = db.setFacultyVisibilityMultiple(ids, normVis);
+      return res.redirect(`${back}${sep}vis_updated=${count}&vis=${normVis}`);
+    } else if (bulk_action === 'delete') {
+      if (ids.length > 0) {
+        db.recordUndoState(`Delete ${ids.length} Selected Faculty`);
+      }
+      const result = db.deleteFacultyMultiple(ids);
+      return res.redirect(`${back}${sep}bulk_deleted=${result.deletedCount}`);
+    }
+
+    res.redirect(back);
   } catch (err) {
     res.status(500).send('Server error: ' + err.message);
   }
@@ -2124,6 +2172,49 @@ app.post('/admin/documents/:id/delete', requireAdmin, (req, res) => {
     }
     const back = req.body.return_to || req.headers.referer || '/admin/documents';
     res.redirect(back + (back.includes('?') ? '&' : '?') + 'success=Document+deleted');
+  } catch (e) {
+    res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: bulk mark documents as reviewed
+app.post('/admin/documents/bulk-review', requireAdmin, (req, res) => {
+  try {
+    let { document_ids, return_to } = req.body;
+    if (!document_ids) return res.redirect(return_to || '/admin/documents');
+    if (!Array.isArray(document_ids)) document_ids = typeof document_ids === 'string' ? document_ids.split(',').map(s => s.trim()) : [document_ids];
+    const ids = Array.from(new Set(document_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id))));
+
+    const count = db.markFacultyDocumentsReviewedMultiple(ids);
+    const back = return_to || '/admin/documents';
+    const sep = back.includes('?') ? '&' : '?';
+    res.redirect(`${back}${sep}success=${encodeURIComponent(`${count} document(s) marked as reviewed`)}`);
+  } catch (e) {
+    res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: bulk delete documents
+app.post('/admin/documents/bulk-delete', requireAdmin, (req, res) => {
+  try {
+    let { document_ids, return_to } = req.body;
+    if (!document_ids) return res.redirect(return_to || '/admin/documents');
+    if (!Array.isArray(document_ids)) document_ids = typeof document_ids === 'string' ? document_ids.split(',').map(s => s.trim()) : [document_ids];
+    const ids = Array.from(new Set(document_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id))));
+
+    const deletedDocs = db.deleteFacultyDocumentsMultiple(ids);
+    deletedDocs.forEach(doc => {
+      if (doc && doc.stored_filename) {
+        const filePath = path.join(__dirname, 'uploads', 'documents', doc.stored_filename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
+      }
+    });
+
+    const back = return_to || '/admin/documents';
+    const sep = back.includes('?') ? '&' : '?';
+    res.redirect(`${back}${sep}success=${encodeURIComponent(`${deletedDocs.length} document(s) deleted permanently`)}`);
   } catch (e) {
     res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
   }
