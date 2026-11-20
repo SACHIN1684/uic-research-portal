@@ -1817,22 +1817,12 @@ function backfillMasterAcademicYears() {
   if (!masterCols.some(c => c.name === 'academic_year')) {
     db.run("ALTER TABLE master_publications ADD COLUMN academic_year TEXT DEFAULT ''");
   }
-  const rows = queryAll("SELECT id, sr_no, year, month_section, academic_year FROM master_publications ORDER BY row_order ASC");
-  let lastYear = '2026';
-  let updatedCount = 0;
-  rows.forEach(r => {
-    if (r.year && r.year.trim()) lastYear = r.year.trim();
-    const effYear = r.year && r.year.trim() ? r.year.trim() : lastYear;
-    const sess = computeAcademicSession(effYear, r.month_section);
-    if (!r.academic_year || r.academic_year !== sess) {
-      db.run("UPDATE master_publications SET academic_year = ? WHERE id = ?", [sess, r.id]);
-      updatedCount++;
-    }
-  });
-  if (updatedCount > 0) saveDB();
+  // Assign all current master records to '2025-26' as base master dataset
+  db.run("UPDATE master_publications SET academic_year = '2025-26' WHERE academic_year IS NULL OR TRIM(academic_year) = '' OR academic_year IN ('2024-25', '2026-27')");
+  saveDB();
 }
 
-function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx')) {
+function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx'), targetYear = '2025-26') {
   if (!db) return;
   const countRow = queryOne('SELECT COUNT(*) as c FROM master_publications');
   if (countRow && countRow.c > 0) return;
@@ -1857,7 +1847,6 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
 
   let curMonth = '';
   let order = 0;
-  let lastYear = '2026';
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.every(c => String(c).trim() === '')) continue;
@@ -1868,9 +1857,6 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
     }
 
     const rowYear = r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '';
-    if (rowYear) lastYear = rowYear;
-    const effYear = rowYear || lastYear;
-    const acadYear = computeAcademicSession(effYear, curMonth);
 
     order++;
     db.run(
@@ -1884,8 +1870,8 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
         curMonth,
         r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
         r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
-        rowYear,
-        acadYear,
+        rowYear || targetYear,
+        targetYear,
         r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
         r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
         r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
@@ -1911,8 +1897,8 @@ function getMasterPublications(filters = {}) {
   const params = [];
 
   if (filters.year && filters.year !== 'all') {
-    sql += ' AND (LOWER(academic_year) = LOWER(?) OR LOWER(year) = LOWER(?) OR academic_year LIKE ? OR year LIKE ?)';
-    params.push(filters.year, filters.year, `%${filters.year}%`, `%${filters.year}%`);
+    sql += ' AND LOWER(academic_year) = LOWER(?)';
+    params.push(filters.year);
   }
 
   if (filters.month && filters.month !== 'all') {
@@ -1975,7 +1961,7 @@ function getMasterPublicationsStats(filters = {}) {
   standardYears.forEach(y => { academicYearsMap[y] = 0; });
 
   all.forEach(r => {
-    const ay = (r.academic_year || computeAcademicSession(r.year, r.month_section)).trim();
+    const ay = (r.academic_year || '2025-26').trim();
     if (ay) {
       academicYearsMap[ay] = (academicYearsMap[ay] || 0) + 1;
     }
@@ -1984,9 +1970,8 @@ function getMasterPublicationsStats(filters = {}) {
   const activeYear = (filters && filters.year && filters.year !== 'all') ? filters.year.toLowerCase().trim() : null;
   const filtered = activeYear
     ? all.filter(r => {
-        const ay = (r.academic_year || '').toLowerCase().trim();
-        const y = (r.year || '').toLowerCase().trim();
-        return ay === activeYear || y === activeYear || ay.includes(activeYear) || y.includes(activeYear);
+        const ay = (r.academic_year || '2025-26').toLowerCase().trim();
+        return ay === activeYear;
       })
     : all;
 
@@ -2041,8 +2026,9 @@ function getMasterPublicationsStats(filters = {}) {
   };
 }
 
-function replaceMasterPublications(fileInput) {
-  recordUndoState('Update Master Publications Excel');
+function replaceMasterPublications(fileInput, targetYear = '2025-26') {
+  const cleanYear = String(targetYear || '2025-26').trim();
+  recordUndoState(`Upload Master Publications Excel (${cleanYear})`);
   const xlsx = require('xlsx');
   let wb;
   if (Buffer.isBuffer(fileInput)) {
@@ -2053,11 +2039,14 @@ function replaceMasterPublications(fileInput) {
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = xlsx.utils.sheet_to_json(sheet, {header: 1, defval: ''});
 
-  db.run('DELETE FROM master_publications');
+  // Replace records for the chosen academic year only
+  db.run('DELETE FROM master_publications WHERE academic_year = ?', [cleanYear]);
+
+  const maxOrderRow = queryOne('SELECT MAX(row_order) as m FROM master_publications');
+  let order = (maxOrderRow && maxOrderRow.m) ? maxOrderRow.m : 0;
 
   let curMonth = '';
-  let order = 0;
-  let lastYear = '2026';
+  let rowCount = 0;
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.every(c => String(c).trim() === '')) continue;
@@ -2067,12 +2056,10 @@ function replaceMasterPublications(fileInput) {
       continue;
     }
 
-    const rowYear = r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '';
-    if (rowYear) lastYear = rowYear;
-    const effYear = rowYear || lastYear;
-    const acadYear = computeAcademicSession(effYear, curMonth);
-
     order++;
+    rowCount++;
+    const rowYear = r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '';
+
     db.run(
       `INSERT INTO master_publications (
         row_order, month_section, sr_no, title, year, academic_year, source_title,
@@ -2084,8 +2071,8 @@ function replaceMasterPublications(fileInput) {
         curMonth,
         r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
         r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
-        rowYear,
-        acadYear,
+        rowYear || cleanYear,
+        cleanYear,
         r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
         r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
         r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
@@ -2115,8 +2102,9 @@ function replaceMasterPublications(fileInput) {
     console.error('Failed to update public download copy:', e.message);
   }
 
+  syncMasterPublicationsToExcel();
   saveDB();
-  return order;
+  return rowCount;
 }
 
 function updateMasterPublicationsMonth(monthName, newRows) {

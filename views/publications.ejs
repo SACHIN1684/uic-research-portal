@@ -475,9 +475,12 @@
 
         <!-- Academic Year Dropdown -->
         <div class="col-6 col-md-3 col-lg-2">
-          <select id="yearSelect" class="form-select form-select-sm py-2 fw-semibold" onchange="onYearSelectChange()">
-            <option value="all" <%= (!filters.year || filters.year === 'all') ? 'selected' : '' %>>All Years</option>
-            <optgroup label="Academic Sessions (Last 3 &amp; Next 5)">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light text-primary fw-bold" title="Filter by Academic Session">
+              <i class="fas fa-calendar-alt"></i>
+            </span>
+            <select id="yearSelect" class="form-select form-select-sm py-2 fw-semibold" onchange="onYearSelectChange()">
+              <option value="all" <%= (!filters.year || filters.year === 'all') ? 'selected' : '' %>>All Academic Years</option>
               <% 
                 const ddYears = stats.standardYears || [
                   '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
@@ -487,11 +490,11 @@
                   const cnt = (stats.academicYearsMap && stats.academicYearsMap[y]) || 0;
               %>
                 <option value="<%= y %>" <%= (filters.year || '').toLowerCase() === y.toLowerCase() ? 'selected' : '' %>>
-                  <%= y %> <%= cnt > 0 ? `(${cnt} papers)` : '' %>
+                  <%= y %> <%= cnt > 0 ? `(${cnt})` : '' %>
                 </option>
               <% }) %>
-            </optgroup>
-          </select>
+            </select>
+          </div>
         </div>
 
         <!-- Quartile Dropdown -->
@@ -525,31 +528,6 @@
           <button type="button" class="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold" onclick="resetAllFilters()">
             <i class="fas fa-redo me-1"></i> Reset
           </button>
-        </div>
-      </div>
-
-      <!-- Academic Year Tabs / Filter Pills -->
-      <div class="border-top mt-3 pt-3">
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <span class="text-muted small fw-bold me-1 text-uppercase">
-            <i class="fas fa-calendar me-1 text-primary"></i> Academic Year:
-          </span>
-          <button type="button" class="year-pill-btn <%= (!filters.year || filters.year === 'all') ? 'active' : '' %>" data-year="all" onclick="selectYearFilter('all', this)">
-            All Years <span class="badge bg-secondary rounded-pill" id="pillCount-year-all"><%= stats.totalAll || stats.totalRecords %></span>
-          </button>
-          <% 
-            const academicYearList = stats.standardYears || [
-              '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
-              '2027-28', '2028-29', '2029-30', '2030-31'
-            ];
-            academicYearList.forEach(y => {
-              const yCount = (stats.academicYearsMap && stats.academicYearsMap[y]) || 0;
-              const isYearActive = (filters.year || '').toLowerCase() === y.toLowerCase();
-          %>
-            <button type="button" class="year-pill-btn <%= isYearActive ? 'active' : '' %>" data-year="<%= y %>" onclick="selectYearFilter('<%= y %>', this)">
-              <%= y %> <span class="badge <%= isYearActive ? 'bg-danger' : 'bg-light text-dark border' %> rounded-pill" id="pillCount-year-<%= y %>"><%= yCount %></span>
-            </button>
-          <% }) %>
         </div>
       </div>
 
@@ -1161,14 +1139,35 @@
             <div class="modal-body p-4">
               <p class="text-muted small mb-3">
                 Upload a replacement Master Publications Excel spreadsheet (<code>.xlsx</code> or <code>.xls</code>).
-                The sheet will immediately update the online database and downloadable copy.
+                The sheet will update the database for the selected academic session.
               </p>
               <div class="mb-3">
-                <label class="form-label fw-bold">Select Master Excel File</label>
+                <label class="form-label fw-bold">
+                  <i class="fas fa-calendar-alt text-primary me-1"></i> Select Academic Year <span class="text-danger">*</span>
+                </label>
+                <select name="academic_year" class="form-select" required>
+                  <% 
+                    const modalYears = [
+                      '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
+                      '2027-28', '2028-29', '2029-30', '2030-31'
+                    ];
+                    modalYears.forEach(y => { 
+                  %>
+                    <option value="<%= y %>" <%= y === '2025-26' ? 'selected' : '' %>>
+                      <%= y %><%= y === '2025-26' ? ' (Current Session)' : '' %>
+                    </option>
+                  <% }); %>
+                </select>
+                <div class="form-text small text-muted">
+                  Whichever academic year is selected, publications will be uploaded and allocated strictly to that year only.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Select Master Excel File <span class="text-danger">*</span></label>
                 <input type="file" name="master_excel" class="form-control" accept=".xlsx,.xls" required>
               </div>
               <div class="alert alert-warning small mb-0">
-                <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> Uploading will replace the current online master table with the rows in the new file.
+                <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> Uploading will update publications for the selected academic year only without affecting other years.
               </div>
             </div>
             <div class="modal-footer bg-light">
@@ -1224,48 +1223,26 @@
     let activeMonthFilter = '<%= filters.month || "all" %>';
     let activeYearFilter = '<%= filters.year || "all" %>';
 
-    function selectYearFilter(year, btnElem) {
-      activeYearFilter = year;
-      document.querySelectorAll('.year-pill-btn').forEach(b => {
-        b.classList.remove('active');
-        const badge = b.querySelector('.badge');
-        if (badge) {
-          badge.className = 'badge bg-light text-dark border rounded-pill';
-        }
-      });
-      if (btnElem) {
-        btnElem.classList.add('active');
-        const activeBadge = btnElem.querySelector('.badge');
-        if (activeBadge) {
-          activeBadge.className = 'badge bg-danger rounded-pill';
-        }
-      }
-      const ySelect = document.getElementById('yearSelect');
-      if (ySelect) ySelect.value = year;
+    function onYearSelectChange() {
+      const select = document.getElementById('yearSelect');
+      if (!select) return;
+      activeYearFilter = select.value;
 
       // Update Top Banner subtitle
       const bannerText = document.getElementById('bannerYearText');
       if (bannerText) {
-        bannerText.textContent = year === 'all' ? 'All Academic Sessions' : 'Academic Session ' + year;
+        bannerText.textContent = activeYearFilter === 'all' ? 'All Academic Sessions' : 'Academic Session ' + activeYearFilter;
       }
 
       // Update URL query state cleanly without full reload
       try {
         const url = new URL(window.location);
-        if (year === 'all') url.searchParams.delete('year');
-        else url.searchParams.set('year', year);
+        if (activeYearFilter === 'all') url.searchParams.delete('year');
+        else url.searchParams.set('year', activeYearFilter);
         window.history.replaceState({}, '', url);
       } catch (e) {}
 
       filterTable();
-    }
-
-    function onYearSelectChange() {
-      const select = document.getElementById('yearSelect');
-      if (!select) return;
-      const val = select.value;
-      const btn = document.querySelector(`.year-pill-btn[data-year="${val}"]`) || document.querySelector(`.year-pill-btn[data-year="all"]`);
-      selectYearFilter(val, btn);
     }
 
     function selectMonthFilter(month, btnElem) {
@@ -1318,7 +1295,7 @@
         // Year Matching
         let matchesYear = true;
         if (yearVal !== 'all') {
-          matchesYear = (rowYear === yearVal) || (rowCalYear === yearVal) || rowYear.includes(yearVal);
+          matchesYear = (rowYear === yearVal);
         }
 
         const matchesSearch = !searchVal || rowSearch.includes(searchVal);
@@ -1366,6 +1343,17 @@
         }
       });
 
+      // Update month filter pill badges
+      const pillAllMonth = document.getElementById('pillCount-month-all');
+      if (pillAllMonth) pillAllMonth.textContent = kpiTotal;
+      document.querySelectorAll('.month-pill-btn').forEach(btn => {
+        const m = btn.getAttribute('data-month');
+        if (m && m !== 'all') {
+          const b = btn.querySelector('.badge');
+          if (b) b.textContent = monthRowCounts[m] || 0;
+        }
+      });
+
       // Update KPI card figures
       const elUnique = document.getElementById('kpiUniquePapers');
       const elTotal = document.getElementById('kpiTotalRecords');
@@ -1399,13 +1387,12 @@
       document.getElementById('liveSearchInput').value = '';
       document.getElementById('quartileSelect').value = 'all';
       document.getElementById('deptSelect').value = 'all';
-      const allYearBtn = document.querySelector('.year-pill-btn[data-year="all"]');
-      if (allYearBtn) selectYearFilter('all', allYearBtn);
-      else {
-        activeYearFilter = 'all';
-        const ySelect = document.getElementById('yearSelect');
-        if (ySelect) ySelect.value = 'all';
-      }
+      activeYearFilter = 'all';
+      const ySelect = document.getElementById('yearSelect');
+      if (ySelect) ySelect.value = 'all';
+      const bannerText = document.getElementById('bannerYearText');
+      if (bannerText) bannerText.textContent = 'All Academic Sessions';
+
       const allMonthBtn = document.querySelector('.month-pill-btn[data-month="all"]');
       if (allMonthBtn) {
         selectMonthFilter('all', allMonthBtn);

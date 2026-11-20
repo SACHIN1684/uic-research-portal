@@ -642,15 +642,16 @@ app.get(['/publications/download', '/export/master-publications'], (req, res) =>
   }
 });
 
-// Admin upload/replace Master Publications Excel Sheet
+// Admin upload/replace Master Publications Excel Sheet for a chosen academic year
 app.post('/publications/upload-master', requireAdmin, upload.single('master_excel'), (req, res) => {
   try {
     if (!req.file) {
       return res.redirect('/publications?upload_err=' + encodeURIComponent('No file selected.'));
     }
-    const count = db.replaceMasterPublications(req.file.path);
+    const targetYear = req.body.academic_year || '2025-26';
+    const count = db.replaceMasterPublications(req.file.path, targetYear);
     try { fs.unlinkSync(req.file.path); } catch (e) {}
-    res.redirect('/publications?uploaded=' + encodeURIComponent(count));
+    res.redirect('/publications?year=' + encodeURIComponent(targetYear) + '&uploaded=' + encodeURIComponent(count));
   } catch (err) {
     res.redirect('/publications?upload_err=' + encodeURIComponent(err.message));
   }
