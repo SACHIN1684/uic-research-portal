@@ -168,6 +168,24 @@ async function initDB() {
     );
   `);
 
+  // Faculty Research Proof Documents table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS faculty_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      faculty_id INTEGER NOT NULL,
+      faculty_name TEXT DEFAULT '',
+      uploader_type TEXT DEFAULT 'faculty',
+      original_name TEXT NOT NULL,
+      stored_filename TEXT NOT NULL,
+      file_type TEXT DEFAULT 'pdf',
+      file_size INTEGER DEFAULT 0,
+      description TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (faculty_id) REFERENCES faculty (id) ON DELETE CASCADE
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
   seedConferencesIfEmpty();
@@ -576,6 +594,12 @@ function getFacultyById(id) {
     mw.q4_ros = parseFloat(mw.q4_ros.toFixed(2));
   });
 
+  // Load research proof documents for this faculty
+  const documents = queryAll(
+    'SELECT * FROM faculty_documents WHERE faculty_id = ? ORDER BY uploaded_at DESC',
+    [Number(id)]
+  );
+
   return {
     ...f,
     publications: pubs,
@@ -585,6 +609,7 @@ function getFacultyById(id) {
     conf_count: confCount,
     book_count: bookCount,
     patent_count: patentCount,
+    documents,
     ...qStats,
     ros: parseFloat(totalRos.toFixed(2))
   };
@@ -2481,5 +2506,92 @@ module.exports = {
   updateConference,
   deleteConference,
   deleteConferencesMultiple,
-  getConferenceStats
+  getConferenceStats,
+  addFacultyDocument,
+  getFacultyDocuments,
+  getAllFacultyDocuments,
+  deleteFacultyDocument,
+  markDocumentReviewed,
+  getUnreadDocumentCount
 };
+
+// ─── FACULTY DOCUMENTS FUNCTIONS ────────────────────────────────────────────
+
+function addFacultyDocument(facultyId, data) {
+  const faculty = queryOne('SELECT id, name FROM faculty WHERE id = ?', [Number(facultyId)]);
+  if (!faculty) throw new Error('Faculty not found');
+  db.run(
+    `INSERT INTO faculty_documents
+      (faculty_id, faculty_name, uploader_type, original_name, stored_filename,
+       file_type, file_size, description, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    [
+      Number(facultyId),
+      data.faculty_name || faculty.name,
+      data.uploader_type || 'faculty',
+      String(data.original_name || '').trim(),
+      String(data.stored_filename || '').trim(),
+      String(data.file_type || 'pdf').trim(),
+      Number(data.file_size || 0),
+      String(data.description || '').trim()
+    ]
+  );
+  saveDB();
+  return queryOne('SELECT * FROM faculty_documents WHERE stored_filename = ? AND faculty_id = ?',
+    [data.stored_filename, Number(facultyId)]);
+}
+
+function getFacultyDocuments(facultyId) {
+  return queryAll(
+    'SELECT * FROM faculty_documents WHERE faculty_id = ? ORDER BY uploaded_at DESC',
+    [Number(facultyId)]
+  );
+}
+
+function getAllFacultyDocuments(filters = {}) {
+  let sql = `
+    SELECT d.*, f.designation, f.department
+    FROM faculty_documents d
+    LEFT JOIN faculty f ON f.id = d.faculty_id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (filters.status && filters.status !== 'all') {
+    sql += ' AND d.status = ?';
+    params.push(filters.status);
+  }
+  if (filters.search) {
+    sql += ' AND (LOWER(d.faculty_name) LIKE ? OR LOWER(d.original_name) LIKE ? OR LOWER(d.description) LIKE ?)';
+    const s = '%' + filters.search.toLowerCase() + '%';
+    params.push(s, s, s);
+  }
+  if (filters.uploader_type && filters.uploader_type !== 'all') {
+    sql += ' AND d.uploader_type = ?';
+    params.push(filters.uploader_type);
+  }
+
+  sql += ' ORDER BY d.uploaded_at DESC';
+  return queryAll(sql, params);
+}
+
+function deleteFacultyDocument(id) {
+  const doc = queryOne('SELECT * FROM faculty_documents WHERE id = ?', [Number(id)]);
+  if (!doc) throw new Error('Document not found');
+  db.run('DELETE FROM faculty_documents WHERE id = ?', [Number(id)]);
+  saveDB();
+  return doc;
+}
+
+function markDocumentReviewed(id) {
+  const doc = queryOne('SELECT * FROM faculty_documents WHERE id = ?', [Number(id)]);
+  if (!doc) throw new Error('Document not found');
+  db.run("UPDATE faculty_documents SET status = 'reviewed' WHERE id = ?", [Number(id)]);
+  saveDB();
+  return queryOne('SELECT * FROM faculty_documents WHERE id = ?', [Number(id)]);
+}
+
+function getUnreadDocumentCount() {
+  const row = queryOne("SELECT COUNT(*) as c FROM faculty_documents WHERE status = 'pending'");
+  return row ? row.c : 0;
+}

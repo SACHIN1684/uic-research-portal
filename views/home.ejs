@@ -531,6 +531,16 @@
                 <button type="button" class="btn btn-success btn-sm fw-semibold py-2 px-2 text-nowrap" data-bs-toggle="modal" data-bs-target="#adminSettingsModal" title="Admin Settings">
                   <i class="fas fa-user-shield me-1"></i>Admin
                 </button>
+                <div class="position-relative">
+                  <a href="/admin/documents" class="btn btn-warning btn-sm fw-semibold py-2 px-2 text-nowrap text-dark" title="Research Documents">
+                    <i class="fas fa-file-shield"></i>
+                  </a>
+                  <% if (typeof pendingDocCount !== 'undefined' && pendingDocCount > 0) { %>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;z-index:10;">
+                      <%= pendingDocCount %>
+                    </span>
+                  <% } %>
+                </div>
                 <form action="/admin/logout" method="POST" class="d-inline">
                   <input type="hidden" name="return_to" value="/">
                   <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold py-2 px-2" title="Logout Admin">

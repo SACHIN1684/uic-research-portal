@@ -311,6 +311,16 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
           <i class="fas fa-calendar-alt me-1"></i>Month-wise Progress Report (<%= faculty.month_wise.length %> Months)
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold position-relative" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-tab-pane" type="button" role="tab">
+          <i class="fas fa-file-shield me-1"></i>Research Documents
+          <% if (typeof faculty.documents !== 'undefined' && faculty.documents.length > 0) { %>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">
+              <%= faculty.documents.length %>
+            </span>
+          <% } %>
+        </button>
+      </li>
     </ul>
 
     <!-- Tab Contents -->
@@ -567,6 +577,141 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
                 <% }) %>
               </div>
             <% } %>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+      <!-- 3. Research Documents Tab -->
+      <div class="tab-pane fade" id="docs-tab-pane" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+          <div class="card-header py-3" style="background:linear-gradient(135deg,#1a2744,#0d1b35);">
+            <h5 class="mb-0 fw-bold" style="color:#58a6ff;"><i class="fas fa-file-shield me-2"></i>Research Proof Documents</h5>
+            <small style="color:#8b949e;">Upload PDF or Word documents as research proof. Uploaded documents are reviewed by admin only.</small>
+          </div>
+          <div class="card-body" style="background:#161b22;">
+
+            <!-- Upload success/error alerts -->
+            <% if (query.doc_success) { %>
+              <div class="alert d-flex align-items-center gap-2 mb-3" style="background:#1c2b1c;border:1px solid #3fb95044;color:#3fb950;border-radius:10px;">
+                <i class="fas fa-check-circle fs-5"></i>
+                <span><strong>Document submitted successfully!</strong> Admin will review your document shortly.</span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+              </div>
+            <% } %>
+            <% if (query.doc_error) { %>
+              <div class="alert d-flex align-items-center gap-2 mb-3" style="background:#2d1515;border:1px solid #f8514944;color:#f85149;border-radius:10px;">
+                <i class="fas fa-exclamation-triangle fs-5"></i>
+                <span><%= query.doc_error %></span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+              </div>
+            <% } %>
+
+            <!-- Upload Form -->
+            <div class="rounded-3 p-4 mb-4" style="background:#1c2128;border:1px solid #30363d;">
+              <h6 class="fw-bold mb-3" style="color:#e6edf3;"><i class="fas fa-cloud-upload-alt me-2 text-info"></i>Upload Research Proof Document</h6>
+              <form action="/faculty/<%= faculty.id %>/upload-doc" method="POST" enctype="multipart/form-data">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label small" style="color:#8b949e;">Description (optional)</label>
+                    <input type="text" name="doc_description" class="form-control" placeholder="e.g. Scopus indexed paper proof, patent certificate..."
+                      style="background:#0d1117;border-color:#30363d;color:#e6edf3;">
+                  </div>
+                  <div class="col-12 col-md-8">
+                    <label class="form-label small" style="color:#8b949e;">Select File <span class="text-danger">*</span></label>
+                    <input type="file" name="doc_file" class="form-control" accept=".pdf,.doc,.docx" required
+                      style="background:#0d1117;border-color:#30363d;color:#e6edf3;">
+                    <div class="form-text" style="color:#484f58;">Accepted: PDF, DOC, DOCX &middot; Max: 10 MB</div>
+                  </div>
+                  <div class="col-12 col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn w-100 fw-bold" style="background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;">
+                      <i class="fas fa-upload me-2"></i>Upload Document
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Admin: show document list -->
+            <% if (isAdmin && typeof faculty.documents !== 'undefined' && faculty.documents.length > 0) { %>
+              <h6 class="fw-bold mb-3" style="color:#e6edf3;"><i class="fas fa-list me-2"></i>Uploaded Documents (<%= faculty.documents.length %>)</h6>
+              <div class="table-responsive">
+                <table class="table mb-0" style="color:#c9d1d9;border-color:#30363d;">
+                  <thead style="background:#1c2128;">
+                    <tr style="border-color:#30363d;">
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">#</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">File</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Description</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Uploaded By</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Date</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Status</th>
+                      <th style="color:#8b949e;font-size:0.75rem;border-color:#30363d;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% faculty.documents.forEach((doc, di) => { %>
+                    <tr style="border-color:#30363d;">
+                      <td style="border-color:#30363d;"><%= di+1 %></td>
+                      <td style="border-color:#30363d;">
+                        <i class="<%= doc.file_type === 'pdf' ? 'fas fa-file-pdf' : 'fas fa-file-word' %> me-2" style="color:<%= doc.file_type === 'pdf' ? '#f85149' : '#58a6ff' %>;"></i>
+                        <span style="font-size:0.85rem;" class="text-truncate d-inline-block" style="max-width:160px;"><%= doc.original_name %></span>
+                        <div style="font-size:0.72rem;color:#484f58;"><%= (doc.file_size/1024).toFixed(1) %> KB</div>
+                      </td>
+                      <td style="border-color:#30363d;font-size:0.82rem;color:#8b949e;"><%= doc.description || '—' %></td>
+                      <td style="border-color:#30363d;">
+                        <span class="badge px-2 py-1" style="<%= doc.uploader_type === 'admin' ? 'background:#3d1f5222;color:#d2a8ff;border:1px solid #8957e544;' : 'background:#1f4e8c22;color:#58a6ff;border:1px solid #1f6feb44;' %>">
+                          <i class="fas fa-<%= doc.uploader_type === 'admin' ? 'user-shield' : 'chalkboard-teacher' %> me-1"></i>
+                          <%= doc.uploader_type === 'admin' ? 'Admin' : 'Faculty' %>
+                        </span>
+                      </td>
+                      <td style="border-color:#30363d;font-size:0.8rem;"><%= new Date(doc.uploaded_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+                      <td style="border-color:#30363d;">
+                        <span class="badge px-2 py-1" style="background:<%= doc.status === 'reviewed' ? 'linear-gradient(135deg,#166534,#16a34a)' : 'linear-gradient(135deg,#b45309,#d97706)' %>;color:#fff;">
+                          <i class="fas fa-<%= doc.status === 'reviewed' ? 'check-circle' : 'clock' %> me-1"></i><%= doc.status === 'reviewed' ? 'Reviewed' : 'Pending' %>
+                        </span>
+                      </td>
+                      <td style="border-color:#30363d;">
+                        <div class="d-flex gap-1 flex-wrap">
+                          <a href="/admin/documents/<%= doc.id %>/download" class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#388bfd);color:#fff;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;">
+                            <i class="fas fa-download me-1"></i>Download
+                          </a>
+                          <% if (doc.status !== 'reviewed') { %>
+                            <form action="/admin/documents/<%= doc.id %>/mark-reviewed" method="POST" class="d-inline">
+                              <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>?tab=docs">
+                              <button type="submit" class="btn btn-sm" style="background:#1c2b1c;color:#3fb950;border:1px solid #3fb95044;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;">
+                                <i class="fas fa-check me-1"></i>Mark Reviewed
+                              </button>
+                            </form>
+                          <% } %>
+                          <form action="/admin/documents/<%= doc.id %>/delete" method="POST" class="d-inline"
+                            onsubmit="return confirm('Delete this document?')">
+                            <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>?tab=docs">
+                            <button type="submit" class="btn btn-sm" style="background:#2d1515;color:#f85149;border:1px solid #f8514944;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:6px;">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-3 text-end">
+                <a href="/admin/documents" class="btn btn-sm btn-outline-secondary"><i class="fas fa-external-link-alt me-1"></i>View All Faculty Documents</a>
+              </div>
+            <% } else if (isAdmin) { %>
+              <div class="text-center py-4" style="color:#484f58;">
+                <i class="fas fa-folder-open fa-2x mb-2 d-block"></i>
+                <small>No documents uploaded yet for this faculty.</small>
+              </div>
+            <% } else { %>
+              <div class="rounded-3 p-3" style="background:#1c2128;border:1px solid #3fb95044;color:#3fb950;">
+                <i class="fas fa-lock me-2"></i>Uploaded documents are reviewed privately by admin. After submission, admin will acknowledge your document.
+              </div>
+            <% } %>
+
           </div>
         </div>
       </div>
@@ -908,6 +1053,23 @@ window.openEditPubModal = function(pubId) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Auto-open correct tab from URL query param
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
+  if (tabParam === 'docs') {
+    const docsTabBtn = document.getElementById('docs-tab');
+    if (docsTabBtn) {
+      const tab = new bootstrap.Tab(docsTabBtn);
+      tab.show();
+    }
+  } else if (tabParam === 'progress') {
+    const progressTabBtn = document.getElementById('progress-tab');
+    if (progressTabBtn) {
+      const tab = new bootstrap.Tab(progressTabBtn);
+      tab.show();
+    }
+  }
+
   const docTypeSelect = document.getElementById('docTypeSelect');
   const addQuartileSelect = document.getElementById('addQuartileSelect');
   if (docTypeSelect && addQuartileSelect) {

@@ -140,6 +140,29 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 }
 });
 
+// Multer for research proof documents (PDF / DOCX only)
+const docUploadDir = path.join(__dirname, 'uploads', 'documents');
+if (!fs.existsSync(docUploadDir)) fs.mkdirSync(docUploadDir, { recursive: true });
+
+const docStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, docUploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + ext);
+  }
+});
+const uploadDoc = multer({
+  storage: docStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.pdf', '.doc', '.docx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error('Only PDF, DOC, or DOCX files are allowed'));
+  }
+});
+
 // Helper for Document Type → Publication Category
 function resolvePubTypeFromDocType(docTypeRaw) {
   const dt = String(docTypeRaw || '').toLowerCase().trim();
@@ -333,6 +356,7 @@ app.get('/', (req, res) => {
     const topPerformers = allYearsTopPerformers[selectedYear] || db.getTopPerformersByYear(selectedYear, 20, pubCountingMode);
 
     const memberStats = db.getMemberBifurcationStats(faculty);
+    const pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
 
     res.render('home', {
       totalFaculty,
@@ -350,6 +374,7 @@ app.get('/', (req, res) => {
       otherMonthlyROS,
       allYearsTopPerformers,
       topPerformers,
+      pendingDocCount,
       query: req.query
     });
   } catch (err) {
@@ -1508,7 +1533,8 @@ app.get('/faculty/:id', (req, res) => {
   try {
     const faculty = db.getFacultyById(parseInt(req.params.id));
     if (!faculty) return res.status(404).render('404', {});
-    res.render('detail', { faculty, rosColor, rosLabel, query: req.query, pendingDuplicatePub: null });
+    const pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
+    res.render('detail', { faculty, rosColor, rosLabel, query: req.query, pendingDuplicatePub: null, pendingDocCount });
   } catch (err) {
     res.status(500).send('Server error: ' + err.message);
   }
@@ -1827,6 +1853,113 @@ app.get('/api/ros-cell-details', (req, res) => {
 });
 
 // 404
+// ─── RESEARCH PROOF DOCUMENT ROUTES ─────────────────────────────────────────
+
+// API: unread document count (for notification badge)
+app.get('/api/documents/unread-count', requireAdmin, (req, res) => {
+  try {
+    const count = db.getUnreadDocumentCount();
+    res.json({ count });
+  } catch (e) {
+    res.json({ count: 0 });
+  }
+});
+
+// Faculty uploads their own document (PUBLIC - no login needed)
+app.post('/faculty/:id/upload-doc', uploadDoc.single('doc_file'), (req, res) => {
+  const id = parseInt(req.params.id);
+  const isAdmin = req.isAdmin;
+  try {
+    if (!req.file) {
+      return res.redirect(`/faculty/${id}?tab=docs&doc_error=No+file+selected+or+invalid+file+type`);
+    }
+    const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+    const fileType = ext === 'pdf' ? 'pdf' : 'docx';
+    db.addFacultyDocument(id, {
+      uploader_type: isAdmin ? 'admin' : 'faculty',
+      original_name: req.file.originalname,
+      stored_filename: req.file.filename,
+      file_type: fileType,
+      file_size: req.file.size,
+      description: (req.body.doc_description || '').trim()
+    });
+    res.redirect(`/faculty/${id}?tab=docs&doc_success=1`);
+  } catch (e) {
+    console.error('Doc upload error:', e);
+    // If file was saved, delete it on error
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+    res.redirect(`/faculty/${id}?tab=docs&doc_error=${encodeURIComponent(e.message)}`);
+  }
+});
+
+// Admin: view all documents panel
+app.get('/admin/documents', requireAdmin, (req, res) => {
+  try {
+    const filters = {
+      status: req.query.status || 'all',
+      search: req.query.search || '',
+      uploader_type: req.query.uploader_type || 'all'
+    };
+    const documents = db.getAllFacultyDocuments(filters);
+    const pendingCount = db.getUnreadDocumentCount();
+    res.render('admin_documents', {
+      documents,
+      pendingCount,
+      filters,
+      query: req.query,
+      isAdmin: true,
+      success: req.query.success || null,
+      error: req.query.error || null
+    });
+  } catch (e) {
+    console.error('Admin docs error:', e);
+    res.redirect('/?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: download a document
+app.get('/admin/documents/:id/download', requireAdmin, (req, res) => {
+  try {
+    const docs = db.getAllFacultyDocuments({});
+    const doc = docs.find(d => d.id === parseInt(req.params.id));
+    if (!doc) return res.status(404).send('Document not found');
+    const filePath = path.join(__dirname, 'uploads', 'documents', doc.stored_filename);
+    if (!fs.existsSync(filePath)) return res.status(404).send('File not found on disk');
+    res.download(filePath, doc.original_name);
+  } catch (e) {
+    res.status(500).send('Download error: ' + e.message);
+  }
+});
+
+// Admin: mark document as reviewed
+app.post('/admin/documents/:id/mark-reviewed', requireAdmin, (req, res) => {
+  try {
+    db.markDocumentReviewed(parseInt(req.params.id));
+    const back = req.body.return_to || req.headers.referer || '/admin/documents';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + 'success=Document+marked+as+reviewed');
+  } catch (e) {
+    res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: delete a document
+app.post('/admin/documents/:id/delete', requireAdmin, (req, res) => {
+  try {
+    const doc = db.deleteFacultyDocument(parseInt(req.params.id));
+    // Remove file from disk
+    const filePath = path.join(__dirname, 'uploads', 'documents', doc.stored_filename);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) {}
+    }
+    const back = req.body.return_to || req.headers.referer || '/admin/documents';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + 'success=Document+deleted');
+  } catch (e) {
+    res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
+  }
+});
+
 app.use((req, res) => {
   res.status(404).render('404', {});
 });
