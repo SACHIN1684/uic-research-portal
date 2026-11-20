@@ -218,6 +218,9 @@ function normalizeMemberType(rawType, designation = '', employeeCode = '') {
     if (t.includes('fellow') || t.includes('scholar') || t.includes('jrf') || t.includes('srf') || t.includes('phd')) {
       return 'Research Fellow';
     }
+    if (t.includes('other') || t.includes('visiting') || t.includes('guest') || t.includes('postdoc') || t.includes('adjunct')) {
+      return 'Other';
+    }
     if (t.includes('faculty') || t.includes('prof') || t.includes('teacher') || t.includes('staff')) {
       return 'Faculty';
     }
@@ -229,6 +232,9 @@ function normalizeMemberType(rawType, designation = '', employeeCode = '') {
   }
   if (/student/i.test(d) || /^\d{2}[a-z]{2,}\d+/i.test(c)) {
     return 'Student';
+  }
+  if (/visiting|adjunct|guest|postdoc/i.test(d)) {
+    return 'Other';
   }
   return 'Faculty';
 }
@@ -913,6 +919,7 @@ function getMemberBifurcationStats(facultyList) {
   const facultyCount = list.filter(f => (f.member_type || 'Faculty') === 'Faculty').length;
   const fellowCount = list.filter(f => f.member_type === 'Research Fellow').length;
   const studentCount = list.filter(f => f.member_type === 'Student').length;
+  const otherCount = list.filter(f => f.member_type === 'Other').length;
   const activeStatusCount = list.filter(f => (f.status || 'Active') !== 'Inactive').length;
   const inactiveStatusCount = list.filter(f => f.status === 'Inactive').length;
   const publicCount = list.filter(f => (f.visibility || 'public') !== 'private').length;
@@ -922,6 +929,7 @@ function getMemberBifurcationStats(facultyList) {
     facultyCount,
     fellowCount,
     studentCount,
+    otherCount,
     activeStatusCount,
     inactiveStatusCount,
     publicCount,
@@ -1598,6 +1606,7 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPub
         employee_code: f.employee_code,
         designation: f.designation || '',
         department: f.department || '',
+        member_type: f.member_type || 'Faculty',
         photo: f.photo || null,
         pubs: []
       });
@@ -1614,6 +1623,7 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPub
       employee_code: entry.employee_code,
       designation: entry.designation,
       department: entry.department,
+      member_type: entry.member_type,
       photo: entry.photo,
       total_pubs: entry.pubs.length,
       ros: totalRos,

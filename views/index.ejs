@@ -507,13 +507,16 @@
           All (<%= totalFaculty %>)
         </button>
         <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Faculty">
-          Faculty (<%= memberStats.facultyCount %>)
+          <i class="fas fa-chalkboard-teacher me-1"></i>Faculty (<%= memberStats.facultyCount %>)
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Research Fellow">
-          Research Fellows (<%= memberStats.fellowCount %>)
+        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Research Fellow" style="border-color:#7c3aed;color:#7c3aed;">
+          <i class="fas fa-microscope me-1"></i>Research Fellows (<%= memberStats.fellowCount %>)
         </button>
-        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold cat-filter-btn" data-cat="Student">
-          Students (<%= memberStats.studentCount %>)
+        <button type="button" class="btn btn-sm btn-outline-success fw-semibold cat-filter-btn" data-cat="Student">
+          <i class="fas fa-user-graduate me-1"></i>Students (<%= memberStats.studentCount %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-warning fw-semibold cat-filter-btn text-dark" data-cat="Other">
+          <i class="fas fa-user-tag me-1"></i>Other (<%= memberStats.otherCount || 0 %>)
         </button>
       </div>
       <div class="d-flex flex-wrap align-items-center gap-2">
@@ -694,6 +697,7 @@
                     const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
                     const isMemberActive = (f.status || 'Active') !== 'Inactive';
                     const memberType = f.member_type || 'Faculty';
+                    const theme = getMemberTypeTheme(memberType);
                   %>
                   <tr class="faculty-card-wrap"
                       data-ros="<%= f.ros %>"
@@ -702,7 +706,8 @@
                       data-scopus="<%= (f.scopus_id || '').toLowerCase() %>"
                       data-member-type="<%= memberType %>"
                       data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>"
-                      data-visibility="<%= (f.visibility || 'public').toLowerCase() %>">
+                      data-visibility="<%= (f.visibility || 'public').toLowerCase() %>"
+                      style="border-left: 3px solid <%= theme.color %>;">
                     <% if (isAdmin) { %>
                     <td class="text-center">
                       <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm" class="form-check-input faculty-select-cb" style="cursor:pointer;">
@@ -713,9 +718,9 @@
                       <div class="d-flex align-items-center gap-2">
                         <div class="position-relative flex-shrink-0">
                           <% if (f.photo) { %>
-                            <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                            <img src="/uploads/<%= f.photo %>" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover; border-color: <%= theme.borderColor %> !important;">
                           <% } else { %>
-                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem;">
+                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem; background: <%= theme.avatarBg %>;">
                               <%= initials %>
                             </div>
                           <% } %>
@@ -725,7 +730,7 @@
                         <div>
                           <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">
                             <span><%= f.name %></span>
-                            <span class="badge bg-light text-secondary border" style="font-size:0.68rem;"><%= memberType %></span>
+                            <span class="badge <%= theme.badgeClass %>" style="<%= theme.badgeStyle %>; font-size:0.68rem;"><i class="<%= theme.icon %> me-1"></i><%= memberType %></span>
                             <% if (!isMemberActive) { %><span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.66rem;">Left</span><% } %>
                             <% if (f.visibility === 'private') { %><span class="badge bg-warning text-dark border border-warning" style="font-size:0.66rem;"><i class="fas fa-lock me-1"></i>Private</span><% } %>
                           </div>
@@ -733,6 +738,7 @@
                             <%= f.designation || memberType %>
                             <% if (f.scopus_id) { %> &bull; <span class="font-monospace">Scopus: <%= f.scopus_id %></span><% } %>
                           </div>
+                          <div class="mt-1"><%- renderStarsHtml(f.ros, 'sm') %></div>
                         </div>
                       </div>
                     </td>
@@ -789,6 +795,7 @@
             const initials = f.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
             const isMemberActive = (f.status || 'Active') !== 'Inactive';
             const memberType = f.member_type || 'Faculty';
+            const theme = getMemberTypeTheme(memberType);
           %>
           <div class="col-12 col-md-6 col-lg-4 faculty-card-wrap"
                data-ros="<%= f.ros %>"
@@ -798,7 +805,7 @@
                data-member-type="<%= memberType %>"
                data-status="<%= isMemberActive ? 'Active' : 'Inactive' %>"
                data-visibility="<%= (f.visibility || 'public').toLowerCase() %>">
-            <div class="faculty-card position-relative">
+            <div class="faculty-card position-relative role-<%= memberType.toLowerCase().replace(/\s+/g, '-') %>" style="border-top: 3px solid <%= theme.color %>;">
               <% if (isAdmin) { %>
               <div class="position-absolute" style="top: 14px; right: 14px; z-index: 5;">
                 <input type="checkbox" name="faculty_ids" value="<%= f.id %>" form="bulkDeleteForm"
@@ -806,14 +813,14 @@
                        style="width: 20px; height: 20px; cursor: pointer;" title="Select for bulk delete">
               </div>
               <% } %>
-              <div class="card-top-accent"></div>
+              <div class="card-top-accent" style="background: <%= theme.cardAccent %>;"></div>
               <div class="faculty-card-inner">
                 <div class="faculty-header">
                   <div class="faculty-photo-wrap position-relative">
                     <% if (f.photo) { %>
-                      <img src="/uploads/<%= f.photo %>" alt="<%= f.name %>" class="faculty-photo">
+                      <img src="/uploads/<%= f.photo %>" alt="<%= f.name %>" class="faculty-photo" style="border-color: <%= theme.borderColor %>;">
                     <% } else { %>
-                      <div class="faculty-photo-placeholder">
+                      <div class="faculty-photo-placeholder" style="background: <%= theme.avatarBg %>; border-color: <%= theme.borderColor %>;">
                         <span><%= initials %></span>
                       </div>
                     <% } %>
@@ -829,8 +836,8 @@
                     </h3>
                     <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
                       <span class="emp-badge"><i class="fas fa-id-card me-1"></i><%= f.employee_code %></span>
-                      <span class="badge <%= memberType === 'Student' ? 'bg-info-subtle text-info-emphasis border border-info-subtle' : (memberType === 'Research Fellow' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle') %>" style="font-size:0.7rem;">
-                        <%= memberType %>
+                      <span class="badge <%= theme.badgeClass %>" style="<%= theme.badgeStyle %>; font-size:0.72rem;">
+                        <i class="<%= theme.icon %> me-1"></i><%= memberType %>
                       </span>
                       <% if (!isMemberActive) { %>
                         <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.68rem;">Left / Inactive</span>
@@ -843,6 +850,12 @@
                     <% if (f.department) { %><div class="faculty-dept"><i class="fas fa-building me-1"></i><%= f.department %></div><% } %>
                     <% if (f.scopus_id) { %><div class="small text-muted font-monospace" style="font-size:0.72rem;"><i class="fas fa-fingerprint me-1 text-warning"></i>Scopus: <%= f.scopus_id %></div><% } %>
                   </div>
+                </div>
+
+                <!-- Star Rating Display -->
+                <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded-2 mb-2" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <span class="small fw-semibold text-muted" style="font-size:0.75rem;"><i class="fas fa-star text-warning me-1"></i>Rating:</span>
+                  <%- renderStarsHtml(f.ros, 'sm') %>
                 </div>
 
                 <!-- ROS Bar -->

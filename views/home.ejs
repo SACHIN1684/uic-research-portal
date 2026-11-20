@@ -1645,6 +1645,9 @@
         </div>
       </div>
 
+      <!-- Featured #1 Top Performer Hero Spotlight (with Picture & Star Rating) -->
+      <div id="annualHeroSpotlight"></div>
+
       <!-- 4 At-a-Glance Champion Spotlight Cards -->
       <div class="row g-3 mb-4" id="championSpotlightRow">
         <div class="col-md-6 col-xl-3">
@@ -1968,6 +1971,37 @@
       });
     }
 
+    // ── Star Rating Client-side Renderer ──
+    function getStarRatingJs(ros) {
+      const r = parseFloat(ros) || 0;
+      if (r >= 1.5) return { stars: 5.0, full: 5, half: 0, empty: 0 };
+      if (r >= 1.0) return { stars: 4.5, full: 4, half: 1, empty: 0 };
+      if (r >= 0.7) return { stars: 4.0, full: 4, half: 0, empty: 1 };
+      if (r >= 0.5) return { stars: 3.5, full: 3, half: 1, empty: 1 };
+      if (r >= 0.3) return { stars: 3.0, full: 3, half: 0, empty: 2 };
+      if (r >= 0.2) return { stars: 2.5, full: 2, half: 1, empty: 2 };
+      if (r >= 0.1) return { stars: 2.0, full: 2, half: 0, empty: 3 };
+      if (r > 0)    return { stars: 1.0, full: 1, half: 0, empty: 4 };
+      return { stars: 0.0, full: 0, half: 0, empty: 5 };
+    }
+
+    function renderStarsJs(ros) {
+      const rate = getStarRatingJs(ros);
+      let s = '';
+      for (let i = 0; i < rate.full; i++) s += '<i class="fas fa-star" style="color:#f59e0b;font-size:0.75rem;"></i>';
+      if (rate.half > 0) s += '<i class="fas fa-star-half-alt" style="color:#f59e0b;font-size:0.75rem;"></i>';
+      for (let i = 0; i < rate.empty; i++) s += '<i class="far fa-star" style="color:#cbd5e1;font-size:0.75rem;"></i>';
+      return `<span class="d-inline-flex align-items-center gap-1" title="${rate.stars.toFixed(1)} / 5 Stars based on ROS">${s}<strong class="small text-dark" style="font-size:0.72rem;">${rate.stars > 0 ? rate.stars.toFixed(1) : '0.0'}</strong></span>`;
+    }
+
+    function getRoleThemeJs(type) {
+      const t = (type || '').toLowerCase();
+      if (t.includes('student')) return { label: 'Student', color: '#059669', badgeClass: 'badge-role-student', icon: 'fa-user-graduate' };
+      if (t.includes('fellow') || t.includes('research')) return { label: 'Research Fellow', color: '#7c3aed', badgeClass: 'badge-role-research-fellow', icon: 'fa-microscope' };
+      if (t.includes('other') || t.includes('visiting') || t.includes('adjunct') || t.includes('guest') || t.includes('postdoc')) return { label: 'Other', color: '#ea580c', badgeClass: 'badge-role-other', icon: 'fa-user-tag' };
+      return { label: 'Faculty', color: '#2563eb', badgeClass: 'badge-role-faculty', icon: 'fa-chalkboard-teacher' };
+    }
+
     function renderSpotlightCard(title, badgeText, badgeClass, iconClass, periodObj) {
       if (!periodObj || !periodObj.winner) {
         return `
@@ -1989,6 +2023,16 @@
       `).join('');
       const moreTie = winners.length > 2 ? `<div class="small text-muted">+${winners.length - 2} more tied</div>` : '';
 
+      const winnerPhotoHtml = topWinner.photo
+        ? `<div class="position-relative flex-shrink-0">
+             <img src="/uploads/${esc(topWinner.photo)}" alt="${esc(topWinner.name)}" class="rounded-circle border border-warning shadow-sm" style="width: 50px; height: 50px; object-fit: cover;">
+             <span style="position:absolute; bottom:-2px; right:-2px; background:#f59e0b; color:#fff; border-radius:50%; width:18px; height:18px; font-size:0.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #fff;"><i class="fas fa-trophy"></i></span>
+           </div>`
+        : `<div class="position-relative flex-shrink-0">
+             <div class="avatar-circle-sm" style="width: 50px; height: 50px; font-size: 0.95rem; background: linear-gradient(135deg, #1e3a8a, #2563eb); font-weight:700; color:#fff;">${initials(topWinner.name)}</div>
+             <span style="position:absolute; bottom:-2px; right:-2px; background:#f59e0b; color:#fff; border-radius:50%; width:18px; height:18px; font-size:0.6rem; display:flex; align-items:center; justify-content:center; border:2px solid #fff;"><i class="fas fa-trophy"></i></span>
+           </div>`;
+
       return `
         <div class="d-flex justify-content-between align-items-start mb-2">
           <span class="badge ${badgeClass}">${esc(badgeText)}</span>
@@ -1996,11 +2040,15 @@
         </div>
         <div class="small text-muted fw-semibold mb-1">${esc(title)} &bull; ${esc(periodObj.range || periodObj.label)}</div>
         <div class="d-flex align-items-center gap-2 my-2">
-          <div class="avatar-circle-sm">${initials(topWinner.name)}</div>
+          ${winnerPhotoHtml}
           <div class="min-w-0 flex-grow-1">
             ${namesHtml}
             ${moreTie}
-            <div class="small text-muted">${isTie ? `<span class="badge bg-warning text-dark">Co-Winners (${winners.length} tied)</span>` : esc(topWinner.employee_code)}</div>
+            <div class="small text-muted d-flex align-items-center gap-1 flex-wrap mt-1">
+              <span class="badge ${getRoleThemeJs(topWinner.member_type).badgeClass} py-0 px-1" style="font-size:0.68rem;"><i class="fas ${getRoleThemeJs(topWinner.member_type).icon} me-1"></i>${getRoleThemeJs(topWinner.member_type).label}</span>
+              <span>${isTie ? `<span class="badge bg-warning text-dark">Co-Winners (${winners.length} tied)</span>` : esc(topWinner.employee_code)}</span>
+              ${renderStarsJs(topWinner.ros)}
+            </div>
           </div>
         </div>
         <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2 small">
@@ -2017,6 +2065,63 @@
       if (yearBadge) yearBadge.textContent = year;
       if (exportBtn) exportBtn.href = `/export/top-performers?year=${year}`;
       if (!perf) return;
+
+      // ── Render Top Performer Featured Showcase ──
+      const heroSpotEl = document.getElementById('annualHeroSpotlight');
+      if (heroSpotEl) {
+        const annWinner = perf.annual && perf.annual.winner;
+        if (!annWinner) {
+          heroSpotEl.innerHTML = '';
+        } else {
+          heroSpotEl.innerHTML = `
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff;">
+              <div class="card-body p-4 p-md-5">
+                <div class="row align-items-center g-4">
+                  <div class="col-auto text-center">
+                    <div class="position-relative d-inline-block">
+                      ${annWinner.photo
+                        ? `<img src="/uploads/${esc(annWinner.photo)}" alt="${esc(annWinner.name)}" class="rounded-circle border border-4 border-warning shadow-lg" style="width: 105px; height: 105px; object-fit: cover;">`
+                        : `<div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-lg" style="width: 105px; height: 105px; font-size: 2.2rem; background: linear-gradient(135deg, #2563eb, #7c3aed); border: 4px solid #f59e0b;">${initials(annWinner.name)}</div>`
+                      }
+                      <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-warning text-dark border border-white shadow px-2 py-1" style="font-size:0.75rem;">
+                        <i class="fas fa-crown me-1 text-danger"></i>#1 Top Performer
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                      <span class="badge bg-warning text-dark fw-bold px-3 py-1"><i class="fas fa-trophy me-1"></i>Annual Research Champion &bull; Calendar ${year}</span>
+                      <span class="badge bg-primary px-2 py-1">${esc(annWinner.member_type || 'Faculty')}</span>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-white">${esc(annWinner.name)}</h3>
+                    <div class="text-light opacity-75 small mb-3">
+                      <span class="badge bg-light text-dark font-monospace me-2">${esc(annWinner.employee_code)}</span>
+                      ${esc(annWinner.designation || 'Department Researcher')} &bull; ${esc(annWinner.department || 'UIC')}
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                      <div class="px-3 py-2 rounded-3" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                        <div class="text-warning fw-bold fs-4">${annWinner.ros.toFixed(2)}</div>
+                        <div class="small opacity-75" style="font-size:0.72rem;">Annual ROS Score</div>
+                      </div>
+                      <div class="px-3 py-2 rounded-3" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                        <div class="text-info fw-bold fs-4">${annWinner.total_pubs}</div>
+                        <div class="small opacity-75" style="font-size:0.72rem;">Publications (Q1: ${annWinner.q1})</div>
+                      </div>
+                      <div class="px-3 py-2 rounded-3" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                        <div class="d-flex align-items-center gap-1">${renderStarsJs(annWinner.ros)}</div>
+                        <div class="small opacity-75" style="font-size:0.72rem;">5-Star Research Rating</div>
+                      </div>
+                      <a href="/faculty/${annWinner.id}" class="btn btn-warning fw-bold px-4 py-2 text-dark shadow ms-auto">
+                        <i class="fas fa-user-circle me-1"></i>View Full Profile
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
 
       if (resetDefaults || !selectedMonthKey || !selectedMonthKey.startsWith(String(year))) {
         selectedMonthKey = perf.defaults.monthKey;
@@ -2156,15 +2261,29 @@
             ];
             snapshotGrid.innerHTML = top3.map((f, idx) => {
               const m = medals[idx] || medals[2];
+              const rTheme = getRoleThemeJs(f.member_type);
+              const cardPhoto = f.photo
+                ? `<img src="/uploads/${esc(f.photo)}" alt="${esc(f.name)}" class="rounded-circle border border-2 shadow-sm" style="width: 52px; height: 52px; object-fit: cover;">`
+                : `<div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 52px; height: 52px; font-size: 1.1rem; background: ${rTheme.color};">${initials(f.name)}</div>`;
               return `
                 <div class="col-md-4">
-                  <div class="p-3 rounded-3 border ${m.cls} h-100">
+                  <div class="p-3 rounded-3 border ${m.cls} h-100 shadow-sm position-relative">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                       <span class="badge ${m.badge}">Rank #${f.rank}</span>
-                      <strong class="text-danger fs-5">${f.ros.toFixed(2)} ROS</strong>
+                      <span class="badge ${rTheme.badgeClass}" style="font-size:0.7rem;"><i class="fas ${rTheme.icon} me-1"></i>${rTheme.label}</span>
                     </div>
-                    <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none fs-6 d-block">${esc(f.name)}</a>
-                    <div class="small text-muted">${esc(f.employee_code)} &bull; ${f.total_pubs} papers (Q1:${f.q1}, Q2:${f.q2}, Q3:${f.q3}, Q4:${f.q4})</div>
+                    <div class="d-flex align-items-center gap-3 my-2">
+                      ${cardPhoto}
+                      <div class="min-w-0 flex-grow-1">
+                        <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none fs-6 d-block text-truncate" title="${esc(f.name)}">${esc(f.name)}</a>
+                        <div class="small text-muted font-monospace">${esc(f.employee_code)}</div>
+                        <div class="mt-1">${renderStarsJs(f.ros)}</div>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2 small">
+                      <strong class="text-danger fs-6">${f.ros.toFixed(2)} ROS</strong>
+                      <span class="text-muted">${f.total_pubs} papers (Q1:${f.q1}, Q2:${f.q2})</span>
+                    </div>
                   </div>
                 </div>
               `;
@@ -2214,6 +2333,7 @@
         } else {
           lbBody.innerHTML = activePeriod.top.map(f => {
             const sharePct = activePeriod.dept_ros > 0 ? ((f.ros / activePeriod.dept_ros) * 100).toFixed(1) : '0.0';
+            const rTheme = getRoleThemeJs(f.member_type);
             const rankBadge = f.rank === 1
               ? `<span class="badge bg-warning text-dark fs-6 px-2 py-1"><i class="fas fa-trophy me-1"></i>#1</span>`
               : (f.rank === 2
@@ -2223,8 +2343,8 @@
                   : `<span class="fw-bold text-muted">#${f.rank}</span>`));
 
             const avatarHtml = f.photo
-              ? `<img src="/uploads/${esc(f.photo)}" alt="" class="avatar-circle-sm">`
-              : `<div class="avatar-circle-sm">${initials(f.name)}</div>`;
+              ? `<img src="/uploads/${esc(f.photo)}" alt="" class="avatar-circle-sm" style="border: 2px solid ${rTheme.color};">`
+              : `<div class="avatar-circle-sm" style="background: ${rTheme.color}; color: #fff;">${initials(f.name)}</div>`;
 
             return `
               <tr class="${f.rank === 1 ? 'table-warning bg-opacity-25' : ''}">
@@ -2233,12 +2353,19 @@
                   <div class="d-flex align-items-center gap-2">
                     ${avatarHtml}
                     <div>
-                      <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none">${esc(f.name)}</a>
-                      <div class="small text-muted">${esc(f.designation || 'Faculty')}</div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <a href="/faculty/${f.id}" class="fw-bold text-dark text-decoration-none">${esc(f.name)}</a>
+                        <span class="badge ${rTheme.badgeClass}" style="font-size:0.68rem;"><i class="fas ${rTheme.icon} me-1"></i>${rTheme.label}</span>
+                      </div>
+                      <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                        <span>${esc(f.designation || 'Faculty')}</span>
+                        <span>&bull;</span>
+                        <span>${renderStarsJs(f.ros)}</span>
+                      </div>
                     </div>
                   </div>
                 </td>
-                <td class="text-center"><span class="badge bg-light text-dark border">${esc(f.employee_code)}</span></td>
+                <td class="text-center"><span class="badge bg-light text-dark border font-monospace">${esc(f.employee_code)}</span></td>
                 <td class="text-center fw-bold">${f.total_pubs}</td>
                 <td class="text-center">
                   <span class="badge bg-success-subtle text-success border border-success-subtle">Q1:${f.q1}</span>

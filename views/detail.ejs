@@ -284,14 +284,17 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
     <% } %>
 
     <!-- Profile Hero Card -->
-    <% const isMemberActive = (faculty.status || 'Active') !== 'Inactive'; %>
-    <div class="profile-hero mb-4">
+    <%
+      const isMemberActive = (faculty.status || 'Active') !== 'Inactive';
+      const theme = getMemberTypeTheme(faculty.member_type);
+    %>
+    <div class="profile-hero mb-4" style="border-top: 4px solid <%= theme.color %>;">
       <div class="profile-hero-left">
         <div class="profile-photo-wrap position-relative">
           <% if (faculty.photo) { %>
-            <img src="/uploads/<%= faculty.photo %>" alt="<%= faculty.name %>" class="profile-photo">
+            <img src="/uploads/<%= faculty.photo %>" alt="<%= faculty.name %>" class="profile-photo" style="border-color: <%= theme.borderColor %>;">
           <% } else { %>
-            <div class="profile-photo-placeholder">
+            <div class="profile-photo-placeholder" style="background: <%= theme.avatarBg %>; border-color: <%= theme.borderColor %>;">
               <span><%= initials %></span>
             </div>
           <% } %>
@@ -306,8 +309,8 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
             <span style="width:9px; height:9px; border-radius:50%; background:<%= isMemberActive ? '#16a34a' : '#dc2626' %>; display:inline-block;"></span>
             <%= isMemberActive ? 'Active' : 'Inactive / Left' %>
           </span>
-          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
-            <%= faculty.member_type || 'Faculty' %>
+          <span class="badge <%= theme.badgeClass %> px-2 py-1" style="<%= theme.badgeStyle %>; font-size: 0.75rem;">
+            <i class="<%= theme.icon %> me-1"></i><%= faculty.member_type || 'Faculty' %>
           </span>
           <span class="badge <%= (faculty.visibility === 'private') ? 'bg-warning text-dark' : 'bg-success-subtle text-success border border-success' %> px-2 py-1">
             <i class="fas fa-<%= (faculty.visibility === 'private') ? 'lock' : 'globe' %> me-1"></i><%= (faculty.visibility === 'private') ? 'Private' : 'Public' %>
@@ -315,6 +318,9 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
         </div>
         <div class="profile-meta">
           <span class="emp-badge-lg"><i class="fas fa-id-card me-1"></i><%= faculty.employee_code %></span>
+          <span class="meta-chip d-inline-flex align-items-center gap-1" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-weight:600;">
+            <i class="fas fa-award text-warning me-1"></i>Research Rating: <%- renderStarsHtml(faculty.ros, 'md') %>
+          </span>
           <% if (faculty.scopus_id) { %>
           <a href="https://www.scopus.com/authid/detail.uri?authorId=<%= encodeURIComponent(faculty.scopus_id) %>" target="_blank" class="meta-chip text-decoration-none" style="background:#fef3c7;color:#92400e;font-weight:600">
             <i class="fas fa-fingerprint me-1"></i>Scopus ID: <%= faculty.scopus_id %> <i class="fas fa-external-link-alt ms-1 small"></i>

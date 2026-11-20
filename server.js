@@ -87,6 +87,11 @@ app.use((req, res, next) => {
     : { canUndo: false, canRedo: false, undoCount: 0, redoCount: 0, undoLabel: '', redoLabel: '' };
   res.locals.pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
   res.locals.pendingProfileReqCount = req.isAdmin ? db.getPendingProfileRequestsCount() : 0;
+  res.locals.rosColor = rosColor;
+  res.locals.rosLabel = rosLabel;
+  res.locals.getStarRating = getStarRating;
+  res.locals.renderStarsHtml = renderStarsHtml;
+  res.locals.getMemberTypeTheme = getMemberTypeTheme;
   next();
 });
 
@@ -232,6 +237,108 @@ function rosLabel(ros) {
   if (ros < 0.6) return 'Moderate';
   if (ros < 0.8) return 'Good';
   return 'High Output';
+}
+
+// ── Star Rating based on ROS (Out of 5 Stars) ──
+function getStarRating(ros) {
+  const r = parseFloat(ros) || 0;
+  if (r >= 1.5) return { stars: 5.0, full: 5, half: 0, empty: 0, label: '5.0 / 5.0', text: '5.0' };
+  if (r >= 1.0) return { stars: 4.5, full: 4, half: 1, empty: 0, label: '4.5 / 5.0', text: '4.5' };
+  if (r >= 0.7) return { stars: 4.0, full: 4, half: 0, empty: 1, label: '4.0 / 5.0', text: '4.0' };
+  if (r >= 0.5) return { stars: 3.5, full: 3, half: 1, empty: 1, label: '3.5 / 5.0', text: '3.5' };
+  if (r >= 0.3) return { stars: 3.0, full: 3, half: 0, empty: 2, label: '3.0 / 5.0', text: '3.0' };
+  if (r >= 0.2) return { stars: 2.5, full: 2, half: 1, empty: 2, label: '2.5 / 5.0', text: '2.5' };
+  if (r >= 0.1) return { stars: 2.0, full: 2, half: 0, empty: 3, label: '2.0 / 5.0', text: '2.0' };
+  if (r > 0)    return { stars: 1.0, full: 1, half: 0, empty: 4, label: '1.0 / 5.0', text: '1.0' };
+  return { stars: 0.0, full: 0, half: 0, empty: 5, label: '0.0 / 5.0', text: '0.0' };
+}
+
+function renderStarsHtml(ros, size = 'sm') {
+  const rating = getStarRating(ros);
+  let starsHtml = '';
+  for (let i = 0; i < rating.full; i++) {
+    starsHtml += '<i class="fas fa-star" style="color: #f59e0b;"></i>';
+  }
+  if (rating.half > 0) {
+    starsHtml += '<i class="fas fa-star-half-alt" style="color: #f59e0b;"></i>';
+  }
+  for (let i = 0; i < rating.empty; i++) {
+    starsHtml += '<i class="far fa-star" style="color: #cbd5e1;"></i>';
+  }
+  const fsStyle = size === 'lg' ? 'font-size: 1.05rem;' : (size === 'md' ? 'font-size: 0.88rem;' : 'font-size: 0.75rem;');
+  return `
+    <span class="star-rating d-inline-flex align-items-center gap-1" style="${fsStyle}" title="Research Rating: ${rating.label} based on ROS (${parseFloat(ros || 0).toFixed(2)})">
+      <span class="stars-icons text-nowrap d-inline-flex gap-0.5">${starsHtml}</span>
+      <span class="rating-num fw-bold ${rating.stars > 0 ? 'text-dark' : 'text-muted'}" style="font-size: 0.85em; margin-left: 2px;">${rating.stars > 0 ? rating.stars.toFixed(1) : '0.0'}</span>
+    </span>
+  `;
+}
+
+// ── Distinct Theme Colors for Roles (Faculty, Research Fellow, Student, Other) ──
+function getMemberTypeTheme(memberType) {
+  const t = String(memberType || 'Faculty').trim();
+  if (t === 'Student') {
+    return {
+      type: 'Student',
+      name: 'Student',
+      color: '#059669',          // Emerald Green
+      colorLight: '#ecfdf5',
+      borderColor: '#10b981',
+      badgeClass: 'badge-role-student',
+      badgeStyle: 'background: linear-gradient(135deg, #059669, #10b981); color: #fff;',
+      cardAccent: 'linear-gradient(90deg, #059669, #34d399)',
+      avatarBg: '#059669',
+      borderStyle: 'border-top: 3px solid #059669;',
+      icon: 'fas fa-user-graduate',
+      pillClass: 'bg-success-subtle text-success border border-success'
+    };
+  }
+  if (t === 'Research Fellow') {
+    return {
+      type: 'Research Fellow',
+      name: 'Research Fellow',
+      color: '#7c3aed',          // Purple / Violet
+      colorLight: '#f5f3ff',
+      borderColor: '#8b5cf6',
+      badgeClass: 'badge-role-research-fellow',
+      badgeStyle: 'background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: #fff;',
+      cardAccent: 'linear-gradient(90deg, #7c3aed, #a855f7)',
+      avatarBg: '#7c3aed',
+      borderStyle: 'border-top: 3px solid #7c3aed;',
+      icon: 'fas fa-microscope',
+      pillClass: 'bg-purple-subtle text-purple border border-purple'
+    };
+  }
+  if (t === 'Other') {
+    return {
+      type: 'Other',
+      name: 'Other',
+      color: '#ea580c',          // Orange / Amber
+      colorLight: '#fff7ed',
+      borderColor: '#f97316',
+      badgeClass: 'badge-role-other',
+      badgeStyle: 'background: linear-gradient(135deg, #ea580c, #f97316); color: #fff;',
+      cardAccent: 'linear-gradient(90deg, #ea580c, #fb923c)',
+      avatarBg: '#ea580c',
+      borderStyle: 'border-top: 3px solid #ea580c;',
+      icon: 'fas fa-user-tag',
+      pillClass: 'bg-warning-subtle text-dark border border-warning'
+    };
+  }
+  return {
+    type: 'Faculty',
+    name: 'Faculty',
+    color: '#2563eb',            // Royal Blue
+    colorLight: '#eff6ff',
+    borderColor: '#3b82f6',
+    badgeClass: 'badge-role-faculty',
+    badgeStyle: 'background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;',
+    cardAccent: 'linear-gradient(90deg, #2563eb, #60a5fa)',
+    avatarBg: '#2563eb',
+    borderStyle: 'border-top: 3px solid #2563eb;',
+    icon: 'fas fa-chalkboard-teacher',
+    pillClass: 'bg-primary-subtle text-primary border border-primary-subtle'
+  };
 }
 
 // ─── ROUTES ────────────────────────────────────────────────────────

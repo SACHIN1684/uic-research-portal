@@ -162,6 +162,94 @@ body {
   transform: translateY(-4px);
   border-color: var(--accent);
 }
+
+/* Distinct Profile Colors by Role */
+.faculty-card.role-faculty {
+  border-top: 3px solid #2563eb;
+}
+.faculty-card.role-faculty .card-top-accent {
+  background: linear-gradient(90deg, #1d4ed8, #60a5fa);
+}
+.faculty-card.role-faculty .faculty-photo-placeholder {
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  border-color: #bfdbfe;
+}
+.faculty-card.role-faculty .faculty-photo {
+  border-color: #bfdbfe;
+}
+
+.faculty-card.role-research-fellow {
+  border-top: 3px solid #7c3aed;
+}
+.faculty-card.role-research-fellow .card-top-accent {
+  background: linear-gradient(90deg, #6d28d9, #a855f7);
+}
+.faculty-card.role-research-fellow .faculty-photo-placeholder {
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6);
+  border-color: #ddd6fe;
+}
+.faculty-card.role-research-fellow .faculty-photo {
+  border-color: #ddd6fe;
+}
+
+.faculty-card.role-student {
+  border-top: 3px solid #059669;
+}
+.faculty-card.role-student .card-top-accent {
+  background: linear-gradient(90deg, #047857, #34d399);
+}
+.faculty-card.role-student .faculty-photo-placeholder {
+  background: linear-gradient(135deg, #065f46, #10b981);
+  border-color: #a7f3d0;
+}
+.faculty-card.role-student .faculty-photo {
+  border-color: #a7f3d0;
+}
+
+.faculty-card.role-other {
+  border-top: 3px solid #ea580c;
+}
+.faculty-card.role-other .card-top-accent {
+  background: linear-gradient(90deg, #c2410c, #fb923c);
+}
+.faculty-card.role-other .faculty-photo-placeholder {
+  background: linear-gradient(135deg, #9a3412, #f97316);
+  border-color: #fed7aa;
+}
+.faculty-card.role-other .faculty-photo {
+  border-color: #fed7aa;
+}
+
+/* Role Badges */
+.badge-role-faculty {
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+  color: #fff;
+  border: 1px solid #1d4ed8;
+}
+.badge-role-research-fellow {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed);
+  color: #fff;
+  border: 1px solid #5b21b6;
+}
+.badge-role-student {
+  background: linear-gradient(135deg, #047857, #059669);
+  color: #fff;
+  border: 1px solid #065f46;
+}
+.badge-role-other {
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  color: #fff;
+  border: 1px solid #9a3412;
+}
+
+/* Star Rating */
+.star-rating {
+  line-height: 1;
+}
+.star-rating .stars-icons i {
+  margin-right: 1px;
+}
+
 .card-top-accent {
   height: 4px;
   background: linear-gradient(90deg, var(--primary), var(--accent));
