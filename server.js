@@ -549,7 +549,7 @@ app.get('/dashboard', (req, res) => {
   res.redirect('/portal');
 });
 
-// 3. Dedicated Publications Database (Master Published Papers 2026 Table)
+// 3. Dedicated Publications Database (Master Published Papers Table with Academic Year Filter)
 app.get('/publications', (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -558,14 +558,15 @@ app.get('/publications', (req, res) => {
 
     const filters = {
       search: req.query.search || '',
+      year: req.query.year || 'all',
       month: req.query.month || 'all',
       quartile: req.query.quartile || 'all',
       department: req.query.department || 'all',
       document_type: req.query.document_type || 'all'
     };
 
-    const publications = db.getMasterPublications(filters);
-    const stats = db.getMasterPublicationsStats();
+    const publications = db.getMasterPublications();
+    const stats = db.getMasterPublicationsStats(filters);
 
     res.render('publications', {
       publications,
@@ -578,21 +579,21 @@ app.get('/publications', (req, res) => {
   }
 });
 
-// Download Master Publications Excel Sheet (.xlsx)
+// Download Master Publications Excel Sheet (.xlsx) with optional year filter
 app.get(['/publications/download', '/export/master-publications'], (req, res) => {
   try {
+    const yearParam = req.query.year || 'all';
     const filePath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx');
-    if (fs.existsSync(filePath)) {
+    if (yearParam === 'all' && fs.existsSync(filePath)) {
       res.setHeader('Content-Disposition', 'attachment; filename="Published_Paper_2026.xlsx"');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       return res.sendFile(filePath);
     }
 
-    // Dynamic fallback generation using XLSX
-    const rows = db.getMasterPublications();
+    const rows = db.getMasterPublications(yearParam !== 'all' ? { year: yearParam } : {});
     const exportData = [];
     exportData.push([
-      'Sr. No.', 'Title', 'Year', 'Source title', 'Author names (CU)',
+      'Sr. No.', 'Title', 'Year', 'Academic Session', 'Source title', 'Author names (CU)',
       'Scopus ID', 'Cluster', 'Institute', 'Department', 'ROS',
       'Source quartile (Q)', 'DOI', 'Link', 'Document Type',
       'EID', 'EID based Scopus Link', 'APN'
@@ -608,6 +609,7 @@ app.get(['/publications/download', '/export/master-publications'], (req, res) =>
         r.sr_no ? (isNaN(Number(r.sr_no)) ? r.sr_no : Number(r.sr_no)) : '',
         r.title,
         r.year ? (isNaN(Number(r.year)) ? r.year : Number(r.year)) : '',
+        r.academic_year || '',
         r.source_title,
         r.author_name,
         r.scopus_id ? (isNaN(Number(r.scopus_id)) ? r.scopus_id : Number(r.scopus_id)) : '',
@@ -627,10 +629,12 @@ app.get(['/publications/download', '/export/master-publications'], (req, res) =>
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(exportData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Published Paper 2026');
+    const sheetName = yearParam !== 'all' ? `Papers_${yearParam.replace(/[^a-zA-Z0-9_-]/g, '_')}` : 'Published Papers';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    res.setHeader('Content-Disposition', 'attachment; filename="Published_Paper_2026.xlsx"');
+    const filename = yearParam !== 'all' ? `Published_Papers_${yearParam}.xlsx` : 'Published_Paper_2026.xlsx';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
   } catch (err) {

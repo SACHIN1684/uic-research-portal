@@ -91,7 +91,7 @@
       justify-content: center;
       font-size: 1.3rem;
     }
-    .month-pill-btn {
+    .month-pill-btn, .year-pill-btn {
       border: 1px solid #e2e8f0;
       background: white;
       color: #475569;
@@ -106,18 +106,18 @@
       gap: 6px;
       text-decoration: none;
     }
-    .month-pill-btn:hover {
+    .month-pill-btn:hover, .year-pill-btn:hover {
       background: #f8fafc;
       color: var(--cu-red);
       border-color: #cbd5e1;
     }
-    .month-pill-btn.active {
+    .month-pill-btn.active, .year-pill-btn.active {
       background: var(--cu-navy);
       color: white;
       border-color: var(--cu-navy);
       box-shadow: 0 4px 10px rgba(11, 31, 63, 0.2);
     }
-    .month-pill-btn .badge {
+    .month-pill-btn .badge, .year-pill-btn .badge {
       font-size: 0.72rem;
     }
     .pub-table-wrap {
@@ -320,7 +320,7 @@
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
           <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-10 text-warning small fw-bold mb-2">
-            <i class="fas fa-database"></i> Complete Master Research Archive &bull; Published Papers 2026
+            <i class="fas fa-database"></i> Complete Master Research Archive &bull; <span id="bannerYearText"><%= (filters.year && filters.year !== 'all') ? 'Academic Session ' + filters.year : 'All Academic Sessions' %></span>
           </div>
           <h1 class="display-font fw-bold text-white mb-2" style="font-size: 2.2rem;">
             Department Publications Database
@@ -395,7 +395,7 @@
             <i class="fas fa-book"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.uniquePapers %></div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1" id="kpiUniquePapers"><%= stats.uniquePapers %></div>
             <div class="text-muted small mt-1">Unique Papers</div>
           </div>
         </div>
@@ -406,7 +406,7 @@
             <i class="fas fa-users"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.totalRecords %></div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1" id="kpiTotalRecords"><%= stats.totalRecords %></div>
             <div class="text-muted small mt-1">CU Author Entries</div>
           </div>
         </div>
@@ -417,7 +417,7 @@
             <i class="fas fa-award"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-success display-font lh-1"><%= stats.q1Count %></div>
+            <div class="fs-4 fw-bold text-success display-font lh-1" id="kpiQ1Count"><%= stats.q1Count %></div>
             <div class="text-muted small mt-1">Q1 Quartile Papers</div>
           </div>
         </div>
@@ -428,7 +428,7 @@
             <i class="fas fa-star"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-primary display-font lh-1"><%= stats.q2Count %></div>
+            <div class="fs-4 fw-bold text-primary display-font lh-1" id="kpiQ2Count"><%= stats.q2Count %></div>
             <div class="text-muted small mt-1">Q2 Quartile Papers</div>
           </div>
         </div>
@@ -439,7 +439,7 @@
             <i class="fas fa-file-alt"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-dark display-font lh-1"><%= stats.q3Count + stats.q4Count %></div>
+            <div class="fs-4 fw-bold text-dark display-font lh-1" id="kpiQ3Q4Count"><%= stats.q3Count + stats.q4Count %></div>
             <div class="text-muted small mt-1">Q3 &amp; Q4 Papers</div>
           </div>
         </div>
@@ -450,7 +450,7 @@
             <i class="fas fa-building"></i>
           </div>
           <div>
-            <div class="fs-4 fw-bold text-danger display-font lh-1"><%= stats.uicCount %></div>
+            <div class="fs-4 fw-bold text-danger display-font lh-1" id="kpiUicCount"><%= stats.uicCount %></div>
             <div class="text-muted small mt-1">UIC Dept Entries</div>
           </div>
         </div>
@@ -463,18 +463,39 @@
     <div class="bg-white p-3 p-lg-4 rounded-4 border shadow-sm">
       <div class="row g-3 align-items-center">
         <!-- Live Search -->
-        <div class="col-12 col-md-5 col-lg-4">
+        <div class="col-12 col-md-4 col-lg-3">
           <div class="input-group">
             <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-search"></i></span>
-            <input type="text" id="liveSearchInput" class="form-control border-start-0 ps-0" placeholder="Search title, author, Scopus ID, DOI, source..." value="<%= filters.search || '' %>" onkeyup="filterTable()">
+            <input type="text" id="liveSearchInput" class="form-control border-start-0 ps-0" placeholder="Search title, author, Scopus ID, DOI..." value="<%= filters.search || '' %>" onkeyup="filterTable()">
             <% if (filters.search) { %>
               <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearSearch()"><i class="fas fa-times"></i></button>
             <% } %>
           </div>
         </div>
 
-        <!-- Quartile Dropdown -->
+        <!-- Academic Year Dropdown -->
         <div class="col-6 col-md-3 col-lg-2">
+          <select id="yearSelect" class="form-select form-select-sm py-2 fw-semibold" onchange="onYearSelectChange()">
+            <option value="all" <%= (!filters.year || filters.year === 'all') ? 'selected' : '' %>>All Years</option>
+            <optgroup label="Academic Sessions (Last 3 &amp; Next 5)">
+              <% 
+                const ddYears = stats.standardYears || [
+                  '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
+                  '2027-28', '2028-29', '2029-30', '2030-31'
+                ];
+                ddYears.forEach(y => {
+                  const cnt = (stats.academicYearsMap && stats.academicYearsMap[y]) || 0;
+              %>
+                <option value="<%= y %>" <%= (filters.year || '').toLowerCase() === y.toLowerCase() ? 'selected' : '' %>>
+                  <%= y %> <%= cnt > 0 ? `(${cnt} papers)` : '' %>
+                </option>
+              <% }) %>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Quartile Dropdown -->
+        <div class="col-6 col-md-2 col-lg-2">
           <select id="quartileSelect" class="form-select form-select-sm py-2" onchange="filterTable()">
             <option value="all">All Quartiles</option>
             <option value="Q1" <%= (filters.quartile || '').toUpperCase() === 'Q1' ? 'selected' : '' %>>Q1 Quartile</option>
@@ -485,7 +506,7 @@
         </div>
 
         <!-- Department Dropdown -->
-        <div class="col-6 col-md-4 col-lg-2">
+        <div class="col-6 col-md-3 col-lg-2">
           <select id="deptSelect" class="form-select form-select-sm py-2" onchange="filterTable()">
             <option value="all">All Departments</option>
             <option value="uic" <%= (filters.department || '').toLowerCase() === 'uic' ? 'selected' : '' %>>UIC Department</option>
@@ -497,9 +518,9 @@
         </div>
 
         <!-- Table Count & Quick Reset -->
-        <div class="col-12 col-lg-4 d-flex align-items-center justify-content-lg-end gap-2">
+        <div class="col-12 col-lg-3 d-flex align-items-center justify-content-lg-end gap-2">
           <span class="badge bg-light text-dark border px-3 py-2 fw-semibold" style="font-size: 0.85rem;">
-            Showing <strong id="visibleCount" class="text-danger"><%= publications.length %></strong> of <%= stats.totalRecords %> records
+            Showing <strong id="visibleCount" class="text-danger"><%= publications.length %></strong> of <span id="totalFilterBaseCount"><%= stats.totalRecords %></span>
           </span>
           <button type="button" class="btn btn-outline-secondary btn-sm py-2 px-3 fw-semibold" onclick="resetAllFilters()">
             <i class="fas fa-redo me-1"></i> Reset
@@ -507,12 +528,37 @@
         </div>
       </div>
 
+      <!-- Academic Year Tabs / Filter Pills -->
+      <div class="border-top mt-3 pt-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span class="text-muted small fw-bold me-1 text-uppercase">
+            <i class="fas fa-calendar me-1 text-primary"></i> Academic Year:
+          </span>
+          <button type="button" class="year-pill-btn <%= (!filters.year || filters.year === 'all') ? 'active' : '' %>" data-year="all" onclick="selectYearFilter('all', this)">
+            All Years <span class="badge bg-secondary rounded-pill" id="pillCount-year-all"><%= stats.totalAll || stats.totalRecords %></span>
+          </button>
+          <% 
+            const academicYearList = stats.standardYears || [
+              '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
+              '2027-28', '2028-29', '2029-30', '2030-31'
+            ];
+            academicYearList.forEach(y => {
+              const yCount = (stats.academicYearsMap && stats.academicYearsMap[y]) || 0;
+              const isYearActive = (filters.year || '').toLowerCase() === y.toLowerCase();
+          %>
+            <button type="button" class="year-pill-btn <%= isYearActive ? 'active' : '' %>" data-year="<%= y %>" onclick="selectYearFilter('<%= y %>', this)">
+              <%= y %> <span class="badge <%= isYearActive ? 'bg-danger' : 'bg-light text-dark border' %> rounded-pill" id="pillCount-year-<%= y %>"><%= yCount %></span>
+            </button>
+          <% }) %>
+        </div>
+      </div>
+
       <!-- Month Tabs / Filter Pills -->
       <div class="border-top mt-3 pt-3">
         <div class="d-flex flex-wrap align-items-center gap-2">
-          <span class="text-muted small fw-bold me-1 text-uppercase"><i class="fas fa-calendar-alt me-1"></i> Month:</span>
+          <span class="text-muted small fw-bold me-1 text-uppercase"><i class="fas fa-calendar-alt me-1 text-danger"></i> Month:</span>
           <button type="button" class="month-pill-btn <%= (!filters.month || filters.month === 'all') ? 'active' : '' %>" data-month="all" onclick="selectMonthFilter('all', this)">
-            All Months <span class="badge bg-secondary rounded-pill"><%= stats.totalRecords %></span>
+            All Months <span class="badge bg-secondary rounded-pill" id="pillCount-month-all"><%= stats.totalRecords %></span>
           </button>
           <% 
             const monthList = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept'];
@@ -521,7 +567,7 @@
               const isActive = (filters.month || '').toLowerCase() === m.toLowerCase();
           %>
             <button type="button" class="month-pill-btn <%= isActive ? 'active' : '' %>" data-month="<%= m %>" onclick="selectMonthFilter('<%= m %>', this)">
-              <%= m %> <span class="badge <%= isActive ? 'bg-danger' : 'bg-light text-dark border' %> rounded-pill"><%= count %></span>
+              <%= m %> <span class="badge <%= isActive ? 'bg-danger' : 'bg-light text-dark border' %> rounded-pill" id="pillCount-month-<%= m %>"><%= count %></span>
             </button>
           <% }) %>
         </div>
@@ -597,9 +643,9 @@
                   <td colspan="19" class="py-2 px-3 fw-bold bg-light">
                     <div class="d-flex align-items-center justify-content-between">
                       <span class="text-primary text-uppercase" style="letter-spacing: 0.5px;">
-                        <i class="fas fa-calendar-alt text-danger me-2"></i><strong><%= row.month_section %> 2026</strong>
+                        <i class="fas fa-calendar-alt text-danger me-2"></i><strong><%= row.month_section %></strong>
                       </span>
-                      <span class="badge bg-secondary rounded-pill small">
+                      <span class="badge bg-secondary rounded-pill small month-header-badge" data-month-name="<%= row.month_section %>">
                         <%= stats.monthsMap[row.month_section] || '' %> Records
                       </span>
                     </div>
@@ -610,9 +656,13 @@
                   data-pub-id="<%= row.id %>"
                   data-row-order="<%= row.row_order %>"
                   data-month="<%= row.month_section %>"
+                  data-year="<%= (row.academic_year || '').toLowerCase() %>"
+                  data-calendar-year="<%= (row.year || '').toLowerCase() %>"
                   data-quartile="<%= (row.quartile || '').toUpperCase() %>"
                   data-department="<%= (row.department || '').toUpperCase() %>"
-                  data-search="<%= [row.title, row.author_name, row.source_title, row.scopus_id, row.doi, row.apn, row.eid, row.department, row.month_section].join(' ').toLowerCase() %>">
+                  data-is-coauthor="<%= isCoAuthor ? '1' : '0' %>"
+                  data-is-uic="<%= isUic ? '1' : '0' %>"
+                  data-search="<%= [row.title, row.author_name, row.source_title, row.scopus_id, row.doi, row.apn, row.eid, row.department, row.month_section, row.academic_year, row.year].join(' ').toLowerCase() %>">
                 
                 <!-- Checkbox -->
                 <td class="text-center">
@@ -824,8 +874,8 @@
                 <input type="text" name="sr_no" id="edit_sr_no" class="form-control form-control-sm" placeholder="e.g. 3 (leave blank for co-author)">
               </div>
               <div class="col-md-3">
-                <label class="form-label fw-bold small">Year</label>
-                <input type="text" name="year" id="edit_year" class="form-control form-control-sm" placeholder="2026">
+                <label class="form-label fw-bold small">Academic Year / Year</label>
+                <input type="text" name="year" id="edit_year" class="form-control form-control-sm" list="academicYearsDatalist" placeholder="e.g. 2025-26">
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-bold small">Quartile</label>
@@ -944,8 +994,8 @@
                 <input type="text" name="sr_no" class="form-control form-control-sm" placeholder="e.g. 238">
               </div>
               <div class="col-md-3">
-                <label class="form-label fw-bold small">Year</label>
-                <input type="text" name="year" class="form-control form-control-sm" value="2026">
+                <label class="form-label fw-bold small">Academic Year / Year</label>
+                <input type="text" name="year" class="form-control form-control-sm" list="academicYearsDatalist" value="2025-26" placeholder="e.g. 2025-26">
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-bold small">Quartile</label>
@@ -1133,6 +1183,22 @@
     </div>
   <% } %>
 
+  <datalist id="academicYearsDatalist">
+    <option value="2022-23">
+    <option value="2023-24">
+    <option value="2024-25">
+    <option value="2025-26">
+    <option value="2026-27">
+    <option value="2027-28">
+    <option value="2028-29">
+    <option value="2029-30">
+    <option value="2030-31">
+    <option value="2024">
+    <option value="2025">
+    <option value="2026">
+    <option value="2027">
+  </datalist>
+
   <!-- Footer -->
   <footer class="portal-footer bg-white border-top py-4 text-center mt-auto">
     <div class="container-fluid px-4">
@@ -1156,6 +1222,51 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let activeMonthFilter = '<%= filters.month || "all" %>';
+    let activeYearFilter = '<%= filters.year || "all" %>';
+
+    function selectYearFilter(year, btnElem) {
+      activeYearFilter = year;
+      document.querySelectorAll('.year-pill-btn').forEach(b => {
+        b.classList.remove('active');
+        const badge = b.querySelector('.badge');
+        if (badge) {
+          badge.className = 'badge bg-light text-dark border rounded-pill';
+        }
+      });
+      if (btnElem) {
+        btnElem.classList.add('active');
+        const activeBadge = btnElem.querySelector('.badge');
+        if (activeBadge) {
+          activeBadge.className = 'badge bg-danger rounded-pill';
+        }
+      }
+      const ySelect = document.getElementById('yearSelect');
+      if (ySelect) ySelect.value = year;
+
+      // Update Top Banner subtitle
+      const bannerText = document.getElementById('bannerYearText');
+      if (bannerText) {
+        bannerText.textContent = year === 'all' ? 'All Academic Sessions' : 'Academic Session ' + year;
+      }
+
+      // Update URL query state cleanly without full reload
+      try {
+        const url = new URL(window.location);
+        if (year === 'all') url.searchParams.delete('year');
+        else url.searchParams.set('year', year);
+        window.history.replaceState({}, '', url);
+      } catch (e) {}
+
+      filterTable();
+    }
+
+    function onYearSelectChange() {
+      const select = document.getElementById('yearSelect');
+      if (!select) return;
+      const val = select.value;
+      const btn = document.querySelector(`.year-pill-btn[data-year="${val}"]`) || document.querySelector(`.year-pill-btn[data-year="all"]`);
+      selectYearFilter(val, btn);
+    }
 
     function selectMonthFilter(month, btnElem) {
       activeMonthFilter = month;
@@ -1166,66 +1277,116 @@
           badge.className = 'badge bg-light text-dark border rounded-pill';
         }
       });
-      btnElem.classList.add('active');
-      const activeBadge = btnElem.querySelector('.badge');
-      if (activeBadge) {
-        activeBadge.className = 'badge bg-danger rounded-pill';
+      if (btnElem) {
+        btnElem.classList.add('active');
+        const activeBadge = btnElem.querySelector('.badge');
+        if (activeBadge) {
+          activeBadge.className = 'badge bg-danger rounded-pill';
+        }
       }
       filterTable();
     }
 
     function filterTable() {
       const searchVal = (document.getElementById('liveSearchInput').value || '').toLowerCase().trim();
+      const yearVal = (activeYearFilter || 'all').toLowerCase();
       const quartileVal = (document.getElementById('quartileSelect').value || 'all').toUpperCase();
       const deptVal = (document.getElementById('deptSelect').value || 'all').toLowerCase();
       const monthVal = (activeMonthFilter || 'all').toLowerCase();
 
       const rows = document.querySelectorAll('.pub-data-row');
       let visibleCount = 0;
+      let kpiUnique = 0;
+      let kpiTotal = 0;
+      let kpiQ1 = 0;
+      let kpiQ2 = 0;
+      let kpiQ3Q4 = 0;
+      let kpiUic = 0;
       const visibleMonths = new Set();
+      const monthRowCounts = {};
 
       rows.forEach(row => {
         const rowSearch = row.getAttribute('data-search') || '';
         const rowMonth = (row.getAttribute('data-month') || '').toLowerCase();
+        const rowYear = (row.getAttribute('data-year') || '').toLowerCase();
+        const rowCalYear = (row.getAttribute('data-calendar-year') || '').toLowerCase();
         const rowQuartile = (row.getAttribute('data-quartile') || '').toUpperCase();
         const rowDept = (row.getAttribute('data-department') || '').toLowerCase();
+        const isCoAuthor = row.getAttribute('data-is-coauthor') === '1';
+        const isUic = row.getAttribute('data-is-uic') === '1';
+
+        // Year Matching
+        let matchesYear = true;
+        if (yearVal !== 'all') {
+          matchesYear = (rowYear === yearVal) || (rowCalYear === yearVal) || rowYear.includes(yearVal);
+        }
 
         const matchesSearch = !searchVal || rowSearch.includes(searchVal);
         const matchesMonth = (monthVal === 'all') || (rowMonth === monthVal);
         const matchesQuartile = (quartileVal === 'ALL') || (rowQuartile === quartileVal);
-        
+
         let matchesDept = true;
         if (deptVal === 'uic') {
-          matchesDept = rowDept.includes('uic');
+          matchesDept = isUic || rowDept.includes('uic');
         } else if (deptVal === 'other') {
-          matchesDept = !rowDept.includes('uic');
+          matchesDept = !isUic && !rowDept.includes('uic');
         } else if (deptVal !== 'all') {
           matchesDept = rowDept.includes(deptVal);
         }
 
-        if (matchesSearch && matchesMonth && matchesQuartile && matchesDept) {
+        if (matchesYear && matchesSearch && matchesMonth && matchesQuartile && matchesDept) {
           row.style.display = '';
           visibleCount++;
-          if (row.getAttribute('data-month')) {
-            visibleMonths.add(row.getAttribute('data-month'));
+          kpiTotal++;
+          if (!isCoAuthor) kpiUnique++;
+          if (rowQuartile === 'Q1') kpiQ1++;
+          else if (rowQuartile === 'Q2') kpiQ2++;
+          else if (rowQuartile === 'Q3' || rowQuartile === 'Q4') kpiQ3Q4++;
+          if (isUic) kpiUic++;
+
+          const rawMonth = row.getAttribute('data-month');
+          if (rawMonth) {
+            visibleMonths.add(rawMonth);
+            monthRowCounts[rawMonth] = (monthRowCounts[rawMonth] || 0) + 1;
           }
         } else {
           row.style.display = 'none';
         }
       });
 
-      // Update month divider headers
+      // Update month divider headers and counts
       document.querySelectorAll('.month-divider-row').forEach(header => {
         const monthName = header.getAttribute('data-month-name');
         if (visibleMonths.has(monthName) && monthVal === 'all') {
           header.style.display = '';
+          const badge = header.querySelector('.month-header-badge');
+          if (badge) badge.textContent = `${monthRowCounts[monthName] || 0} Records`;
         } else {
           header.style.display = 'none';
         }
       });
 
+      // Update KPI card figures
+      const elUnique = document.getElementById('kpiUniquePapers');
+      const elTotal = document.getElementById('kpiTotalRecords');
+      const elQ1 = document.getElementById('kpiQ1Count');
+      const elQ2 = document.getElementById('kpiQ2Count');
+      const elQ3Q4 = document.getElementById('kpiQ3Q4Count');
+      const elUic = document.getElementById('kpiUicCount');
+
+      if (elUnique) elUnique.textContent = kpiUnique;
+      if (elTotal) elTotal.textContent = kpiTotal;
+      if (elQ1) elQ1.textContent = kpiQ1;
+      if (elQ2) elQ2.textContent = kpiQ2;
+      if (elQ3Q4) elQ3Q4.textContent = kpiQ3Q4;
+      if (elUic) elUic.textContent = kpiUic;
+
+      // Update count indicators
       const countDisplay = document.getElementById('visibleCount');
       if (countDisplay) countDisplay.textContent = visibleCount;
+      const baseCountDisplay = document.getElementById('totalFilterBaseCount');
+      if (baseCountDisplay) baseCountDisplay.textContent = kpiTotal;
+
       updateSelectionToolbar();
     }
 
@@ -1238,14 +1399,28 @@
       document.getElementById('liveSearchInput').value = '';
       document.getElementById('quartileSelect').value = 'all';
       document.getElementById('deptSelect').value = 'all';
-      const allBtn = document.querySelector('.month-pill-btn[data-month="all"]');
-      if (allBtn) {
-        selectMonthFilter('all', allBtn);
+      const allYearBtn = document.querySelector('.year-pill-btn[data-year="all"]');
+      if (allYearBtn) selectYearFilter('all', allYearBtn);
+      else {
+        activeYearFilter = 'all';
+        const ySelect = document.getElementById('yearSelect');
+        if (ySelect) ySelect.value = 'all';
+      }
+      const allMonthBtn = document.querySelector('.month-pill-btn[data-month="all"]');
+      if (allMonthBtn) {
+        selectMonthFilter('all', allMonthBtn);
       } else {
         activeMonthFilter = 'all';
         filterTable();
       }
     }
+
+    // Initial run on page load if preset
+    document.addEventListener('DOMContentLoaded', () => {
+      if ((activeYearFilter && activeYearFilter !== 'all') || (activeMonthFilter && activeMonthFilter !== 'all')) {
+        filterTable();
+      }
+    });
 
     // ─── MULTI-SELECT & BULK ACTIONS ──────────────────────────────────
     function toggleSelectAll(masterCheckbox) {
@@ -1326,7 +1501,7 @@
         document.getElementById('edit_month_section').value = p.month_section || 'January';
         document.getElementById('edit_sr_no').value = p.sr_no || '';
         document.getElementById('edit_title').value = p.title || '';
-        document.getElementById('edit_year').value = p.year || '2026';
+        document.getElementById('edit_year').value = p.academic_year || p.year || '2025-26';
         document.getElementById('edit_source_title').value = p.source_title || '';
         document.getElementById('edit_author_name').value = p.author_name || '';
         document.getElementById('edit_scopus_id').value = p.scopus_id || '';

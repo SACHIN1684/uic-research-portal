@@ -130,6 +130,7 @@ async function initDB() {
       sr_no TEXT DEFAULT '',
       title TEXT DEFAULT '',
       year TEXT DEFAULT '',
+      academic_year TEXT DEFAULT '',
       source_title TEXT DEFAULT '',
       author_name TEXT DEFAULT '',
       scopus_id TEXT DEFAULT '',
@@ -147,6 +148,11 @@ async function initDB() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  const masterCols = queryAll("PRAGMA table_info('master_publications')");
+  if (!masterCols.some(c => c.name === 'academic_year')) {
+    db.run("ALTER TABLE master_publications ADD COLUMN academic_year TEXT DEFAULT ''");
+  }
 
   // Upcoming Conferences table
   db.run(`
@@ -205,6 +211,7 @@ async function initDB() {
 
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
+  backfillMasterAcademicYears();
   seedConferencesIfEmpty();
 
   saveDB();
@@ -310,6 +317,10 @@ function restoreSnapshot(snap) {
   const pubCols = queryAll("PRAGMA table_info('publications')");
   if (!pubCols.some(c => c.name === 'pub_department')) {
     db.run("ALTER TABLE publications ADD COLUMN pub_department TEXT DEFAULT 'UIC'");
+  }
+  const masterCols = queryAll("PRAGMA table_info('master_publications')");
+  if (!masterCols.some(c => c.name === 'academic_year')) {
+    db.run("ALTER TABLE master_publications ADD COLUMN academic_year TEXT DEFAULT ''");
   }
   ensureFacultySchemaColumns(false);
 
@@ -1782,6 +1793,45 @@ function updateAdminCredentials(newUsername, newPassword) {
   return uname;
 }
 
+function computeAcademicSession(effYear, monthSection) {
+  const yStr = String(effYear || '').trim();
+  if (!yStr) return '';
+  if (/^\d{4}-\d{2,4}$/.test(yStr)) return yStr; // already '2024-25' or '2024-2025'
+  const y = parseInt(yStr, 10);
+  if (isNaN(y)) return yStr;
+  const m = String(monthSection || '').trim().toLowerCase();
+  const isSecondHalf = ['july', 'jul', 'august', 'aug', 'september', 'sept', 'sep', 'october', 'oct', 'november', 'nov', 'december', 'dec'].some(sm => m.includes(sm));
+  if (isSecondHalf) {
+    const nextY = String(y + 1).slice(-2);
+    return `${y}-${nextY}`;
+  } else {
+    const prevY = y - 1;
+    const curY = String(y).slice(-2);
+    return `${prevY}-${curY}`;
+  }
+}
+
+function backfillMasterAcademicYears() {
+  if (!db) return;
+  const masterCols = queryAll("PRAGMA table_info('master_publications')");
+  if (!masterCols.some(c => c.name === 'academic_year')) {
+    db.run("ALTER TABLE master_publications ADD COLUMN academic_year TEXT DEFAULT ''");
+  }
+  const rows = queryAll("SELECT id, sr_no, year, month_section, academic_year FROM master_publications ORDER BY row_order ASC");
+  let lastYear = '2026';
+  let updatedCount = 0;
+  rows.forEach(r => {
+    if (r.year && r.year.trim()) lastYear = r.year.trim();
+    const effYear = r.year && r.year.trim() ? r.year.trim() : lastYear;
+    const sess = computeAcademicSession(effYear, r.month_section);
+    if (!r.academic_year || r.academic_year !== sess) {
+      db.run("UPDATE master_publications SET academic_year = ? WHERE id = ?", [sess, r.id]);
+      updatedCount++;
+    }
+  });
+  if (updatedCount > 0) saveDB();
+}
+
 function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'public', 'downloads', 'Published_Paper_2026.xlsx')) {
   if (!db) return;
   const countRow = queryOne('SELECT COUNT(*) as c FROM master_publications');
@@ -1807,6 +1857,7 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
 
   let curMonth = '';
   let order = 0;
+  let lastYear = '2026';
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.every(c => String(c).trim() === '')) continue;
@@ -1816,19 +1867,25 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
       continue;
     }
 
+    const rowYear = r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '';
+    if (rowYear) lastYear = rowYear;
+    const effYear = rowYear || lastYear;
+    const acadYear = computeAcademicSession(effYear, curMonth);
+
     order++;
     db.run(
       `INSERT INTO master_publications (
-        row_order, month_section, sr_no, title, year, source_title,
+        row_order, month_section, sr_no, title, year, academic_year, source_title,
         author_name, scopus_id, cluster, institute, department,
         ros, quartile, doi, link, document_type, eid, scopus_link, apn
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         order,
         curMonth,
         r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
         r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
-        r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '',
+        rowYear,
+        acadYear,
         r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
         r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
         r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
@@ -1852,6 +1909,11 @@ function seedMasterPublicationsFromExcel(excelPath = path.join(__dirname, 'publi
 function getMasterPublications(filters = {}) {
   let sql = 'SELECT * FROM master_publications WHERE 1=1';
   const params = [];
+
+  if (filters.year && filters.year !== 'all') {
+    sql += ' AND (LOWER(academic_year) = LOWER(?) OR LOWER(year) = LOWER(?) OR academic_year LIKE ? OR year LIKE ?)';
+    params.push(filters.year, filters.year, `%${filters.year}%`, `%${filters.year}%`);
+  }
 
   if (filters.month && filters.month !== 'all') {
     sql += ' AND LOWER(month_section) = LOWER(?)';
@@ -1889,19 +1951,47 @@ function getMasterPublications(filters = {}) {
       LOWER(doi) LIKE ? OR
       LOWER(apn) LIKE ? OR
       LOWER(eid) LIKE ? OR
+      LOWER(academic_year) LIKE ? OR
+      LOWER(year) LIKE ? OR
       LOWER(department) LIKE ?
     )`;
-    params.push(q, q, q, q, q, q, q, q);
+    params.push(q, q, q, q, q, q, q, q, q, q);
   }
 
   sql += ' ORDER BY row_order ASC';
   return queryAll(sql, params);
 }
 
-function getMasterPublicationsStats() {
+function getMasterPublicationsStats(filters = {}) {
   const all = queryAll('SELECT * FROM master_publications ORDER BY row_order ASC');
-  const totalRecords = all.length;
-  const uniquePapers = all.filter(r => r.sr_no && r.sr_no.trim() !== '').length;
+  const totalAll = all.length;
+
+  // Standard range: 3 past years (2022-23, 2023-24, 2024-25), current (2025-26), 5 future years (2026-27, 2027-28, 2028-29, 2029-30, 2030-31)
+  const standardYears = [
+    '2022-23', '2023-24', '2024-25', '2025-26', '2026-27',
+    '2027-28', '2028-29', '2029-30', '2030-31'
+  ];
+  const academicYearsMap = {};
+  standardYears.forEach(y => { academicYearsMap[y] = 0; });
+
+  all.forEach(r => {
+    const ay = (r.academic_year || computeAcademicSession(r.year, r.month_section)).trim();
+    if (ay) {
+      academicYearsMap[ay] = (academicYearsMap[ay] || 0) + 1;
+    }
+  });
+
+  const activeYear = (filters && filters.year && filters.year !== 'all') ? filters.year.toLowerCase().trim() : null;
+  const filtered = activeYear
+    ? all.filter(r => {
+        const ay = (r.academic_year || '').toLowerCase().trim();
+        const y = (r.year || '').toLowerCase().trim();
+        return ay === activeYear || y === activeYear || ay.includes(activeYear) || y.includes(activeYear);
+      })
+    : all;
+
+  const totalRecords = filtered.length;
+  const uniquePapers = filtered.filter(r => r.sr_no && r.sr_no.trim() !== '').length;
 
   let q1 = 0, q2 = 0, q3 = 0, q4 = 0;
   let uicCount = 0, otherCount = 0;
@@ -1909,7 +1999,7 @@ function getMasterPublicationsStats() {
   const deptsSet = new Set();
   const docTypesSet = new Set();
 
-  all.forEach(r => {
+  filtered.forEach(r => {
     const q = (r.quartile || '').toUpperCase().trim();
     if (q === 'Q1') q1++;
     else if (q === 'Q2') q2++;
@@ -1934,6 +2024,7 @@ function getMasterPublicationsStats() {
 
   return {
     totalRecords,
+    totalAll,
     uniquePapers,
     q1Count: q1,
     q2Count: q2,
@@ -1942,6 +2033,9 @@ function getMasterPublicationsStats() {
     uicCount,
     otherCount,
     monthsMap,
+    academicYearsMap,
+    standardYears,
+    activeYear: activeYear || 'all',
     departments: Array.from(deptsSet).sort(),
     documentTypes: Array.from(docTypesSet).sort()
   };
@@ -1963,6 +2057,7 @@ function replaceMasterPublications(fileInput) {
 
   let curMonth = '';
   let order = 0;
+  let lastYear = '2026';
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.every(c => String(c).trim() === '')) continue;
@@ -1972,19 +2067,25 @@ function replaceMasterPublications(fileInput) {
       continue;
     }
 
+    const rowYear = r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '';
+    if (rowYear) lastYear = rowYear;
+    const effYear = rowYear || lastYear;
+    const acadYear = computeAcademicSession(effYear, curMonth);
+
     order++;
     db.run(
       `INSERT INTO master_publications (
-        row_order, month_section, sr_no, title, year, source_title,
+        row_order, month_section, sr_no, title, year, academic_year, source_title,
         author_name, scopus_id, cluster, institute, department,
         ros, quartile, doi, link, document_type, eid, scopus_link, apn
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         order,
         curMonth,
         r[0] !== undefined && r[0] !== null ? String(r[0]).trim() : '',
         r[1] !== undefined && r[1] !== null ? String(r[1]).trim() : '',
-        r[2] !== undefined && r[2] !== null ? String(r[2]).trim() : '',
+        rowYear,
+        acadYear,
         r[3] !== undefined && r[3] !== null ? String(r[3]).trim() : '',
         r[4] !== undefined && r[4] !== null ? String(r[4]).trim() : '',
         r[5] !== undefined && r[5] !== null ? String(r[5]).trim() : '',
@@ -2186,16 +2287,17 @@ function updateMasterPublication(id, data) {
   const updatedScopusLink = data.scopus_link !== undefined ? String(data.scopus_link).trim() : (existing.scopus_link || '');
   const updatedApn = data.apn !== undefined ? String(data.apn).trim() : (existing.apn || '');
   const updatedMonth = data.month_section !== undefined ? String(data.month_section).trim() : (existing.month_section || 'January');
+  const updatedAcademicYear = data.academic_year !== undefined ? String(data.academic_year).trim() : (computeAcademicSession(updatedYear, updatedMonth) || existing.academic_year || '');
 
   db.run(
     `UPDATE master_publications SET
-      sr_no = ?, title = ?, year = ?, source_title = ?, author_name = ?,
+      sr_no = ?, title = ?, year = ?, academic_year = ?, source_title = ?, author_name = ?,
       scopus_id = ?, cluster = ?, institute = ?, department = ?, ros = ?,
       quartile = ?, doi = ?, link = ?, document_type = ?, eid = ?,
       scopus_link = ?, apn = ?, month_section = ?
     WHERE id = ?`,
     [
-      updatedSrNo, updatedTitle, updatedYear, updatedSourceTitle, updatedAuthor,
+      updatedSrNo, updatedTitle, updatedYear, updatedAcademicYear, updatedSourceTitle, updatedAuthor,
       updatedScopusId, updatedCluster, updatedInstitute, updatedDepartment, updatedRos,
       updatedQuartile, updatedDoi, updatedLink, updatedDocType, updatedEid,
       updatedScopusLink, updatedApn, updatedMonth,
@@ -2212,10 +2314,11 @@ function updateMasterPublication(id, data) {
       );
       for (const row of coAuthors) {
         if (row.sr_no && String(row.sr_no).trim() !== '') break;
-        db.run('UPDATE master_publications SET title = ?, source_title = ?, year = ? WHERE id = ?', [
+        db.run('UPDATE master_publications SET title = ?, source_title = ?, year = ?, academic_year = ? WHERE id = ?', [
           updatedTitle,
           updatedSourceTitle,
           updatedYear,
+          updatedAcademicYear,
           row.id
         ]);
       }
@@ -2255,18 +2358,21 @@ function addMasterPublication(data) {
   recordUndoState(`Add Publication: ${(data.title || '').slice(0, 25)}`);
   const maxOrderRow = queryOne('SELECT MAX(row_order) as m FROM master_publications');
   const nextOrder = (maxOrderRow && maxOrderRow.m ? maxOrderRow.m : 0) + 1;
+  const rawYear = String(data.year || '2026').trim();
+  const acadYear = String(data.academic_year || '').trim() || computeAcademicSession(rawYear, data.month_section);
   db.run(
     `INSERT INTO master_publications (
-      row_order, month_section, sr_no, title, year, source_title,
+      row_order, month_section, sr_no, title, year, academic_year, source_title,
       author_name, scopus_id, cluster, institute, department,
       ros, quartile, doi, link, document_type, eid, scopus_link, apn
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       nextOrder,
       String(data.month_section || 'January').trim(),
       String(data.sr_no || '').trim(),
       String(data.title || '').trim(),
-      String(data.year || '2026').trim(),
+      rawYear,
+      acadYear,
       String(data.source_title || '').trim(),
       String(data.author_name || '').trim(),
       String(data.scopus_id || '').trim(),
@@ -2572,7 +2678,9 @@ module.exports = {
   getAllProfileRequests,
   getProfileRequestStats,
   decideProfileRequest,
-  deleteProfileRequest
+  deleteProfileRequest,
+  computeAcademicSession,
+  backfillMasterAcademicYears
 };
 
 // ─── FACULTY DOCUMENTS FUNCTIONS ────────────────────────────────────────────
