@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Requests — UIC Admin Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body { font-family: "Inter", sans-serif; background: #0d1117; color: #e6edf3; }
+    .docs-nav { background: linear-gradient(135deg, #161b22 0%, #0d1117 100%); border-bottom: 1px solid #30363d; padding: 0.75rem 1.5rem; }
+    .brand-icon { width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#58a6ff,#1f6feb);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem; }
+    .brand-title { font-size:1.1rem;font-weight:700;color:#e6edf3; }
+    .brand-sub { font-size:0.68rem;color:#8b949e; }
+    .page-header { background: linear-gradient(135deg, #1a2744 0%, #0d1b35 100%); border-bottom: 1px solid #1f6feb44; padding: 1.5rem 2rem; }
+    .page-title { font-size: 1.6rem; font-weight: 700; color: #58a6ff; }
+    .page-sub { color: #8b949e; font-size: 0.9rem; }
+    .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; padding: 1.2rem 1.5rem; transition: border-color 0.2s; }
+    .stat-card:hover { border-color: #58a6ff55; }
+    .stat-num { font-size: 2rem; font-weight: 700; }
+    .stat-label { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+    .filter-bar { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 1rem 1.25rem; }
+    .filter-bar .form-control, .filter-bar .form-select { background: #0d1117; border-color: #30363d; color: #e6edf3; font-size: 0.875rem; }
+    .filter-bar .form-control:focus, .filter-bar .form-select:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,0.15); background: #0d1117; color: #e6edf3; }
+    .filter-bar .form-select option { background: #161b22; color: #e6edf3; }
+    .docs-table-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 14px; overflow: hidden; }
+    .docs-table thead th { background: #1c2128; color: #8b949e; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.85rem 1rem; border-color: #30363d; font-weight: 600; }
+    .docs-table tbody tr { border-color: #30363d; transition: background 0.15s; }
+    .docs-table tbody tr:hover { background: #1c2128; }
+    .docs-table td { padding: 0.9rem 1rem; vertical-align: middle; border-color: #30363d; color: #c9d1d9; font-size: 0.875rem; }
+    .badge-pending { background: linear-gradient(135deg,#b45309,#d97706); color:#fff; }
+    .badge-approved { background: linear-gradient(135deg,#166534,#16a34a); color:#fff; }
+    .badge-rejected { background: linear-gradient(135deg,#991b1b,#dc2626); color:#fff; }
+    .faculty-name-link { color: #58a6ff; font-weight: 600; text-decoration: none; }
+    .faculty-name-link:hover { color: #79c0ff; text-decoration: underline; }
+    .btn-approve { background: linear-gradient(135deg,#166534,#16a34a); color:#fff; border:none; font-size:0.8rem; padding:0.35rem 0.8rem; border-radius:7px; font-weight:600; }
+    .btn-approve:hover { background: linear-gradient(135deg,#15803d,#22c55e); color:#fff; }
+    .btn-reject { background: #2d1515; color: #f85149; border: 1px solid #f8514944; font-size:0.8rem; padding:0.35rem 0.8rem; border-radius:7px; font-weight:600; }
+    .btn-reject:hover { background: #f8514922; color: #f85149; }
+    .btn-del { background: transparent; color: #8b949e; border: 1px solid #30363d; font-size:0.75rem; padding:0.25rem 0.6rem; border-radius:6px; }
+    .btn-del:hover { background: #21262d; color: #f85149; border-color: #f8514944; }
+    .empty-state { padding: 4rem 2rem; text-align: center; color: #484f58; }
+    .empty-state i { font-size: 3rem; display:block; margin-bottom:1rem; }
+    .notif-badge { position:absolute; top:-5px; right:-5px; background:#f85149; color:#fff; border-radius:50%; width:18px; height:18px; font-size:0.65rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="docs-nav d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <a class="d-flex align-items-center gap-2 text-decoration-none" href="/">
+    <div class="brand-icon"><i class="fas fa-flask"></i></div>
+    <div>
+      <div class="brand-title">UIC Research Portal</div>
+      <div class="brand-sub">Admin — Profile Visibility Requests</div>
+    </div>
+  </a>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <a href="/" class="btn btn-sm btn-outline-secondary"><i class="fas fa-home me-1"></i>Home</a>
+    <a href="/portal" class="btn btn-sm btn-outline-secondary"><i class="fas fa-th-large me-1"></i>Directory</a>
+    <div class="position-relative">
+      <a href="/admin/profile-requests" class="btn btn-sm" style="background:linear-gradient(135deg,#eab308,#ca8a04);color:#0f172a;font-weight:600;">
+        <i class="fas fa-user-lock me-1"></i>Profile Requests
+      </a>
+      <% if (stats.pending > 0) { %>
+        <span class="notif-badge"><%= stats.pending %></span>
+      <% } %>
+    </div>
+    <div class="position-relative">
+      <a href="/admin/documents" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-file-shield me-1"></i>Documents
+      </a>
+      <% if (typeof pendingDocCount !== 'undefined' && pendingDocCount > 0) { %>
+        <span class="notif-badge"><%= pendingDocCount %></span>
+      <% } %>
+    </div>
+    <form action="/admin/logout" method="POST" class="d-inline">
+      <input type="hidden" name="return_to" value="/admin/profile-requests">
+      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+    </form>
+  </div>
+</nav>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title mb-1"><i class="fas fa-user-lock me-2 text-warning"></i>Faculty Profile Public Requests</h1>
+        <p class="page-sub mb-0">Review and decide faculty requests to make private profiles publicly accessible on the portal</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="/portal" class="btn btn-outline-secondary btn-sm"><i class="fas fa-users me-1"></i>Manage Faculty Directory</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+  <!-- Success/Error Messages -->
+  <% if (typeof query !== 'undefined' && query.approved) { %>
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-4 rounded-3 border-0" style="background:#1c2b1c;color:#3fb950;">
+      <i class="fas fa-check-circle"></i>
+      <span>Request approved! The faculty profile has been made <strong>Public</strong>.</span>
+    </div>
+  <% } %>
+  <% if (typeof query !== 'undefined' && query.rejected) { %>
+    <div class="alert alert-warning d-flex align-items-center gap-2 py-2 px-3 mb-4 rounded-3 border-0" style="background:#2d2615;color:#eab308;">
+      <i class="fas fa-times-circle"></i>
+      <span>Request rejected. The profile remains <strong>Private</strong>.</span>
+    </div>
+  <% } %>
+  <% if (typeof query !== 'undefined' && query.deleted) { %>
+    <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 px-3 mb-4 rounded-3 border-0">
+      <i class="fas fa-trash-alt"></i>
+      <span>Request deleted.</span>
+    </div>
+  <% } %>
+
+  <!-- Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-num text-warning"><%= stats.pending %></div>
+        <div class="stat-label"><i class="fas fa-clock me-1 text-warning"></i>Pending Review</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-num text-success"><%= stats.approved %></div>
+        <div class="stat-label"><i class="fas fa-check-circle me-1 text-success"></i>Approved (Made Public)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-num text-danger"><%= stats.rejected %></div>
+        <div class="stat-label"><i class="fas fa-ban me-1 text-danger"></i>Rejected (Private)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-num text-info"><%= stats.total %></div>
+        <div class="stat-label"><i class="fas fa-list me-1 text-info"></i>Total Requests</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <form method="GET" action="/admin/profile-requests" class="filter-bar mb-4">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text" style="background:#161b22;border-color:#30363d;color:#8b949e;"><i class="fas fa-search"></i></span>
+          <input type="text" name="search" class="form-control" placeholder="Search by faculty name, employee code, email..."
+                 value="<%= filters.search || '' %>">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All Statuses (<%= stats.total %>)</option>
+          <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending Only (<%= stats.pending %>)</option>
+          <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved Only (<%= stats.approved %>)</option>
+          <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected Only (<%= stats.rejected %>)</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-grow-1" style="font-size:0.875rem;">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <a href="/admin/profile-requests" class="btn btn-outline-secondary btn-sm" title="Reset">
+          <i class="fas fa-undo"></i>
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Requests Table -->
+  <div class="docs-table-wrap">
+    <% if (requests.length === 0) { %>
+      <div class="empty-state">
+        <i class="fas fa-inbox text-secondary"></i>
+        <h5>No profile requests found</h5>
+        <p class="text-muted small">When a faculty member requests their private profile to be made public, it will appear here.</p>
+      </div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table docs-table mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Faculty Member</th>
+              <th>Employee Code</th>
+              <th>Requester Email &amp; Message</th>
+              <th>Submitted Date</th>
+              <th>Status</th>
+              <th>Current Visibility</th>
+              <th class="text-end">Admin Decision</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% requests.forEach((req, idx) => { %>
+              <%
+                const isPending = req.status === 'pending';
+                const isApproved = req.status === 'approved';
+                const isRejected = req.status === 'rejected';
+              %>
+              <tr>
+                <td class="text-muted"><%= idx + 1 %></td>
+                <td>
+                  <a href="/faculty/<%= req.faculty_id %>" class="faculty-name-link" target="_blank">
+                    <i class="fas fa-user me-1"></i><%= req.faculty_name %>
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark font-monospace"><%= req.employee_code %></span>
+                </td>
+                <td style="max-width:320px;">
+                  <% if (req.requester_email) { %>
+                    <div class="small text-info mb-1"><i class="fas fa-envelope me-1"></i><%= req.requester_email %></div>
+                  <% } %>
+                  <div class="small text-light" style="word-break:break-word;">
+                    <%= req.message || 'No additional note provided.' %>
+                  </div>
+                </td>
+                <td class="text-muted small text-nowrap">
+                  <%= new Date(req.created_at).toLocaleDateString() %><br>
+                  <span style="font-size:0.75rem;"><%= new Date(req.created_at).toLocaleTimeString() %></span>
+                </td>
+                <td>
+                  <% if (isPending) { %>
+                    <span class="badge badge-pending px-2 py-1"><i class="fas fa-clock me-1"></i>Pending</span>
+                  <% } else if (isApproved) { %>
+                    <span class="badge badge-approved px-2 py-1"><i class="fas fa-check-circle me-1"></i>Approved</span>
+                  <% } else { %>
+                    <span class="badge badge-rejected px-2 py-1"><i class="fas fa-ban me-1"></i>Rejected</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% const curVis = (req.faculty_visibility || 'public'); %>
+                  <% if (curVis === 'private') { %>
+                    <span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>Private</span>
+                  <% } else { %>
+                    <span class="badge bg-success"><i class="fas fa-globe me-1"></i>Public</span>
+                  <% } %>
+                </td>
+                <td class="text-end text-nowrap">
+                  <% if (isPending) { %>
+                    <form action="/admin/profile-requests/<%= req.id %>/decide" method="POST" class="d-inline">
+                      <input type="hidden" name="action" value="approve">
+                      <input type="hidden" name="return_to" value="/admin/profile-requests?status=<%= filters.status %>&search=<%= filters.search %>">
+                      <button type="submit" class="btn btn-approve btn-sm" title="Approve and make profile public">
+                        <i class="fas fa-check me-1"></i>Make Public
+                      </button>
+                    </form>
+                    <form action="/admin/profile-requests/<%= req.id %>/decide" method="POST" class="d-inline ms-1">
+                      <input type="hidden" name="action" value="reject">
+                      <input type="hidden" name="return_to" value="/admin/profile-requests?status=<%= filters.status %>&search=<%= filters.search %>">
+                      <button type="submit" class="btn btn-reject btn-sm" title="Reject request and keep private">
+                        <i class="fas fa-times me-1"></i>Reject
+                      </button>
+                    </form>
+                  <% } else { %>
+                    <!-- Toggle Visibility Direct -->
+                    <form action="/faculty/<%= req.faculty_id %>/visibility" method="POST" class="d-inline">
+                      <input type="hidden" name="visibility" value="<%= curVis === 'private' ? 'public' : 'private' %>">
+                      <input type="hidden" name="return_to" value="/admin/profile-requests?status=<%= filters.status %>&search=<%= filters.search %>">
+                      <button type="submit" class="btn btn-sm btn-outline-secondary me-1" title="Toggle visibility">
+                        <i class="fas fa-<%= curVis === 'private' ? 'globe' : 'lock' %> me-1"></i><%= curVis === 'private' ? 'Make Public' : 'Make Private' %>
+                      </button>
+                    </form>
+                  <% } %>
+
+                  <form action="/admin/profile-requests/<%= req.id %>/delete" method="POST" class="d-inline"
+                        onsubmit="return confirm('Delete this request permanently?');">
+                    <input type="hidden" name="return_to" value="/admin/profile-requests?status=<%= filters.status %>&search=<%= filters.search %>">
+                    <button type="submit" class="btn btn-del" title="Delete request">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

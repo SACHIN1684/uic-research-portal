@@ -119,6 +119,15 @@ function setupFilters() {
       applyFilters();
     });
   });
+
+  const visBtns = document.querySelectorAll('.visibility-filter-btn');
+  visBtns.forEach(btn => {
+    btn.addEventListener('click', function () {
+      visBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      applyFilters();
+    });
+  });
 }
 
 function setupSearch() {
@@ -147,6 +156,8 @@ function applyFilters() {
   const catType     = activeCatBtn ? activeCatBtn.dataset.cat : 'all';
   const activeStatusBtn = document.querySelector('.status-filter-btn.active');
   const statusType  = activeStatusBtn ? activeStatusBtn.dataset.statusFilter : 'all';
+  const activeVisBtn = document.querySelector('.visibility-filter-btn.active');
+  const visType     = activeVisBtn ? activeVisBtn.dataset.visibilityFilter : 'all';
   const searchQuery = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
 
   const cards = document.querySelectorAll('.faculty-card-wrap');
@@ -159,6 +170,7 @@ function applyFilters() {
     const scopus = card.dataset.scopus || '';
     const memberType = card.dataset.memberType || 'Faculty';
     const memberStatus = card.dataset.status || 'Active';
+    const visibility = (card.dataset.visibility || 'public').toLowerCase();
 
     let rosMatch = true;
     if (filterType === 'zero')          rosMatch = ros === 0;
@@ -168,9 +180,10 @@ function applyFilters() {
 
     const catMatch = catType === 'all' || memberType === catType;
     const statusMatch = statusType === 'all' || memberStatus === statusType;
+    const visMatch = visType === 'all' || visibility === visType;
     const searchMatch = !searchQuery || name.includes(searchQuery) || code.includes(searchQuery) || scopus.includes(searchQuery);
 
-    const show = rosMatch && catMatch && statusMatch && searchMatch;
+    const show = rosMatch && catMatch && statusMatch && visMatch && searchMatch;
     card.style.display = show ? '' : 'none';
     if (show) visibleCount++;
   });

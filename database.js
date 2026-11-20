@@ -186,6 +186,23 @@ async function initDB() {
     );
   `);
 
+  // Faculty Profile Public Requests table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS profile_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      faculty_id INTEGER NOT NULL,
+      faculty_name TEXT DEFAULT '',
+      employee_code TEXT DEFAULT '',
+      requester_email TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+      admin_note TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      decided_at DATETIME DEFAULT NULL,
+      FOREIGN KEY (faculty_id) REFERENCES faculty (id) ON DELETE CASCADE
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
   seedConferencesIfEmpty();
@@ -249,6 +266,12 @@ function ensureFacultySchemaColumns(backfillTypes = false) {
   if (!hasStatus) {
     db.run("ALTER TABLE faculty ADD COLUMN status TEXT DEFAULT 'Active'");
     db.run("UPDATE faculty SET status = 'Active' WHERE status IS NULL OR TRIM(status) = ''");
+  }
+
+  const hasVisibility = facCols.some(c => c.name === 'visibility');
+  if (!hasVisibility) {
+    db.run("ALTER TABLE faculty ADD COLUMN visibility TEXT DEFAULT 'public'");
+    db.run("UPDATE faculty SET visibility = 'public' WHERE visibility IS NULL OR TRIM(visibility) = ''");
   }
 }
 
@@ -787,9 +810,10 @@ function applyFacultyUpload(newRows, duplicateRows, replaceExisting) {
 function addFaculty(data) {
   const memberType = normalizeMemberType(data.member_type, data.designation, data.employee_code);
   const status = normalizeMemberStatus(data.status);
+  const visibility = (data.visibility && String(data.visibility).trim().toLowerCase() === 'private') ? 'private' : 'public';
   db.run(`
-    INSERT INTO faculty (name, employee_code, designation, department, scopus_id, member_type, status, photo)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO faculty (name, employee_code, designation, department, scopus_id, member_type, status, photo, visibility)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.name.trim(),
     data.employee_code.trim(),
@@ -798,7 +822,8 @@ function addFaculty(data) {
     (data.scopus_id || '').trim(),
     memberType,
     status,
-    data.photo || null
+    data.photo || null,
+    visibility
   ]);
   saveDB();
   const res = queryOne('SELECT last_insert_rowid() as id');
@@ -832,7 +857,8 @@ function addFacultyBulk(rows) {
       department: (row.department || '').trim(),
       scopus_id: (row.scopus_id || '').trim(),
       member_type: row.member_type,
-      status: row.status
+      status: row.status,
+      visibility: row.visibility
     });
     addedCount++;
   }
@@ -851,10 +877,13 @@ function updateFaculty(id, data) {
   const status = data.status !== undefined
     ? normalizeMemberStatus(data.status)
     : (existing ? (existing.status || 'Active') : 'Active');
+  const visibility = data.visibility !== undefined
+    ? ((String(data.visibility).trim().toLowerCase() === 'private') ? 'private' : 'public')
+    : (existing ? (existing.visibility || 'public') : 'public');
 
   db.run(`
     UPDATE faculty SET
-      name = ?, employee_code = ?, designation = ?, department = ?, scopus_id = ?, member_type = ?, status = ?, photo = ?
+      name = ?, employee_code = ?, designation = ?, department = ?, scopus_id = ?, member_type = ?, status = ?, photo = ?, visibility = ?
     WHERE id = ?
   `, [
     data.name.trim(),
@@ -865,9 +894,18 @@ function updateFaculty(id, data) {
     memberType,
     status,
     photo,
+    visibility,
     id
   ]);
   saveDB();
+}
+
+function setFacultyVisibility(facultyId, visibility) {
+  const normVis = String(visibility || '').trim().toLowerCase() === 'private' ? 'private' : 'public';
+  recordUndoState(`Set Faculty #${facultyId} visibility to ${normVis}`);
+  db.run('UPDATE faculty SET visibility = ? WHERE id = ?', [normVis, Number(facultyId)]);
+  saveDB();
+  return getFacultyById(facultyId);
 }
 
 function getMemberBifurcationStats(facultyList) {
@@ -877,13 +915,17 @@ function getMemberBifurcationStats(facultyList) {
   const studentCount = list.filter(f => f.member_type === 'Student').length;
   const activeStatusCount = list.filter(f => (f.status || 'Active') !== 'Inactive').length;
   const inactiveStatusCount = list.filter(f => f.status === 'Inactive').length;
+  const publicCount = list.filter(f => (f.visibility || 'public') !== 'private').length;
+  const privateCount = list.filter(f => (f.visibility || 'public') === 'private').length;
   return {
     totalCount: list.length,
     facultyCount,
     fellowCount,
     studentCount,
     activeStatusCount,
-    inactiveStatusCount
+    inactiveStatusCount,
+    publicCount,
+    privateCount
   };
 }
 
@@ -2512,7 +2554,15 @@ module.exports = {
   getAllFacultyDocuments,
   deleteFacultyDocument,
   markDocumentReviewed,
-  getUnreadDocumentCount
+  getUnreadDocumentCount,
+  setFacultyVisibility,
+  addProfileRequest,
+  getPendingProfileRequestsCount,
+  getPendingRequestForFaculty,
+  getAllProfileRequests,
+  getProfileRequestStats,
+  decideProfileRequest,
+  deleteProfileRequest
 };
 
 // ─── FACULTY DOCUMENTS FUNCTIONS ────────────────────────────────────────────
@@ -2594,4 +2644,103 @@ function markDocumentReviewed(id) {
 function getUnreadDocumentCount() {
   const row = queryOne("SELECT COUNT(*) as c FROM faculty_documents WHERE status = 'pending'");
   return row ? row.c : 0;
+}
+
+// ─── PROFILE PUBLIC REQUESTS FUNCTIONS ───────────────────────────────────────
+
+function addProfileRequest(data) {
+  const facultyId = Number(data.faculty_id);
+  const faculty = queryOne('SELECT id, name, employee_code FROM faculty WHERE id = ?', [facultyId]);
+  const facultyName = faculty ? faculty.name : (data.faculty_name || '');
+  const employeeCode = faculty ? faculty.employee_code : (data.employee_code || '');
+  const email = String(data.requester_email || '').trim();
+  const message = String(data.message || '').trim();
+
+  // If there is already a pending request for this faculty, update it
+  const existingPending = queryOne(
+    "SELECT id FROM profile_requests WHERE faculty_id = ? AND status = 'pending'",
+    [facultyId]
+  );
+  if (existingPending) {
+    db.run(
+      "UPDATE profile_requests SET requester_email = ?, message = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [email, message, existingPending.id]
+    );
+    saveDB();
+    return queryOne('SELECT * FROM profile_requests WHERE id = ?', [existingPending.id]);
+  }
+
+  db.run(`
+    INSERT INTO profile_requests (faculty_id, faculty_name, employee_code, requester_email, message, status)
+    VALUES (?, ?, ?, ?, ?, 'pending')
+  `, [facultyId, facultyName, employeeCode, email, message]);
+  saveDB();
+
+  return queryOne('SELECT * FROM profile_requests WHERE id = last_insert_rowid()');
+}
+
+function getPendingProfileRequestsCount() {
+  const row = queryOne("SELECT COUNT(*) as c FROM profile_requests WHERE status = 'pending'");
+  return row ? (row.c || 0) : 0;
+}
+
+function getPendingRequestForFaculty(facultyId) {
+  return queryOne(
+    "SELECT * FROM profile_requests WHERE faculty_id = ? AND status = 'pending' ORDER BY created_at DESC",
+    [Number(facultyId)]
+  );
+}
+
+function getAllProfileRequests(filters = {}) {
+  let sql = 'SELECT * FROM profile_requests WHERE 1=1';
+  const params = [];
+
+  if (filters.status && filters.status !== 'all') {
+    sql += ' AND status = ?';
+    params.push(filters.status);
+  }
+
+  if (filters.search && filters.search.trim()) {
+    const s = `%${filters.search.trim().toLowerCase()}%`;
+    sql += ' AND (LOWER(faculty_name) LIKE ? OR LOWER(employee_code) LIKE ? OR LOWER(requester_email) LIKE ? OR LOWER(message) LIKE ?)';
+    params.push(s, s, s, s);
+  }
+
+  sql += ' ORDER BY created_at DESC';
+  return queryAll(sql, params);
+}
+
+function getProfileRequestStats() {
+  const all = queryAll('SELECT status FROM profile_requests');
+  return {
+    total: all.length,
+    pending: all.filter(r => r.status === 'pending').length,
+    approved: all.filter(r => r.status === 'approved').length,
+    rejected: all.filter(r => r.status === 'rejected').length
+  };
+}
+
+function decideProfileRequest(id, action, adminNote = '') {
+  const req = queryOne('SELECT * FROM profile_requests WHERE id = ?', [Number(id)]);
+  if (!req) throw new Error('Request not found');
+
+  recordUndoState(`${action === 'approve' ? 'Approved' : 'Rejected'} Profile Request #${id}`);
+  const status = action === 'approve' ? 'approved' : 'rejected';
+  db.run(
+    'UPDATE profile_requests SET status = ?, admin_note = ?, decided_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, String(adminNote || '').trim(), Number(id)]
+  );
+
+  if (action === 'approve') {
+    db.run("UPDATE faculty SET visibility = 'public' WHERE id = ?", [req.faculty_id]);
+  }
+
+  saveDB();
+  return queryOne('SELECT * FROM profile_requests WHERE id = ?', [Number(id)]);
+}
+
+function deleteProfileRequest(id) {
+  recordUndoState(`Deleted Profile Request #${id}`);
+  db.run('DELETE FROM profile_requests WHERE id = ?', [Number(id)]);
+  saveDB();
 }

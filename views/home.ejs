@@ -532,6 +532,16 @@
                   <i class="fas fa-user-shield me-1"></i>Admin
                 </button>
                 <div class="position-relative">
+                  <a href="/admin/profile-requests" class="btn btn-warning btn-sm fw-semibold py-2 px-2 text-nowrap text-dark" title="Profile Visibility Requests">
+                    <i class="fas fa-user-lock"></i>
+                  </a>
+                  <% if (typeof pendingProfileReqCount !== 'undefined' && pendingProfileReqCount > 0) { %>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;z-index:10;">
+                      <%= pendingProfileReqCount %>
+                    </span>
+                  <% } %>
+                </div>
+                <div class="position-relative">
                   <a href="/admin/documents" class="btn btn-warning btn-sm fw-semibold py-2 px-2 text-nowrap text-dark" title="Research Documents">
                     <i class="fas fa-file-shield"></i>
                   </a>

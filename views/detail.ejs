@@ -50,6 +50,26 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
         <a href="/faculty/add" class="btn btn-add btn-sm">
           <i class="fas fa-user-plus me-1"></i>Add Faculty
         </a>
+        <div class="position-relative">
+          <a href="/admin/profile-requests" class="btn btn-warning btn-sm fw-semibold text-dark" title="Profile Visibility Requests">
+            <i class="fas fa-user-lock"></i>
+          </a>
+          <% if (typeof pendingProfileReqCount !== 'undefined' && pendingProfileReqCount > 0) { %>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;z-index:10;">
+              <%= pendingProfileReqCount %>
+            </span>
+          <% } %>
+        </div>
+        <div class="position-relative">
+          <a href="/admin/documents" class="btn btn-warning btn-sm fw-semibold text-dark" title="Research Documents">
+            <i class="fas fa-file-shield"></i>
+          </a>
+          <% if (typeof pendingDocCount !== 'undefined' && pendingDocCount > 0) { %>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;z-index:10;">
+              <%= pendingDocCount %>
+            </span>
+          <% } %>
+        </div>
         <form action="/admin/logout" method="POST" class="d-inline">
           <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
           <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold" title="Logout Admin">
@@ -226,9 +246,42 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
         <a href="/faculty/<%= faculty.id %>/edit" class="btn btn-outline-secondary btn-sm">
           <i class="fas fa-edit me-1"></i>Edit Profile
         </a>
+        <form action="/faculty/<%= faculty.id %>/visibility" method="POST" class="d-inline">
+          <input type="hidden" name="visibility" value="<%= (faculty.visibility === 'private') ? 'public' : 'private' %>">
+          <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
+          <% if (faculty.visibility === 'private') { %>
+            <button type="submit" class="btn btn-success btn-sm fw-semibold" title="Make this profile publicly visible">
+              <i class="fas fa-globe me-1"></i>Make Public
+            </button>
+          <% } else { %>
+            <button type="submit" class="btn btn-outline-warning btn-sm fw-semibold" title="Make this profile private (admin only)">
+              <i class="fas fa-lock me-1"></i>Make Private
+            </button>
+          <% } %>
+        </form>
       </div>
       <% } %>
     </div>
+
+    <!-- Private Profile Admin Banner -->
+    <% if (isAdmin && faculty.visibility === 'private') { %>
+      <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 shadow-sm border border-warning">
+        <div class="d-flex align-items-center gap-3">
+          <i class="fas fa-lock fa-2x text-warning"></i>
+          <div>
+            <strong class="d-block text-dark">This Profile is Currently PRIVATE</strong>
+            <span class="small text-muted">Only administrators can view this profile. Public visitors and faculty see a locked notice and can submit requests to unlock access.</span>
+          </div>
+        </div>
+        <form action="/faculty/<%= faculty.id %>/visibility" method="POST" class="m-0">
+          <input type="hidden" name="visibility" value="public">
+          <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
+          <button type="submit" class="btn btn-success btn-sm fw-semibold text-nowrap">
+            <i class="fas fa-globe me-1"></i> Make Public
+          </button>
+        </form>
+      </div>
+    <% } %>
 
     <!-- Profile Hero Card -->
     <% const isMemberActive = (faculty.status || 'Active') !== 'Inactive'; %>
@@ -255,6 +308,9 @@ const rosPercent = Math.min(Math.round(faculty.ros * 100), 100);
           </span>
           <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
             <%= faculty.member_type || 'Faculty' %>
+          </span>
+          <span class="badge <%= (faculty.visibility === 'private') ? 'bg-warning text-dark' : 'bg-success-subtle text-success border border-success' %> px-2 py-1">
+            <i class="fas fa-<%= (faculty.visibility === 'private') ? 'lock' : 'globe' %> me-1"></i><%= (faculty.visibility === 'private') ? 'Private' : 'Public' %>
           </span>
         </div>
         <div class="profile-meta">

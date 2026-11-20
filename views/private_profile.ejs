@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Profile — <%= faculty.name %> | UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .private-hero-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      overflow: hidden;
+      max-width: 680px;
+      margin: 2.5rem auto;
+    }
+    .private-header-bar {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      padding: 1.5rem 2rem;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .private-avatar-wrap {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #475569;
+      position: relative;
+      margin: -42px auto 1rem auto;
+      overflow: visible;
+    }
+    .private-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .lock-pill-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      background: #eab308;
+      color: #0f172a;
+      border: 2px solid #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    .request-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark portal-nav">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/portal">
+      <div class="brand-icon"><i class="fas fa-flask"></i></div>
+      <div>
+        <div class="brand-title">UIC Research Portal</div>
+        <div class="brand-sub">University Institute of Computing, Chandigarh University</div>
+      </div>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home me-1"></i>Home</a>
+      <a href="/portal" class="btn btn-outline-light btn-sm"><i class="fas fa-th-large me-1"></i>Faculty Directory</a>
+      <button type="button" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#loginModal">
+        <i class="fas fa-user-shield me-1"></i>Admin Login
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-auto py-4">
+  <div class="private-hero-card">
+    <div class="private-header-bar">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-user-lock text-warning fs-4"></i>
+        <div>
+          <h5 class="mb-0 fw-bold">Private Profile</h5>
+          <span class="small opacity-75">Access Restricted by Administration</span>
+        </div>
+      </div>
+      <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+        <i class="fas fa-lock me-1"></i>Private
+      </span>
+    </div>
+
+    <div class="p-4 p-md-5 text-center">
+      <!-- Avatar with Lock -->
+      <div class="private-avatar-wrap">
+        <% if (faculty.photo) { %>
+          <img src="/uploads/<%= faculty.photo %>" alt="<%= faculty.name %>" class="private-avatar-img">
+        <% } else { %>
+          <% const inits = (faculty.name || '').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(); %>
+          <span><%= inits %></span>
+        <% } %>
+        <div class="lock-pill-badge" title="Profile is Private">
+          <i class="fas fa-lock"></i>
+        </div>
+      </div>
+
+      <h3 class="fw-bold text-dark mb-1"><%= faculty.name %></h3>
+      <div class="text-muted mb-2">
+        <%= faculty.designation || 'Faculty Member' %> &bull; <%= faculty.department || 'UIC' %>
+      </div>
+      <div class="d-flex justify-content-center gap-2 mb-4">
+        <span class="badge bg-light text-primary border font-monospace px-3 py-1">
+          <i class="fas fa-id-card me-1"></i><%= faculty.employee_code %>
+        </span>
+        <span class="badge bg-light text-secondary border px-3 py-1">
+          <%= faculty.member_type || 'Faculty' %>
+        </span>
+      </div>
+
+      <!-- Info Alert -->
+      <div class="alert alert-warning text-start d-flex align-items-start gap-3 p-3 rounded-3 mb-4">
+        <i class="fas fa-info-circle fs-4 text-warning mt-1 flex-shrink-0"></i>
+        <div class="small">
+          <strong>This profile is currently set to Private.</strong><br>
+          Per departmental policy, full research records, publications, and performance analytics for this member are restricted to Department Administrators only.
+        </div>
+      </div>
+
+      <!-- Request Success State -->
+      <% if (typeof requestSubmitted !== 'undefined' && requestSubmitted) { %>
+        <div class="alert alert-success text-start d-flex align-items-start gap-3 p-3 rounded-3 mb-4">
+          <i class="fas fa-check-circle fs-4 text-success mt-1 flex-shrink-0"></i>
+          <div>
+            <strong class="d-block text-success">Request Submitted Successfully!</strong>
+            <span class="small text-muted">
+              Your request to make this profile public has been delivered to the Research Administration. Once the Administrator reviews and approves the request, the profile will become publicly accessible.
+            </span>
+          </div>
+        </div>
+      <% } else if (typeof pendingReq !== 'undefined' && pendingReq) { %>
+        <div class="alert alert-info text-start d-flex align-items-start gap-3 p-3 rounded-3 mb-4">
+          <i class="fas fa-clock fs-4 text-info mt-1 flex-shrink-0"></i>
+          <div>
+            <strong class="d-block text-primary">Request Pending Review</strong>
+            <span class="small text-muted">
+              A request to make this profile public was submitted on <strong><%= new Date(pendingReq.created_at).toLocaleDateString() %></strong> and is currently awaiting Administrator review.
+            </span>
+          </div>
+        </div>
+      <% } else { %>
+        <!-- Request to Make Public Form -->
+        <div class="request-box text-start mb-4">
+          <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+            <i class="fas fa-paper-plane text-primary"></i> Request to Make Profile Public
+          </h6>
+          <p class="small text-muted mb-3">
+            Are you <strong><%= faculty.name %></strong> or requesting publication of this profile? Submit a request to the Research Administration to review and unlock public viewing.
+          </p>
+
+          <form action="/faculty/<%= faculty.id %>/request-public" method="POST">
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-secondary">Contact Email (Optional)</label>
+              <input type="email" name="requester_email" class="form-control" placeholder="e.g. <%= faculty.name.toLowerCase().replace(/[^a-z]/g, '') %>@cumail.in">
+              <div class="form-text small">Provide your university email so the admin can follow up if needed.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-secondary">Reason / Note for Administrator (Optional)</label>
+              <textarea name="message" rows="3" class="form-control" placeholder="e.g. I am active in the department and would like my publications and research footprint to be visible on the public portal."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+              <i class="fas fa-paper-plane me-1"></i> Send Request to Admin
+            </button>
+          </form>
+        </div>
+      <% } %>
+
+      <div class="d-flex justify-content-center gap-2">
+        <a href="/portal" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Return to Faculty Directory
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="portal-footer mt-auto">
+  <div class="container-fluid px-4 text-center">
+    <span><i class="fas fa-university me-1"></i>UIC Research Portal &copy; <%= new Date().getFullYear() %> &mdash; University Institute of Computing, Chandigarh University</span>
+  </div>
+</footer>
+
+<!-- Admin Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold"><i class="fas fa-user-shield me-2 text-danger"></i>Admin Login</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/login" method="POST">
+        <input type="hidden" name="return_to" value="/faculty/<%= faculty.id %>">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Username</label>
+            <input type="text" name="username" class="form-control form-control-sm" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Password</label>
+            <input type="password" name="password" class="form-control form-control-sm" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-danger fw-bold">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

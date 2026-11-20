@@ -85,6 +85,8 @@ app.use((req, res, next) => {
   res.locals.historyStatus = req.isAdmin
     ? db.getHistoryStatus()
     : { canUndo: false, canRedo: false, undoCount: 0, redoCount: 0, undoLabel: '', redoLabel: '' };
+  res.locals.pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
+  res.locals.pendingProfileReqCount = req.isAdmin ? db.getPendingProfileRequestsCount() : 0;
   next();
 });
 
@@ -1442,14 +1444,14 @@ app.get('/faculty/add', requireAdmin, (req, res) => {
 // Add single faculty POST (checks BOTH Name and Employee Code and asks to replace if existing)
 app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
   try {
-    const { name, employee_code, designation, department, scopus_id, member_type, status, confirm_replace, replace_id, pending_photo } = req.body;
+    const { name, employee_code, designation, department, scopus_id, member_type, status, visibility, confirm_replace, replace_id, pending_photo } = req.body;
 
     if (!name || !employee_code) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.render('add', {
         error: 'Name and Employee Code are required.',
         duplicateMatch: null,
-        formData: { name, employee_code, designation, department, scopus_id, member_type, status }
+        formData: { name, employee_code, designation, department, scopus_id, member_type, status, visibility }
       });
     }
 
@@ -1462,7 +1464,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
         return res.render('add', {
           error: `Cannot replace: Employee code "${employee_code.trim()}" is already assigned to another faculty member (${codeOwner.name}).`,
           duplicateMatch: null,
-          formData: { name, employee_code, designation, department, scopus_id, member_type, status }
+          formData: { name, employee_code, designation, department, scopus_id, member_type, status, visibility }
         });
       }
 
@@ -1476,6 +1478,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
         scopus_id: scopus_id || '',
         member_type,
         status,
+        visibility,
         photo: newPhoto
       });
 
@@ -1500,6 +1503,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
           scopus_id: scopus_id || '',
           member_type: member_type || 'Faculty',
           status: status || 'Active',
+          visibility: visibility || 'public',
           pending_photo: savedPendingPhoto
         }
       });
@@ -1515,6 +1519,7 @@ app.post('/faculty/add', requireAdmin, upload.single('photo'), (req, res) => {
       scopus_id,
       member_type,
       status,
+      visibility,
       photo
     });
 
@@ -1533,8 +1538,59 @@ app.get('/faculty/:id', (req, res) => {
   try {
     const faculty = db.getFacultyById(parseInt(req.params.id));
     if (!faculty) return res.status(404).render('404', {});
-    const pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
-    res.render('detail', { faculty, rosColor, rosLabel, query: req.query, pendingDuplicatePub: null, pendingDocCount });
+
+    const isPrivate = (faculty.visibility || 'public') === 'private';
+    if (isPrivate && !req.isAdmin) {
+      const pendingReq = db.getPendingRequestForFaculty(faculty.id);
+      return res.render('private_profile', {
+        faculty,
+        pendingReq,
+        requestSubmitted: req.query.requested === '1',
+        query: req.query
+      });
+    }
+
+    res.render('detail', { faculty, rosColor, rosLabel, query: req.query, pendingDuplicatePub: null });
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Request to make private profile public (submitted by faculty/visitor)
+app.post('/faculty/:id/request-public', (req, res) => {
+  try {
+    const facultyId = parseInt(req.params.id);
+    const faculty = db.getFacultyById(facultyId);
+    if (!faculty) return res.status(404).render('404', {});
+
+    const { requester_email, message } = req.body;
+    db.addProfileRequest({
+      faculty_id: facultyId,
+      faculty_name: faculty.name,
+      employee_code: faculty.employee_code,
+      requester_email,
+      message
+    });
+
+    res.redirect(`/faculty/${facultyId}?requested=1`);
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Admin toggle/set faculty profile visibility (Public vs Private)
+app.post('/faculty/:id/visibility', requireAdmin, (req, res) => {
+  try {
+    const facultyId = parseInt(req.params.id);
+    const faculty = db.getFacultyById(facultyId);
+    if (!faculty) return res.status(404).render('404', {});
+
+    const currentVis = (faculty.visibility || 'public').toLowerCase();
+    const newVis = req.body.visibility ? req.body.visibility.toLowerCase() : (currentVis === 'private' ? 'public' : 'private');
+    db.setFacultyVisibility(facultyId, newVis);
+
+    const returnTo = req.body.return_to || `/faculty/${facultyId}`;
+    res.redirect(returnTo);
   } catch (err) {
     res.status(500).send('Server error: ' + err.message);
   }
@@ -1774,7 +1830,7 @@ app.get('/faculty/:id/edit', requireAdmin, (req, res) => {
 app.post('/faculty/:id/edit', requireAdmin, upload.single('photo'), (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, employee_code, designation, department, scopus_id, member_type, status } = req.body;
+    const { name, employee_code, designation, department, scopus_id, member_type, status, visibility } = req.body;
 
     if (!name || !employee_code) {
       const faculty = db.getFacultyById(id);
@@ -1798,6 +1854,7 @@ app.post('/faculty/:id/edit', requireAdmin, upload.single('photo'), (req, res) =
       scopus_id,
       member_type,
       status,
+      visibility,
       photo
     });
 
@@ -1957,6 +2014,69 @@ app.post('/admin/documents/:id/delete', requireAdmin, (req, res) => {
     res.redirect(back + (back.includes('?') ? '&' : '?') + 'success=Document+deleted');
   } catch (e) {
     res.redirect('/admin/documents?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: Profile Visibility Requests Panel
+app.get('/admin/profile-requests', requireAdmin, (req, res) => {
+  try {
+    const filters = {
+      status: req.query.status || 'all',
+      search: req.query.search || ''
+    };
+    const requests = db.getAllProfileRequests(filters);
+    const stats = db.getProfileRequestStats();
+
+    // Attach current faculty visibility to each request for display
+    requests.forEach(r => {
+      const fac = db.getFacultyById(r.faculty_id);
+      r.faculty_visibility = fac ? (fac.visibility || 'public') : 'unknown';
+    });
+
+    res.render('admin_profile_requests', {
+      requests,
+      stats,
+      filters,
+      query: req.query,
+      isAdmin: true
+    });
+  } catch (e) {
+    console.error('Admin profile requests error:', e);
+    res.redirect('/?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: Decide profile request (approve -> makes profile public, or reject)
+app.post('/admin/profile-requests/:id/decide', requireAdmin, (req, res) => {
+  try {
+    const { action, admin_note } = req.body;
+    db.decideProfileRequest(parseInt(req.params.id), action, admin_note);
+    const back = req.body.return_to || '/admin/profile-requests';
+    const flag = action === 'approve' ? 'approved=1' : 'rejected=1';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + flag);
+  } catch (e) {
+    res.redirect('/admin/profile-requests?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// Admin: Delete profile request
+app.post('/admin/profile-requests/:id/delete', requireAdmin, (req, res) => {
+  try {
+    db.deleteProfileRequest(parseInt(req.params.id));
+    const back = req.body.return_to || '/admin/profile-requests';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + 'deleted=1');
+  } catch (e) {
+    res.redirect('/admin/profile-requests?error=' + encodeURIComponent(e.message));
+  }
+});
+
+// API: Pending profile requests count
+app.get('/api/profile-requests/pending-count', requireAdmin, (req, res) => {
+  try {
+    const count = db.getPendingProfileRequestsCount();
+    res.json({ ok: true, count });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
