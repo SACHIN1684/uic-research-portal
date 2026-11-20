@@ -2070,9 +2070,81 @@
       // ── Render Top Performer Featured Showcase ──
       const heroSpotEl = document.getElementById('annualHeroSpotlight');
       if (heroSpotEl) {
-        const annualWinners = (perf.annual && perf.annual.winners && perf.annual.winners.length > 0)
-          ? perf.annual.winners
-          : (perf.annual && perf.annual.winner ? [perf.annual.winner] : []);
+        // Collect all distinct #1 Top Performers for the year across all competition periods (Annual, Six-Monthly, Quarterly, Monthly)
+        const winnersMap = new Map();
+
+        // 1. Annual Champions
+        if (perf.annual && perf.annual.winners) {
+          perf.annual.winners.forEach(w => {
+            winnersMap.set(w.id, {
+              ...w,
+              championTitle: `Annual Research Champion • Calendar ${year}`,
+              isAnnual: true
+            });
+          });
+        }
+
+        // 2. Six-Monthly Top Performers
+        if (perf.sixMonthly) {
+          perf.sixMonthly.forEach(h => {
+            if (h.winners) {
+              h.winners.forEach(w => {
+                if (!winnersMap.has(w.id)) {
+                  winnersMap.set(w.id, {
+                    ...w,
+                    championTitle: `Six-Monthly Top Performer • ${h.label}`,
+                    isAnnual: false
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // 3. Quarterly Top Performers
+        if (perf.quarterly) {
+          perf.quarterly.forEach(q => {
+            if (q.winners) {
+              q.winners.forEach(w => {
+                if (!winnersMap.has(w.id)) {
+                  winnersMap.set(w.id, {
+                    ...w,
+                    championTitle: `Quarterly Top Performer • ${q.label}`,
+                    isAnnual: false
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // 4. Monthly Top Performers
+        if (perf.monthly) {
+          perf.monthly.forEach(m => {
+            if (m.winners) {
+              m.winners.forEach(w => {
+                if (!winnersMap.has(w.id)) {
+                  winnersMap.set(w.id, {
+                    ...w,
+                    championTitle: `Monthly Top Performer • ${m.label}`,
+                    isAnnual: false
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // Fallback if map empty
+        if (winnersMap.size === 0 && perf.annual && perf.annual.winner) {
+          winnersMap.set(perf.annual.winner.id, {
+            ...perf.annual.winner,
+            championTitle: `Annual Research Champion • Calendar ${year}`,
+            isAnnual: true
+          });
+        }
+
+        const annualWinners = Array.from(winnersMap.values());
 
         if (annualWinners.length === 0) {
           heroSpotEl.innerHTML = '';
@@ -2096,7 +2168,7 @@
                   </div>
                   <div class="col">
                     <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                      <span class="badge bg-warning text-dark fw-bold px-3 py-1"><i class="fas fa-trophy me-1"></i>Annual Research Champion &bull; Calendar ${year}</span>
+                      <span class="badge bg-warning text-dark fw-bold px-3 py-1"><i class="fas fa-trophy me-1"></i>${esc(annWinner.championTitle || `Annual Research Champion • Calendar ${year}`)}</span>
                       <span class="badge ${roleTheme.badgeClass} px-2 py-1"><i class="fas ${roleTheme.icon} me-1"></i>${roleTheme.label}</span>
                     </div>
                     <h3 class="fw-bold mb-1 text-white">${esc(annWinner.name)}</h3>
@@ -2130,14 +2202,19 @@
           // Multiple Top Performers -> Render Auto-scrolling Carousel
           const slidesHtml = annualWinners.map((winner, idx) => {
             const roleTheme = getRoleThemeJs(winner.member_type);
+            const winnerCrownLabel = winner.isAnnual ? '#1 Top Performer' : 'Top Performer';
+            const winnerBadgeLabel = winner.isAnnual
+              ? `<i class="fas fa-crown me-1 text-danger"></i>#1 Top Performer (${idx + 1} of ${annualWinners.length})`
+              : `<i class="fas fa-medal me-1 text-warning"></i>Co-Top Performer (${idx + 1} of ${annualWinners.length})`;
+
             return `
-              <div class="carousel-item ${idx === 0 ? 'active' : ''}" data-bs-interval="4000">
+              <div class="carousel-item ${idx === 0 ? 'active' : ''}" data-bs-interval="3500">
                 <div class="card border-0 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff;">
                   <div class="card-body p-4 p-md-5 position-relative">
                     <!-- Top Performer Live Autoscroll Badge -->
                     <div class="position-absolute top-0 end-0 m-3 d-flex align-items-center gap-2">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-1 shadow-sm" style="font-size: 0.75rem;">
-                        <i class="fas fa-crown me-1 text-danger"></i>Joint #1 Top Performer (${idx + 1} of ${annualWinners.length})
+                        ${winnerBadgeLabel}
                       </span>
                       <span class="badge bg-white bg-opacity-10 text-light border border-white border-opacity-25 px-2 py-1 d-none d-sm-inline-flex align-items-center" style="font-size: 0.72rem;">
                         <i class="fas fa-sync-alt fa-spin me-1 text-warning"></i>Auto-scrolling
@@ -2152,14 +2229,14 @@
                             : `<div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-lg" style="width: 105px; height: 105px; font-size: 2.2rem; background: linear-gradient(135deg, #2563eb, #7c3aed); border: 4px solid #f59e0b;">${initials(winner.name)}</div>`
                           }
                           <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-warning text-dark border border-white shadow px-2 py-1" style="font-size:0.75rem;">
-                            <i class="fas fa-crown me-1 text-danger"></i>#1 Top Performer
+                            <i class="fas fa-crown me-1 text-danger"></i>${winnerCrownLabel}
                           </span>
                         </div>
                       </div>
                       <div class="col">
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                           <span class="badge bg-warning text-dark fw-bold px-3 py-1">
-                            <i class="fas fa-trophy me-1"></i>Annual Research Champion &bull; Calendar ${year}
+                            <i class="fas fa-trophy me-1"></i>${esc(winner.championTitle || `Top Performer • Calendar ${year}`)}
                           </span>
                           <span class="badge ${roleTheme.badgeClass} px-2 py-1">
                             <i class="fas ${roleTheme.icon} me-1"></i>${roleTheme.label}
@@ -2200,7 +2277,7 @@
           `).join('');
 
           heroSpotEl.innerHTML = `
-            <div id="heroTopPerformersCarousel" class="carousel slide carousel-fade mb-4 shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="4000" data-bs-pause="hover" data-bs-wrap="true">
+            <div id="heroTopPerformersCarousel" class="carousel slide carousel-fade mb-4 shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500" data-bs-pause="hover" data-bs-wrap="true">
               <div class="carousel-indicators mb-2" style="z-index: 5;">
                 ${indicatorsHtml}
               </div>
@@ -2218,20 +2295,44 @@
             </div>
           `;
 
-          // Explicitly initialize Bootstrap Carousel instance to guarantee auto-scrolling
+          // Explicitly initialize Bootstrap Carousel and backup timer for guaranteed auto-scrolling
+          let carouselInst = null;
           try {
             const carouselNode = document.getElementById('heroTopPerformersCarousel');
             if (carouselNode && window.bootstrap && window.bootstrap.Carousel) {
-              const inst = bootstrap.Carousel.getOrCreateInstance(carouselNode, {
-                interval: 4000,
+              carouselInst = bootstrap.Carousel.getOrCreateInstance(carouselNode, {
+                interval: 3500,
                 ride: 'carousel',
                 pause: 'hover',
                 wrap: true
               });
-              inst.cycle();
+              carouselInst.cycle();
             }
           } catch (e) {
             console.warn('Carousel init notice:', e);
+          }
+
+          if (window.__heroCarouselTimer) {
+            clearInterval(window.__heroCarouselTimer);
+            window.__heroCarouselTimer = null;
+          }
+          const carouselElem = document.getElementById('heroTopPerformersCarousel');
+          if (carouselElem && annualWinners.length > 1) {
+            let isHovered = false;
+            carouselElem.addEventListener('mouseenter', () => { isHovered = true; });
+            carouselElem.addEventListener('mouseleave', () => { isHovered = false; });
+
+            window.__heroCarouselTimer = setInterval(() => {
+              if (isHovered) return;
+              try {
+                if (carouselInst) {
+                  carouselInst.next();
+                } else {
+                  const nextBtn = carouselElem.querySelector('.carousel-control-next');
+                  if (nextBtn) nextBtn.click();
+                }
+              } catch (err) {}
+            }, 3500);
           }
         }
       }
