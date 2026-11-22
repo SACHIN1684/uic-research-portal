@@ -433,6 +433,10 @@
         <span class="d-none d-md-inline">&bull;</span>
         <span><i class="fas fa-award text-info me-1"></i> QS World Ranked</span>
         <span class="d-none d-md-inline">&bull;</span>
+        <a href="/patents" class="text-white text-decoration-none">
+          <i class="fas fa-certificate text-warning me-1"></i> Patents
+        </a>
+        <span class="d-none d-md-inline">&bull;</span>
         <a href="/portal" class="text-white fw-bold text-decoration-none">
           <i class="fas fa-sign-in-alt me-1"></i> Enter Portal
         </a>
@@ -491,6 +495,12 @@
                 <a class="dropdown-item py-2 px-3 fw-semibold text-primary d-flex align-items-center justify-content-between" href="/conferences">
                   <span><i class="fas fa-calendar-alt text-primary me-2 fa-fw"></i> Upcoming Conferences</span>
                   <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill small">Indexed</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-bold text-warning d-flex align-items-center justify-content-between" href="/patents">
+                  <span><i class="fas fa-certificate text-warning me-2 fa-fw"></i> Patents &amp; Inventions</span>
+                  <span class="badge bg-warning text-dark rounded-pill small">57 Patents</span>
                 </a>
               </li>
             </ul>
@@ -716,6 +726,12 @@
                 <span><i class="fas fa-users me-1 text-info"></i> Total Registered (<%= memberStats.activeStatusCount %> Active, <%= memberStats.inactiveStatusCount %> Left):</span>
                 <span class="fw-semibold"><%= totalFaculty %></span>
               </div>
+              <div class="d-flex justify-content-between align-items-center text-light small mt-2 pt-2 border-top border-light border-opacity-10">
+                <span><i class="fas fa-certificate text-warning me-1"></i> Department Patents:</span>
+                <a href="/patents" class="badge bg-warning text-dark text-decoration-none fw-bold px-2 py-1 shadow-sm" title="Explore UIC Patents">
+                  <%= typeof patentStats !== 'undefined' ? patentStats.total : 57 %> Total (<%= typeof patentStats !== 'undefined' ? patentStats.publishedCount : 33 %> Published &bull; <%= typeof patentStats !== 'undefined' ? patentStats.filedCount : 24 %> Filed)
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -817,6 +833,88 @@
             <i class="fas fa-calendar-check me-1"></i> View Upcoming Conferences
           </a>
         </div>
+      </div>
+
+      <!-- UIC Patents & Inventions Footprint Block -->
+      <div class="mt-4 p-4 rounded-4 shadow-sm border bg-white position-relative overflow-hidden" id="patents-showcase">
+        <div class="position-absolute top-0 end-0 p-3 opacity-10 d-none d-lg-block">
+          <i class="fas fa-certificate fa-8x text-warning"></i>
+        </div>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-warning text-dark fw-bold px-3 py-1">
+                <i class="fas fa-certificate me-1"></i> UIC Patents &amp; Inventions Portfolio
+              </span>
+              <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold px-2 py-1">
+                <i class="fas fa-shield-alt me-1"></i> IPR Cell Master Archive
+              </span>
+            </div>
+            <h4 class="fw-bold text-dark mb-1 display-font">
+              Department Patents &amp; Intellectual Property
+            </h4>
+            <p class="text-muted small mb-0">
+              Comprehensive tracking of patent applications, AI architectures, robotic systems, and IoT inventions authored by UIC faculty and researchers.
+            </p>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="/patents" class="btn btn-warning fw-bold px-4 py-2 text-dark shadow-sm rounded-pill">
+              <i class="fas fa-certificate me-1"></i> View All Patents (<%= typeof patentStats !== 'undefined' ? patentStats.total : 57 %>)
+            </a>
+            <a href="/patents/download" class="btn btn-outline-success fw-bold px-3 py-2 rounded-pill">
+              <i class="fas fa-file-excel me-1"></i> Download Sheet (.xlsx)
+            </a>
+          </div>
+        </div>
+
+        <!-- 3 Interactive Metric Cards (Published vs Filed) -->
+        <div class="row g-3 text-center my-2">
+          <div class="col-12 col-md-4">
+            <div class="p-3 rounded-4 h-100" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac;">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge bg-success px-2 py-1"><i class="fas fa-stamp me-1"></i>Published &amp; Granted</span>
+                <i class="fas fa-check-circle text-success fs-4"></i>
+              </div>
+              <div class="display-5 fw-bold text-success mb-1 display-font"><%= typeof patentStats !== 'undefined' ? patentStats.publishedCount : 33 %></div>
+              <div class="fw-bold text-dark small">Published Patents</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Official Indian &amp; International patent publications</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="p-3 rounded-4 h-100" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a;">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge bg-warning text-dark px-2 py-1"><i class="fas fa-file-signature me-1"></i>Filed / In-Process</span>
+                <i class="fas fa-clock text-warning fs-4"></i>
+              </div>
+              <div class="display-5 fw-bold text-warning-emphasis mb-1 display-font"><%= typeof patentStats !== 'undefined' ? patentStats.filedCount : 24 %></div>
+              <div class="fw-bold text-dark small">Filed Patents</div>
+              <div class="text-muted" style="font-size: 0.75rem;"><%= typeof patentStats !== 'undefined' ? patentStats.awaitingConfirmationCount : 10 %> under UCRD patent cell confirmation</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="p-3 rounded-4 h-100" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd;">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge bg-primary px-2 py-1"><i class="fas fa-lightbulb me-1"></i>Total Portfolio</span>
+                <i class="fas fa-atom text-primary fs-4"></i>
+              </div>
+              <div class="display-5 fw-bold text-primary mb-1 display-font"><%= typeof patentStats !== 'undefined' ? patentStats.total : 57 %></div>
+              <div class="fw-bold text-dark small">Total Inventions Registered</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Active research innovations across AI, Robotics &amp; IoT</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Patent Contributors Pill Bar -->
+        <% if (typeof patentStats !== 'undefined' && patentStats.topInventors && patentStats.topInventors.length > 0) { %>
+        <div class="mt-3 pt-3 border-top d-flex align-items-center gap-2 flex-wrap">
+          <span class="small fw-bold text-muted text-nowrap"><i class="fas fa-award text-warning me-1"></i>Lead Patent Inventors:</span>
+          <% patentStats.topInventors.forEach(inv => { %>
+            <a href="/patents?search=<%= encodeURIComponent(inv.name) %>" class="badge bg-light text-dark border text-decoration-none py-1 px-2 fw-semibold" style="font-size: 0.78rem;" title="View <%= inv.name %>'s Patents">
+              <i class="fas fa-user text-primary me-1"></i><%= inv.name %> <span class="badge bg-warning text-dark ms-1"><%= inv.count %> patents</span>
+            </a>
+          <% }) %>
+        </div>
+        <% } %>
       </div>
     </div>
   </section>

@@ -209,10 +209,36 @@ async function initDB() {
     );
   `);
 
+  // Patents table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS patents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sr_no INTEGER,
+      employee_code TEXT DEFAULT '',
+      faculty_name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      patent_number TEXT DEFAULT '',
+      application_number TEXT DEFAULT '',
+      filing_date TEXT DEFAULT '',
+      published_date TEXT DEFAULT '',
+      grant_date TEXT DEFAULT '',
+      inventors TEXT DEFAULT '',
+      assignee TEXT DEFAULT '',
+      country_office TEXT DEFAULT '',
+      ipc_classification TEXT DEFAULT '',
+      abstract TEXT DEFAULT '',
+      legal_status TEXT DEFAULT '',
+      proof_link TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
   backfillMasterAcademicYears();
   seedConferencesIfEmpty();
+  seedPatentsIfEmpty();
 
   saveDB();
   return db;
@@ -2696,7 +2722,17 @@ module.exports = {
   decideProfileRequest,
   deleteProfileRequest,
   computeAcademicSession,
-  backfillMasterAcademicYears
+  backfillMasterAcademicYears,
+  seedPatentsIfEmpty,
+  getAllPatents,
+  getPatentById,
+  addPatent,
+  updatePatent,
+  deletePatent,
+  deletePatentsMultiple,
+  getPatentStats,
+  importPatentsFromBuffer,
+  generatePatentsWorkbook
 };
 
 // ─── FACULTY DOCUMENTS FUNCTIONS ────────────────────────────────────────────
@@ -2900,4 +2936,520 @@ function deleteProfileRequest(id) {
   recordUndoState(`Deleted Profile Request #${id}`);
   db.run('DELETE FROM profile_requests WHERE id = ?', [Number(id)]);
   saveDB();
+}
+
+// ─── PATENTS FUNCTIONS ──────────────────────────────────────────────────────
+
+function seedPatentsIfEmpty(csvPath = path.join(__dirname, 'data', 'patents_initial.csv')) {
+  try {
+    const countRow = queryOne('SELECT COUNT(*) as c FROM patents');
+    if (countRow && countRow.c > 0) return;
+
+    if (!fs.existsSync(csvPath)) {
+      console.log('No patents_initial.csv found at:', csvPath);
+      return;
+    }
+
+    const xlsx = require('xlsx');
+    const content = fs.readFileSync(csvPath, 'utf8');
+    const wb = xlsx.read(content, { type: 'string', raw: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+    if (!rows || rows.length === 0) return;
+
+    // Detect header index
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(5, rows.length); i++) {
+      if (rows[i].some(c => String(c).toLowerCase().includes('patent title') || String(c).toLowerCase().includes('faculty name'))) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx === -1) headerIdx = 0;
+
+    const startIdx = headerIdx + 1;
+    let inserted = 0;
+
+    for (let i = startIdx; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || r.length === 0) continue;
+      const title = String(r[3] || '').replace(/\r?\n/g, ' ').trim();
+      const faculty = String(r[2] || '').trim();
+      if (!title && !faculty) continue;
+
+      const srNo = parseInt(r[0], 10) || (inserted + 1);
+      const ecode = String(r[1] || '').trim();
+      const patNum = String(r[4] || '').trim();
+      const appNum = String(r[5] || '').trim();
+      const filingDate = String(r[6] || '').trim();
+      const pubDate = String(r[7] || '').trim();
+      const grantDate = String(r[8] || '').trim();
+      const inventors = String(r[9] || '').trim();
+      const assignee = String(r[10] || '').trim();
+      const country = String(r[11] || '').trim();
+      const ipc = String(r[12] || '').trim();
+      const abstract = String(r[13] || '').replace(/\r?\n/g, ' ').trim();
+      const legalStatus = String(r[14] || '').trim();
+      const proofLink = String(r[15] || '').trim();
+
+      db.run(
+        `INSERT INTO patents (
+          sr_no, employee_code, faculty_name, title, patent_number,
+          application_number, filing_date, published_date, grant_date,
+          inventors, assignee, country_office, ipc_classification,
+          abstract, legal_status, proof_link
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          srNo, ecode, faculty, title, patNum,
+          appNum, filingDate, pubDate, grantDate,
+          inventors, assignee, country, ipc,
+          abstract, legalStatus, proofLink
+        ]
+      );
+      inserted++;
+    }
+
+    saveDB();
+    console.log(`Seeded ${inserted} patent records from ${csvPath}`);
+
+    // Generate initial Excel in public/downloads/UIC_Patent_Details.xlsx
+    try {
+      const dlDir = path.join(__dirname, 'public', 'downloads');
+      if (!fs.existsSync(dlDir)) fs.mkdirSync(dlDir, { recursive: true });
+      const dlPath = path.join(dlDir, 'UIC_Patent_Details.xlsx');
+      const allPatents = getAllPatents();
+      const expWb = generatePatentsWorkbook(allPatents);
+      xlsx.writeFile(expWb, dlPath);
+    } catch (e) {
+      console.warn('Could not write initial UIC_Patent_Details.xlsx:', e.message);
+    }
+  } catch (err) {
+    console.error('Error seeding patents:', err.message);
+  }
+}
+
+function getAllPatents(filters = {}) {
+  let sql = 'SELECT * FROM patents WHERE 1=1';
+  const params = [];
+
+  if (filters.search && filters.search.trim()) {
+    const q = `%${filters.search.trim().toLowerCase()}%`;
+    sql += ` AND (
+      LOWER(title) LIKE ? OR
+      LOWER(faculty_name) LIKE ? OR
+      LOWER(employee_code) LIKE ? OR
+      LOWER(application_number) LIKE ? OR
+      LOWER(patent_number) LIKE ? OR
+      LOWER(country_office) LIKE ? OR
+      LOWER(assignee) LIKE ? OR
+      LOWER(ipc_classification) LIKE ? OR
+      LOWER(legal_status) LIKE ? OR
+      LOWER(abstract) LIKE ?
+    )`;
+    params.push(q, q, q, q, q, q, q, q, q, q);
+  }
+
+  if (filters.status && filters.status !== 'all') {
+    const st = filters.status.toLowerCase();
+    if (st === 'published') {
+      sql += " AND (LOWER(legal_status) LIKE '%publish%' OR LOWER(legal_status) LIKE '%grant%')";
+    } else if (st === 'filed') {
+      sql += " AND (LOWER(legal_status) NOT LIKE '%publish%' OR legal_status IS NULL OR legal_status = '')";
+    } else if (st === 'waiting') {
+      sql += " AND (LOWER(legal_status) LIKE '%wait%' OR LOWER(legal_status) LIKE '%confirm%')";
+    } else if (st === 'granted') {
+      sql += " AND LOWER(legal_status) LIKE '%grant%'";
+    } else {
+      sql += ' AND LOWER(legal_status) = ?';
+      params.push(st);
+    }
+  }
+
+  if (filters.employee_code && filters.employee_code.trim()) {
+    sql += ' AND LOWER(employee_code) = ?';
+    params.push(filters.employee_code.trim().toLowerCase());
+  }
+
+  if (filters.faculty_name && filters.faculty_name.trim()) {
+    sql += ' AND LOWER(faculty_name) LIKE ?';
+    params.push(`%${filters.faculty_name.trim().toLowerCase()}%`);
+  }
+
+  sql += ' ORDER BY sr_no ASC, id ASC';
+  return queryAll(sql, params);
+}
+
+function getPatentById(id) {
+  return queryOne('SELECT * FROM patents WHERE id = ?', [Number(id)]);
+}
+
+function addPatent(data) {
+  recordUndoState(`Add Patent: ${(data.title || '').slice(0, 25)}`);
+
+  let nextSr = Number(data.sr_no);
+  if (!nextSr || isNaN(nextSr)) {
+    const maxRow = queryOne('SELECT MAX(sr_no) as max_sr FROM patents');
+    nextSr = maxRow && maxRow.max_sr ? maxRow.max_sr + 1 : 1;
+  }
+
+  db.run(
+    `INSERT INTO patents (
+      sr_no, employee_code, faculty_name, title, patent_number,
+      application_number, filing_date, published_date, grant_date,
+      inventors, assignee, country_office, ipc_classification,
+      abstract, legal_status, proof_link
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      nextSr,
+      String(data.employee_code || '').trim(),
+      String(data.faculty_name || '').trim(),
+      String(data.title || '').replace(/\r?\n/g, ' ').trim(),
+      String(data.patent_number || '').trim(),
+      String(data.application_number || '').trim(),
+      String(data.filing_date || '').trim(),
+      String(data.published_date || '').trim(),
+      String(data.grant_date || '').trim(),
+      String(data.inventors || '').trim(),
+      String(data.assignee || '').trim(),
+      String(data.country_office || '').trim(),
+      String(data.ipc_classification || '').trim(),
+      String(data.abstract || '').replace(/\r?\n/g, ' ').trim(),
+      String(data.legal_status || '').trim(),
+      String(data.proof_link || '').trim()
+    ]
+  );
+  saveDB();
+  const last = queryOne('SELECT last_insert_rowid() as id');
+  syncPatentsToDownloadExcel();
+  return last ? last.id : null;
+}
+
+function updatePatent(id, data) {
+  const existing = getPatentById(id);
+  if (!existing) throw new Error('Patent record not found');
+  recordUndoState(`Edit Patent: ${(existing.title || '').slice(0, 25)}`);
+
+  db.run(
+    `UPDATE patents SET
+      sr_no = ?, employee_code = ?, faculty_name = ?, title = ?, patent_number = ?,
+      application_number = ?, filing_date = ?, published_date = ?, grant_date = ?,
+      inventors = ?, assignee = ?, country_office = ?, ipc_classification = ?,
+      abstract = ?, legal_status = ?, proof_link = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [
+      data.sr_no !== undefined ? Number(data.sr_no) : existing.sr_no,
+      data.employee_code !== undefined ? String(data.employee_code).trim() : existing.employee_code,
+      data.faculty_name !== undefined ? String(data.faculty_name).trim() : existing.faculty_name,
+      data.title !== undefined ? String(data.title).replace(/\r?\n/g, ' ').trim() : existing.title,
+      data.patent_number !== undefined ? String(data.patent_number).trim() : existing.patent_number,
+      data.application_number !== undefined ? String(data.application_number).trim() : existing.application_number,
+      data.filing_date !== undefined ? String(data.filing_date).trim() : existing.filing_date,
+      data.published_date !== undefined ? String(data.published_date).trim() : existing.published_date,
+      data.grant_date !== undefined ? String(data.grant_date).trim() : existing.grant_date,
+      data.inventors !== undefined ? String(data.inventors).trim() : existing.inventors,
+      data.assignee !== undefined ? String(data.assignee).trim() : existing.assignee,
+      data.country_office !== undefined ? String(data.country_office).trim() : existing.country_office,
+      data.ipc_classification !== undefined ? String(data.ipc_classification).trim() : existing.ipc_classification,
+      data.abstract !== undefined ? String(data.abstract).replace(/\r?\n/g, ' ').trim() : existing.abstract,
+      data.legal_status !== undefined ? String(data.legal_status).trim() : existing.legal_status,
+      data.proof_link !== undefined ? String(data.proof_link).trim() : existing.proof_link,
+      Number(id)
+    ]
+  );
+  saveDB();
+  syncPatentsToDownloadExcel();
+  return getPatentById(id);
+}
+
+function deletePatent(id) {
+  const existing = getPatentById(id);
+  if (!existing) throw new Error('Patent record not found');
+  recordUndoState(`Delete Patent: ${(existing.title || '').slice(0, 25)}`);
+  db.run('DELETE FROM patents WHERE id = ?', [Number(id)]);
+  saveDB();
+  syncPatentsToDownloadExcel();
+  return existing;
+}
+
+function deletePatentsMultiple(ids = []) {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const cleanIds = ids.map(Number).filter(n => !isNaN(n) && n > 0);
+  if (cleanIds.length === 0) return 0;
+  recordUndoState(`Delete ${cleanIds.length} Patents`);
+  const placeholders = cleanIds.map(() => '?').join(',');
+  db.run(`DELETE FROM patents WHERE id IN (${placeholders})`, cleanIds);
+  saveDB();
+  syncPatentsToDownloadExcel();
+  return cleanIds.length;
+}
+
+function getPatentStats() {
+  const all = queryAll('SELECT * FROM patents ORDER BY sr_no ASC, id ASC');
+  const total = all.length;
+  let publishedCount = 0;
+  let filedCount = 0;
+  let grantedCount = 0;
+  let awaitingConfirmationCount = 0;
+
+  all.forEach(p => {
+    const s = String(p.legal_status || '').trim().toLowerCase();
+    if (s.includes('publish') || s.includes('grant')) {
+      publishedCount++;
+      if (s.includes('grant')) grantedCount++;
+    } else {
+      filedCount++;
+      if (s.includes('wait') || s.includes('confirm')) awaitingConfirmationCount++;
+    }
+  });
+
+  const invMap = {};
+  all.forEach(p => {
+    const name = (p.faculty_name || '').trim();
+    if (name) {
+      if (!invMap[name]) invMap[name] = { name, employee_code: p.employee_code || '', count: 0, published: 0, filed: 0 };
+      invMap[name].count++;
+      const s = String(p.legal_status || '').trim().toLowerCase();
+      if (s.includes('publish') || s.includes('grant')) {
+        invMap[name].published++;
+      } else {
+        invMap[name].filed++;
+      }
+    }
+  });
+
+  const topInventors = Object.values(invMap)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 8);
+
+  return {
+    total,
+    publishedCount,
+    filedCount,
+    grantedCount,
+    awaitingConfirmationCount,
+    topInventors
+  };
+}
+
+function generatePatentsWorkbook(patentsList = []) {
+  const xlsx = require('xlsx');
+  const list = patentsList.length > 0 ? patentsList : getAllPatents();
+
+  const aoa = [
+    ['UNIVERSITY INSTITUTE OF COMPUTING'],
+    ['Patent Details'],
+    [
+      'Sr. No.',
+      'E-Code',
+      'Faculty Name',
+      'Patent Title',
+      'Patent Number (e.g., US1234567B2)',
+      'Application Number',
+      'Filing Date',
+      'Published Date',
+      'Grant Date / Issue Date',
+      'Inventor(s)',
+      'Assignee / Owner',
+      'Patent Office / Country',
+      'IPC/CPC Classification',
+      'Abstract / Summary',
+      'Legal Status (Granted, Expired, etc.)',
+      'Proof Link'
+    ]
+  ];
+
+  list.forEach((p, idx) => {
+    aoa.push([
+      p.sr_no || (idx + 1),
+      p.employee_code || '',
+      p.faculty_name || '',
+      p.title || '',
+      p.patent_number || '',
+      p.application_number || '',
+      p.filing_date || '',
+      p.published_date || '',
+      p.grant_date || '',
+      p.inventors || '',
+      p.assignee || '',
+      p.country_office || '',
+      p.ipc_classification || '',
+      p.abstract || '',
+      p.legal_status || '',
+      p.proof_link || ''
+    ]);
+  });
+
+  const wb = xlsx.utils.book_new();
+  const ws = xlsx.utils.aoa_to_sheet(aoa);
+
+  ws['!cols'] = [
+    { wch: 8 },  // Sr. No.
+    { wch: 10 }, // E-Code
+    { wch: 24 }, // Faculty Name
+    { wch: 45 }, // Patent Title
+    { wch: 16 }, // Patent Number
+    { wch: 20 }, // Application Number
+    { wch: 14 }, // Filing Date
+    { wch: 14 }, // Published Date
+    { wch: 14 }, // Grant Date
+    { wch: 12 }, // Inventor(s)
+    { wch: 24 }, // Assignee / Owner
+    { wch: 16 }, // Country
+    { wch: 14 }, // IPC
+    { wch: 55 }, // Abstract
+    { wch: 22 }, // Legal Status
+    { wch: 45 }  // Proof Link
+  ];
+
+  xlsx.utils.book_append_sheet(wb, ws, 'Patent Details');
+  return wb;
+}
+
+function syncPatentsToDownloadExcel() {
+  try {
+    const xlsx = require('xlsx');
+    const dlDir = path.join(__dirname, 'public', 'downloads');
+    if (!fs.existsSync(dlDir)) fs.mkdirSync(dlDir, { recursive: true });
+    const dlPath = path.join(dlDir, 'UIC_Patent_Details.xlsx');
+    const allPatents = getAllPatents();
+    const wb = generatePatentsWorkbook(allPatents);
+    xlsx.writeFile(wb, dlPath);
+  } catch (err) {
+    console.error('Failed to sync UIC_Patent_Details.xlsx:', err.message);
+  }
+}
+
+function importPatentsFromBuffer(fileInput, mode = 'append') {
+  const xlsx = require('xlsx');
+  let wb;
+  if (Buffer.isBuffer(fileInput)) {
+    wb = xlsx.read(fileInput, { type: 'buffer', raw: true });
+  } else if (typeof fileInput === 'string' && fs.existsSync(fileInput)) {
+    wb = xlsx.read(fs.readFileSync(fileInput), { type: 'buffer', raw: true });
+  } else {
+    throw new Error('Invalid file input for patents import');
+  }
+
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const rows = xlsx.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+  if (!rows || rows.length === 0) throw new Error('Uploaded spreadsheet is empty');
+
+  // Detect header index
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    if (rows[i] && rows[i].some(c => {
+      const s = String(c).toLowerCase();
+      return s.includes('patent title') || s.includes('faculty name') || (s.includes('e-code') && s.includes('title'));
+    })) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) {
+    for (let i = 0; i < Math.min(10, rows.length); i++) {
+      if (rows[i] && rows[i].some(c => String(c).toLowerCase().includes('e-code') || String(c).toLowerCase().includes('application number'))) {
+        headerIdx = i;
+        break;
+      }
+    }
+  }
+  if (headerIdx === -1) headerIdx = 0;
+
+  const headerRow = rows[headerIdx].map(h => String(h || '').trim().toLowerCase());
+  const colMap = {
+    sr_no: headerRow.findIndex(h => h.includes('sr.') || h.includes('sr no') || h.includes('s.no')),
+    employee_code: headerRow.findIndex(h => h.includes('e-code') || h.includes('ecode') || h.includes('emp code') || h.includes('uid')),
+    faculty_name: headerRow.findIndex(h => h.includes('faculty name') || h.includes('faculty') || h.includes('name of faculty')),
+    title: headerRow.findIndex(h => h.includes('patent title') || h.includes('title')),
+    patent_number: headerRow.findIndex(h => h.includes('patent number') || h.includes('patent no')),
+    application_number: headerRow.findIndex(h => h.includes('application number') || h.includes('app no') || h.includes('application no')),
+    filing_date: headerRow.findIndex(h => h.includes('filing date') || h.includes('filing')),
+    published_date: headerRow.findIndex(h => h.includes('published date') || h.includes('publish date')),
+    grant_date: headerRow.findIndex(h => h.includes('grant date') || h.includes('issue date')),
+    inventors: headerRow.findIndex(h => h.includes('inventor')),
+    assignee: headerRow.findIndex(h => h.includes('assignee') || h.includes('owner')),
+    country_office: headerRow.findIndex(h => h.includes('patent office') || h.includes('country')),
+    ipc_classification: headerRow.findIndex(h => h.includes('ipc') || h.includes('cpc') || h.includes('classification')),
+    abstract: headerRow.findIndex(h => h.includes('abstract') || h.includes('summary')),
+    legal_status: headerRow.findIndex(h => h.includes('legal status') || h.includes('status')),
+    proof_link: headerRow.findIndex(h => h.includes('proof') || h.includes('link') || h.includes('url'))
+  };
+
+  if (colMap.sr_no === -1) colMap.sr_no = 0;
+  if (colMap.employee_code === -1) colMap.employee_code = 1;
+  if (colMap.faculty_name === -1) colMap.faculty_name = 2;
+  if (colMap.title === -1) colMap.title = 3;
+  if (colMap.patent_number === -1) colMap.patent_number = 4;
+  if (colMap.application_number === -1) colMap.application_number = 5;
+  if (colMap.filing_date === -1) colMap.filing_date = 6;
+  if (colMap.published_date === -1) colMap.published_date = 7;
+  if (colMap.grant_date === -1) colMap.grant_date = 8;
+  if (colMap.inventors === -1) colMap.inventors = 9;
+  if (colMap.assignee === -1) colMap.assignee = 10;
+  if (colMap.country_office === -1) colMap.country_office = 11;
+  if (colMap.ipc_classification === -1) colMap.ipc_classification = 12;
+  if (colMap.abstract === -1) colMap.abstract = 13;
+  if (colMap.legal_status === -1) colMap.legal_status = 14;
+  if (colMap.proof_link === -1) colMap.proof_link = 15;
+
+  recordUndoState(`Upload Patents Excel (${mode === 'replace' ? 'Replace' : 'Append'})`);
+
+  if (mode === 'replace') {
+    db.run('DELETE FROM patents');
+  }
+
+  let maxSr = 0;
+  if (mode === 'append') {
+    const maxRow = queryOne('SELECT MAX(sr_no) as max_sr FROM patents');
+    maxSr = maxRow && maxRow.max_sr ? maxRow.max_sr : 0;
+  }
+
+  let importedCount = 0;
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.length === 0) continue;
+
+    const title = String(r[colMap.title] || '').replace(/\r?\n/g, ' ').trim();
+    const faculty = String(r[colMap.faculty_name] || '').trim();
+    if (!title && !faculty) continue;
+
+    const rawSr = parseInt(r[colMap.sr_no], 10);
+    const srNo = !isNaN(rawSr) && rawSr > 0 ? (mode === 'replace' ? rawSr : (rawSr > maxSr ? rawSr : ++maxSr)) : ++maxSr;
+    const ecode = String(r[colMap.employee_code] || '').trim();
+    const patNum = String(r[colMap.patent_number] || '').trim();
+    const appNum = String(r[colMap.application_number] || '').trim();
+    const filingDate = String(r[colMap.filing_date] || '').trim();
+    const pubDate = String(r[colMap.published_date] || '').trim();
+    const grantDate = String(r[colMap.grant_date] || '').trim();
+    const inventors = String(r[colMap.inventors] || '').trim();
+    const assignee = String(r[colMap.assignee] || '').trim();
+    const country = String(r[colMap.country_office] || '').trim();
+    const ipc = String(r[colMap.ipc_classification] || '').trim();
+    const abstract = String(r[colMap.abstract] || '').replace(/\r?\n/g, ' ').trim();
+    const legalStatus = String(r[colMap.legal_status] || '').trim();
+    const proofLink = String(r[colMap.proof_link] || '').trim();
+
+    db.run(
+      `INSERT INTO patents (
+        sr_no, employee_code, faculty_name, title, patent_number,
+        application_number, filing_date, published_date, grant_date,
+        inventors, assignee, country_office, ipc_classification,
+        abstract, legal_status, proof_link
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        srNo, ecode, faculty, title, patNum,
+        appNum, filingDate, pubDate, grantDate,
+        inventors, assignee, country, ipc,
+        abstract, legalStatus, proofLink
+      ]
+    );
+    importedCount++;
+  }
+
+  saveDB();
+  syncPatentsToDownloadExcel();
+  return { importedCount, mode };
 }

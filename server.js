@@ -466,6 +466,7 @@ app.get('/', (req, res) => {
 
     const memberStats = db.getMemberBifurcationStats(faculty);
     const pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
+    const patentStats = db.getPatentStats();
 
     res.render('home', {
       totalFaculty,
@@ -484,6 +485,7 @@ app.get('/', (req, res) => {
       allYearsTopPerformers,
       topPerformers,
       pendingDocCount,
+      patentStats,
       query: req.query
     });
   } catch (err) {
@@ -850,6 +852,142 @@ app.post('/conferences/delete-multiple', requireAdmin, (req, res) => {
     res.redirect('/conferences?deleted_multiple=' + count);
   } catch (err) {
     res.redirect('/conferences?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PATENTS & IPR REPOSITORY ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Main Patents Directory Page
+app.get('/patents', (req, res) => {
+  try {
+    const filters = {
+      search: req.query.search || '',
+      status: req.query.status || 'all',
+      faculty_name: req.query.faculty_name || '',
+      employee_code: req.query.employee_code || ''
+    };
+    const patents = db.getAllPatents(filters);
+    const stats = db.getPatentStats();
+    res.render('patents', {
+      patents,
+      stats,
+      filters,
+      query: req.query
+    });
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Download Patents Excel / CSV (Full or Filtered matching the sheet format)
+app.get('/patents/download', (req, res) => {
+  try {
+    const format = req.query.format || 'xlsx';
+    const filters = {
+      search: req.query.search || '',
+      status: req.query.status || 'all',
+      faculty_name: req.query.faculty_name || '',
+      employee_code: req.query.employee_code || ''
+    };
+    const isFiltered = req.query.filtered === '1';
+    const patents = isFiltered ? db.getAllPatents(filters) : db.getAllPatents();
+    const wb = db.generatePatentsWorkbook(patents);
+    const xlsx = require('xlsx');
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = isFiltered ? `UIC_Patent_Details_Filtered_${timestamp}` : `UIC_Patent_Details_${timestamp}`;
+
+    if (format === 'csv') {
+      const csvStr = xlsx.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+      return res.send(csvStr);
+    }
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).send('Error generating patent export: ' + err.message);
+  }
+});
+
+// Admin Upload Patents Excel / CSV
+app.post('/patents/upload', requireAdmin, upload.single('patents_file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.redirect('/patents?upload_err=' + encodeURIComponent('No file selected. Please choose a spreadsheet.'));
+    }
+    const mode = req.body.upload_mode || 'append';
+    const result = db.importPatentsFromBuffer(req.file.path, mode);
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
+    res.redirect('/patents?uploaded=' + encodeURIComponent(result.importedCount) + '&mode=' + encodeURIComponent(mode));
+  } catch (err) {
+    if (req.file && req.file.path) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.redirect('/patents?upload_err=' + encodeURIComponent(err.message));
+  }
+});
+
+// API Get single patent (JSON for Edit Modal)
+app.get('/api/patents/:id', (req, res) => {
+  try {
+    const patent = db.getPatentById(req.params.id);
+    if (!patent) return res.status(404).json({ ok: false, error: 'Patent not found' });
+    res.json({ ok: true, patent });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin Add Single Patent
+app.post('/patents/add', requireAdmin, (req, res) => {
+  try {
+    db.addPatent(req.body);
+    res.redirect('/patents?added=1');
+  } catch (err) {
+    res.redirect('/patents?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Edit Patent
+app.post('/patents/:id/edit', requireAdmin, (req, res) => {
+  try {
+    db.updatePatent(req.params.id, req.body);
+    res.redirect('/patents?edited=1');
+  } catch (err) {
+    res.redirect('/patents?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Delete Single Patent
+app.post('/patents/:id/delete', requireAdmin, (req, res) => {
+  try {
+    db.deletePatent(req.params.id);
+    res.redirect('/patents?deleted=1');
+  } catch (err) {
+    res.redirect('/patents?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Delete Multiple Patents
+app.post('/patents/delete-multiple', requireAdmin, (req, res) => {
+  try {
+    let ids = req.body.ids;
+    if (typeof ids === 'string') {
+      ids = ids.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.redirect('/patents?err=' + encodeURIComponent('No patents selected for deletion.'));
+    }
+    const count = db.deletePatentsMultiple(ids);
+    res.redirect('/patents?deleted_multiple=' + count);
+  } catch (err) {
+    res.redirect('/patents?err=' + encodeURIComponent(err.message));
   }
 });
 

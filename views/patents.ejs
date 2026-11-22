@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patents &amp; Inventions Directory — UIC Research Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    .display-font { font-family: 'Outfit', sans-serif; }
+    .cu-topbar {
+      background: #0f172a;
+      color: #94a3b8;
+      font-size: 0.8rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .home-navbar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .brand-logo-badge {
+      background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border-radius: 8px;
+    }
+    .page-hero-patents {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #ffffff;
+      padding: 2.2rem 0;
+      border-bottom: 3px solid #f59e0b;
+      position: relative;
+    }
+    .patents-stat-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+      transition: all 0.2s ease-in-out;
+      height: 100%;
+    }
+    .patents-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+      border-color: #cbd5e1;
+    }
+    .status-badge-published {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      font-weight: 700;
+    }
+    .status-badge-filed {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      font-weight: 700;
+    }
+    .status-badge-waiting {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      font-weight: 600;
+    }
+    .status-badge-granted {
+      background-color: #ccfbf1;
+      color: #0f766e;
+      border: 1px solid #5eead4;
+      font-weight: 700;
+    }
+    .status-badge-other {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .patent-table thead th {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.85rem 0.65rem;
+      vertical-align: middle;
+      border-bottom: none;
+      white-space: nowrap;
+    }
+    .patent-table tbody td {
+      padding: 0.75rem 0.65rem;
+      vertical-align: middle;
+      font-size: 0.83rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .patent-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+    .patent-title-cell {
+      min-width: 260px;
+      max-width: 380px;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.35;
+    }
+    .abstract-clamp {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 0.78rem;
+      color: #64748b;
+      line-height: 1.35;
+    }
+    .btn-proof-link {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: all 0.15s;
+    }
+    .btn-proof-link:hover {
+      background: #1d4ed8;
+      color: #fff;
+      border-color: #1d4ed8;
+    }
+    .filter-pill-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 9999px;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .filter-pill-btn:hover, .filter-pill-btn.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Top bar -->
+  <div class="cu-topbar">
+    <div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <span><i class="fas fa-university me-1 text-danger"></i> Chandigarh University &bull; NAAC A+ Accredited</span>
+        <span class="d-none d-md-inline text-secondary">|</span>
+        <span class="d-none d-md-inline"><i class="fas fa-certificate me-1 text-warning"></i> UIC Patents &amp; Intellectual Property (IPR) Cell</span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <a href="/publications" class="text-white text-decoration-none small"><i class="fas fa-book-open me-1 text-danger"></i> Publications</a>
+        <a href="/conferences" class="text-white text-decoration-none small"><i class="fas fa-calendar-alt me-1 text-warning"></i> Conferences</a>
+        <a href="/portal" class="text-white text-decoration-none small"><i class="fas fa-database me-1"></i> Faculty Directory</a>
+        <% if (isAdmin) { %>
+          <span class="badge bg-success"><i class="fas fa-user-shield me-1"></i> Admin Logged In</span>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Main Navbar -->
+  <nav class="navbar navbar-expand-lg home-navbar py-2 sticky-top">
+    <div class="container-fluid px-3 px-lg-4">
+      <a class="navbar-brand d-flex align-items-center gap-2 text-nowrap" href="/">
+        <div class="brand-logo-badge py-1 px-2 fs-6">
+          <i class="fas fa-laptop-code me-1"></i> UIC
+        </div>
+        <div>
+          <div class="fw-bold fs-6 text-dark lh-1 display-font">UIC Research Portal</div>
+          <div class="text-muted" style="font-size: 0.68rem; letter-spacing: 0.2px;">
+            University Institute of Computing &bull; Chandigarh University
+          </div>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navPatents">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navPatents">
+        <ul class="navbar-nav ms-auto align-items-center gap-1 gap-xl-2 my-2 my-lg-0" style="font-size: 0.88rem;">
+          <!-- Research Menu -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle fw-bold text-dark px-2" href="#" id="patResearchDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-flask text-danger me-1"></i> Research
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2 rounded-3" style="min-width: 250px;">
+              <li><a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#overview"><i class="fas fa-chart-pie text-secondary me-2 fa-fw"></i> Research Overview</a></li>
+              <li><a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#leadership"><i class="fas fa-users-cog text-danger me-2 fa-fw"></i> My Director and Heads</a></li>
+              <li><a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#coordinator"><i class="fas fa-user-tie text-success me-2 fa-fw"></i> Research Coordinator</a></li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-danger d-flex align-items-center justify-content-between" href="/publications">
+                  <span><i class="fas fa-book-open text-danger me-2 fa-fw"></i> Publications</span>
+                  <span class="badge bg-danger rounded-pill small">Online DB</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-primary d-flex align-items-center justify-content-between" href="/conferences">
+                  <span><i class="fas fa-calendar-alt text-primary me-2 fa-fw"></i> Upcoming Conferences</span>
+                  <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill small">Indexed</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-bold text-warning active d-flex align-items-center justify-content-between" href="/patents">
+                  <span><i class="fas fa-certificate text-warning me-2 fa-fw"></i> Patents &amp; Inventions</span>
+                  <span class="badge bg-warning text-dark rounded-pill small">Current Tab</span>
+                </a>
+              </li>
+            </ul>
+          </li>
+
+          <!-- My Campus Menu -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle fw-bold text-dark px-2" href="#" id="patCampusDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-university text-primary me-1"></i> My Campus
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2 rounded-3" style="min-width: 230px;">
+              <li><a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#campus"><i class="fas fa-building text-secondary me-2 fa-fw"></i> Campus Infrastructure</a></li>
+              <li><a class="dropdown-item py-2 px-3 fw-bold text-danger" href="/#monthly-ros"><i class="fas fa-chart-line text-danger me-2 fa-fw"></i> ROS &amp; Growth</a></li>
+              <li><a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/#top-performers"><i class="fas fa-trophy text-warning me-2 fa-fw"></i> Top Performers</a></li>
+            </ul>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link fw-semibold text-dark text-nowrap px-2" href="/portal">
+              <i class="fas fa-users me-1 text-primary"></i>Faculty Directory
+            </a>
+          </li>
+
+          <li class="nav-item ms-lg-2">
+            <a href="/patents/download" class="btn btn-success btn-sm fw-bold px-3 py-2 shadow-sm rounded-pill text-nowrap" title="Download Excel (.xlsx) exactly as in sheet">
+              <i class="fas fa-file-excel me-1"></i> Download Excel (.xlsx)
+            </a>
+          </li>
+
+          <% if (isAdmin) { %>
+            <li class="nav-item ms-lg-1">
+              <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-warning btn-sm fw-bold py-2 px-3 text-nowrap text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadPatentsModal">
+                  <i class="fas fa-cloud-upload-alt me-1"></i> Upload Patents Sheet
+                </button>
+                <button type="button" class="btn btn-primary btn-sm fw-bold py-2 px-3 text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#addPatentModal">
+                  <i class="fas fa-plus me-1"></i> Add Patent
+                </button>
+                <form action="/admin/logout" method="POST" class="d-inline">
+                  <input type="hidden" name="return_to" value="/patents">
+                  <button type="submit" class="btn btn-outline-danger btn-sm fw-bold py-2 px-2" title="Logout from Admin Mode">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+          <% } else { %>
+            <li class="nav-item ms-lg-1">
+              <button class="btn btn-outline-primary btn-sm fw-bold py-2 px-3 rounded-pill text-nowrap" data-bs-toggle="modal" data-bs-target="#adminLoginModal">
+                <i class="fas fa-lock me-1"></i> Admin Login
+              </button>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 3. Hero Header Section -->
+  <div class="page-hero-patents">
+    <div class="container-fluid px-3 px-lg-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-warning text-dark fw-bold px-3 py-1">
+              <i class="fas fa-certificate me-1"></i> University Institute of Computing
+            </span>
+            <span class="badge bg-white bg-opacity-15 text-light border border-white border-opacity-25 px-2 py-1 small">
+              Official Master Patent Dataset
+            </span>
+          </div>
+          <h1 class="display-6 fw-bold mb-1 text-white display-font">
+            Department Patent Details &amp; IPR Repository
+          </h1>
+          <p class="text-light opacity-75 mb-0" style="max-width: 820px; font-size: 0.95rem;">
+            Online repository displaying the exact master patent dataset of UIC. Filter by status, search by faculty or title, download the complete Excel sheet, and upload updates.
+          </p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a href="/patents/download" class="btn btn-success fw-bold px-3 py-2 shadow rounded-pill">
+            <i class="fas fa-download me-1"></i> Download Excel (.xlsx)
+          </a>
+          <a href="/patents/download?format=csv" class="btn btn-outline-light fw-bold px-3 py-2 rounded-pill">
+            <i class="fas fa-file-csv me-1"></i> Download CSV
+          </a>
+          <% if (isAdmin) { %>
+            <button class="btn btn-warning fw-bold text-dark px-3 py-2 rounded-pill shadow" data-bs-toggle="modal" data-bs-target="#uploadPatentsModal">
+              <i class="fas fa-file-import me-1"></i> Upload Sheet
+            </button>
+            <button class="btn btn-primary fw-bold px-3 py-2 rounded-pill shadow" data-bs-toggle="modal" data-bs-target="#addPatentModal">
+              <i class="fas fa-plus me-1"></i> Add Entry
+            </button>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="container-fluid px-3 px-lg-4 py-4">
+
+    <!-- Flash Alerts -->
+    <% if (query.added) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2 fs-5 align-middle"></i>
+        <strong>Patent Added!</strong> The new patent entry has been successfully recorded into the official database.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.edited) { %>
+      <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-edit me-2 fs-5 align-middle"></i>
+        <strong>Patent Updated!</strong> Changes have been saved successfully and synced with the downloadable Excel sheet.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.deleted) { %>
+      <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-trash me-2 fs-5 align-middle"></i>
+        <strong>Patent Deleted!</strong> The patent record has been removed from the database.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.deleted_multiple) { %>
+      <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-trash-alt me-2 fs-5 align-middle"></i>
+        <strong>Bulk Delete Complete!</strong> Successfully deleted <strong><%= query.deleted_multiple %></strong> patent entries.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.uploaded) { %>
+      <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-cloud-upload-alt me-2 fs-5 align-middle"></i>
+        <strong>Spreadsheet Uploaded!</strong> Successfully processed <strong><%= query.uploaded %></strong> patent records (<%= query.mode === 'replace' ? 'Table Replaced' : 'Appended' %>).
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+    <% if (query.upload_err || query.err) { %>
+      <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-exclamation-triangle me-2 fs-5 align-middle"></i>
+        <strong>Error:</strong> <%= query.upload_err || query.err %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+
+    <!-- 4 Key Metric Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="patents-stat-card border-primary border-opacity-25">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-uppercase fw-bold text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Total Patents</span>
+            <div class="p-2 rounded-circle bg-primary bg-opacity-10 text-primary fs-5"><i class="fas fa-certificate"></i></div>
+          </div>
+          <div class="display-6 fw-bold text-primary display-font mb-1"><%= stats.total %></div>
+          <div class="small text-muted">Complete master dataset</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="patents-stat-card border-success border-opacity-25">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-uppercase fw-bold text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Published &amp; Granted</span>
+            <div class="p-2 rounded-circle bg-success bg-opacity-10 text-success fs-5"><i class="fas fa-stamp"></i></div>
+          </div>
+          <div class="display-6 fw-bold text-success display-font mb-1"><%= stats.publishedCount %></div>
+          <div class="small text-muted"><%= stats.grantedCount %> officially granted</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="patents-stat-card border-warning border-opacity-25">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-uppercase fw-bold text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">Filed / In-Process</span>
+            <div class="p-2 rounded-circle bg-warning bg-opacity-10 text-warning fs-5"><i class="fas fa-file-signature"></i></div>
+          </div>
+          <div class="display-6 fw-bold text-warning-emphasis display-font mb-1"><%= stats.filedCount %></div>
+          <div class="small text-muted">Applications in pipeline</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="patents-stat-card border-info border-opacity-25">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-uppercase fw-bold text-muted" style="font-size:0.75rem; letter-spacing:0.05em;">UCRD Confirmation</span>
+            <div class="p-2 rounded-circle bg-info bg-opacity-10 text-info fs-5"><i class="fas fa-clock"></i></div>
+          </div>
+          <div class="display-6 fw-bold text-info display-font mb-1"><%= stats.awaitingConfirmationCount %></div>
+          <div class="small text-muted">Awaiting patent cell review</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Filters, Search & Bulk Actions Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+      <div class="card-body p-3 p-md-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-12 col-lg-5">
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search"></i></span>
+              <input type="text" id="liveSearchPatents" class="form-control border-start-0 ps-0" placeholder="Search by title, faculty name, E-code, application no, IPC..." value="<%= filters.search || '' %>" onkeyup="filterPatentsTable()">
+              <button class="btn btn-outline-secondary" type="button" onclick="clearPatentSearch()" title="Clear search"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+          <div class="col-12 col-lg-7 d-flex align-items-center justify-content-lg-end gap-2 flex-wrap">
+            <span class="small fw-bold text-muted me-1"><i class="fas fa-filter me-1 text-primary"></i>Status:</span>
+            <button type="button" class="filter-pill-btn <%= (!filters.status || filters.status === 'all') ? 'active' : '' %>" data-status-filter="all" onclick="setPatentStatusFilter('all', this)">
+              All (<%= stats.total %>)
+            </button>
+            <button type="button" class="filter-pill-btn <%= filters.status === 'published' ? 'active' : '' %>" data-status-filter="published" onclick="setPatentStatusFilter('published', this)">
+              <span class="badge bg-success me-1"><%= stats.publishedCount %></span> Published
+            </button>
+            <button type="button" class="filter-pill-btn <%= filters.status === 'filed' ? 'active' : '' %>" data-status-filter="filed" onclick="setPatentStatusFilter('filed', this)">
+              <span class="badge bg-warning text-dark me-1"><%= stats.filedCount %></span> Filed / In-Process
+            </button>
+            <button type="button" class="filter-pill-btn <%= filters.status === 'waiting' ? 'active' : '' %>" data-status-filter="waiting" onclick="setPatentStatusFilter('waiting', this)">
+              <span class="badge bg-info text-dark me-1"><%= stats.awaitingConfirmationCount %></span> Waiting UCRD
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetAllPatentFilters()">
+              <i class="fas fa-undo me-1"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2 text-muted small">
+          <div>
+            Showing <strong id="visibleCountText" class="text-primary"><%= patents.length %></strong> of <strong><%= stats.total %></strong> patent records
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-3" onclick="exportFilteredPatentsTable()">
+              <i class="fas fa-file-export me-1"></i> Export Filtered Table (.xlsx)
+            </button>
+            <a href="/patents/download" class="btn btn-sm btn-outline-success py-1 px-3">
+              <i class="fas fa-download me-1"></i> Download Full Master (.xlsx)
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (isAdmin) { %>
+    <!-- Bulk Action Toolbar (Admin Only) -->
+    <form id="bulkDeletePatentsForm" action="/patents/delete-multiple" method="POST">
+      <input type="hidden" name="ids" id="bulkDeletePatentsIdsInput" value="">
+    </form>
+    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white" id="patentBulkBar" style="display: none;">
+      <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge bg-primary px-3 py-1 fs-6">
+            <span id="selectedPatentsCount">0</span> Patents Selected
+          </span>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button type="button" class="btn btn-danger btn-sm fw-bold" onclick="executeBulkDeletePatents()">
+            <i class="fas fa-trash-alt me-1"></i> Delete Selected Patents (<span id="deleteSelectedBtnCount">0</span>)
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearPatentSelections()">
+            Cancel Selection
+          </button>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- 6. Main Patents Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+      <div class="table-responsive" style="max-height: 750px;">
+        <table class="table patent-table align-middle mb-0" id="patentsTable">
+          <thead>
+            <tr>
+              <% if (isAdmin) { %>
+                <th style="width: 3%;" class="text-center">
+                  <input type="checkbox" id="selectAllPatents" class="form-check-input" title="Select All Visible">
+                </th>
+              <% } %>
+              <th style="width: 3%;" class="text-center">Sr. No.</th>
+              <th style="width: 7%;">E-Code</th>
+              <th style="width: 13%;">Faculty Name</th>
+              <th style="width: 25%;">Patent Title</th>
+              <th style="width: 8%;">App No.</th>
+              <th style="width: 7%;">Patent No.</th>
+              <th style="width: 7%;">Filing Date</th>
+              <th style="width: 7%;">Published Date</th>
+              <th style="width: 7%;">Grant Date</th>
+              <th style="width: 4%;" class="text-center">Inv</th>
+              <th style="width: 7%;">Country / Office</th>
+              <th style="width: 8%;" class="text-center">Legal Status</th>
+              <th style="width: 5%;" class="text-center">Abstract</th>
+              <th style="width: 6%;" class="text-center">Proof</th>
+              <% if (isAdmin) { %>
+                <th style="width: 7%;" class="text-end">Actions</th>
+              <% } %>
+            </tr>
+          </thead>
+          <tbody id="patentsTableBody">
+            <% if (patents.length === 0) { %>
+              <tr id="noPatentsRow">
+                <td colspan="<%= isAdmin ? 17 : 15 %>" class="text-center py-5 text-muted">
+                  <i class="fas fa-certificate fa-3x mb-3 text-secondary opacity-50"></i>
+                  <h5 class="fw-bold">No Patents Found</h5>
+                  <p class="small mb-0">No patent records matched your search or filter parameters.</p>
+                </td>
+              </tr>
+            <% } else { %>
+              <% patents.forEach((p, idx) => {
+                const s = String(p.legal_status || '').trim().toLowerCase();
+                let statusBadgeClass = 'status-badge-other';
+                let statusLabel = p.legal_status || '—';
+                let isPub = false;
+                if (s.includes('publish') && s.includes('grant')) {
+                  statusBadgeClass = 'status-badge-granted';
+                  statusLabel = 'Published & Granted';
+                  isPub = true;
+                } else if (s.includes('grant')) {
+                  statusBadgeClass = 'status-badge-granted';
+                  statusLabel = 'Granted';
+                  isPub = true;
+                } else if (s.includes('publish')) {
+                  statusBadgeClass = 'status-badge-published';
+                  statusLabel = 'Published';
+                  isPub = true;
+                } else if (s.includes('wait') || s.includes('confirm')) {
+                  statusBadgeClass = 'status-badge-waiting';
+                  statusLabel = 'Waiting UCRD Confirmation';
+                } else if (s.includes('file') || s.includes('fill')) {
+                  statusBadgeClass = 'status-badge-filed';
+                  statusLabel = 'Filed';
+                } else if (!p.legal_status) {
+                  statusBadgeClass = 'status-badge-filed';
+                  statusLabel = 'In-Process';
+                }
+              %>
+                <tr class="patent-row-item"
+                    data-id="<%= p.id %>"
+                    data-sr="<%= p.sr_no %>"
+                    data-ecode="<%= (p.employee_code || '').toLowerCase() %>"
+                    data-faculty="<%= (p.faculty_name || '').toLowerCase() %>"
+                    data-title="<%= (p.title || '').toLowerCase() %>"
+                    data-app="<%= (p.application_number || '').toLowerCase() %>"
+                    data-patno="<%= (p.patent_number || '').toLowerCase() %>"
+                    data-country="<%= (p.country_office || '').toLowerCase() %>"
+                    data-status="<%= (p.legal_status || '').toLowerCase() %>"
+                    data-ispub="<%= isPub ? '1' : '0' %>">
+                  <% if (isAdmin) { %>
+                    <td class="text-center">
+                      <input type="checkbox" class="form-check-input patent-select-cb" value="<%= p.id %>" onchange="updatePatentSelectionCount()">
+                    </td>
+                  <% } %>
+                  <td class="text-center fw-bold text-muted serial-index-col"><%= p.sr_no || (idx + 1) %></td>
+                  <td>
+                    <span class="badge bg-light text-primary border font-monospace px-2 py-1"><%= p.employee_code || '—' %></span>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark"><%= p.faculty_name %></div>
+                    <% if (p.assignee && p.assignee !== p.faculty_name) { %>
+                      <div class="text-muted" style="font-size:0.7rem;"><i class="fas fa-building me-1"></i><%= p.assignee %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="patent-title-cell">
+                      <%= p.title %>
+                    </div>
+                    <% if (p.ipc_classification && p.ipc_classification !== 'Ongoing') { %>
+                      <div class="text-muted mt-1" style="font-size:0.7rem;">
+                        <span class="badge bg-secondary-subtle text-secondary border">IPC: <%= p.ipc_classification %></span>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td class="font-monospace small"><%= p.application_number || '—' %></td>
+                  <td class="font-monospace small"><%= p.patent_number || '—' %></td>
+                  <td class="small text-nowrap"><%= p.filing_date || '—' %></td>
+                  <td class="small text-nowrap"><%= p.published_date || '—' %></td>
+                  <td class="small text-nowrap"><%= p.grant_date || '—' %></td>
+                  <td class="text-center small"><%= p.inventors || '—' %></td>
+                  <td class="small"><%= p.country_office || 'INDIA' %></td>
+                  <td class="text-center">
+                    <span class="badge <%= statusBadgeClass %> px-2 py-1" style="font-size:0.72rem;">
+                      <%= statusLabel %>
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <% if (p.abstract && p.abstract.trim()) { %>
+                      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.75rem;" onclick="viewPatentAbstract(<%= p.id %>)" title="View Abstract">
+                        <i class="fas fa-file-alt"></i>
+                      </button>
+                      <div id="abstract_data_<%= p.id %>" class="d-none"><%= p.abstract %></div>
+                      <div id="title_data_<%= p.id %>" class="d-none"><%= p.title %></div>
+                    <% } else { %>
+                      <span class="text-muted">—</span>
+                    <% } %>
+                  </td>
+                  <td class="text-center">
+                    <% if (p.proof_link && p.proof_link.trim().startsWith('http')) { %>
+                      <a href="<%= p.proof_link.trim() %>" target="_blank" rel="noopener noreferrer" class="btn-proof-link" title="Open Patent Proof">
+                        <i class="fas fa-external-link-alt"></i> Proof
+                      </a>
+                    <% } else { %>
+                      <span class="text-muted">—</span>
+                    <% } %>
+                  </td>
+                  <% if (isAdmin) { %>
+                    <td class="text-end text-nowrap">
+                      <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:0.78rem;" onclick="openEditPatentModal(<%= p.id %>)" title="Edit Patent">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <form action="/patents/<%= p.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Delete this patent entry? This cannot be undone.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:0.78rem;" title="Delete Patent">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODALS -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Modal 1: Abstract Viewer Modal -->
+  <div class="modal fade" id="abstractModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h6 class="modal-title fw-bold" id="abstractModalTitle">Patent Abstract / Summary</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <h5 class="fw-bold text-dark mb-3" id="abstractPatentTitleDisplay"></h5>
+          <div class="p-3 bg-light rounded-3 border" style="font-size: 0.92rem; line-height: 1.6; color: #334155; white-space: pre-wrap;" id="abstractModalBody"></div>
+        </div>
+        <div class="modal-footer bg-light py-2">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (isAdmin) { %>
+  <!-- Modal 2: Upload Patents Sheet Modal -->
+  <div class="modal fade" id="uploadPatentsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <form action="/patents/upload" method="POST" enctype="multipart/form-data">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title fw-bold"><i class="fas fa-file-import me-2"></i>Upload Patents Spreadsheet</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="text-muted small mb-3">
+              Upload an Excel (.xlsx, .xls) or CSV spreadsheet containing UIC patent details. The columns should match the official sheet format.
+            </p>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Select Spreadsheet File <span class="text-danger">*</span></label>
+              <input type="file" name="patents_file" class="form-control" accept=".xlsx, .xls, .csv" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Upload Action Mode</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="upload_mode" id="modeAppend" value="append" checked>
+                <label class="form-check-label" for="modeAppend">
+                  <strong>Append to existing data</strong> (keeps existing entries and appends new ones)
+                </label>
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="radio" name="upload_mode" id="modeReplace" value="replace">
+                <label class="form-check-label text-danger" for="modeReplace">
+                  <strong>Replace entire table</strong> (erases current table and imports only rows from file)
+                </label>
+              </div>
+            </div>
+            <div class="p-3 bg-light rounded-3 border small text-muted">
+              <i class="fas fa-info-circle text-primary me-1"></i>
+              You can download the template or current dataset using the <strong>Download Excel</strong> button anytime.
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-warning fw-bold text-dark"><i class="fas fa-upload me-1"></i>Process &amp; Upload Sheet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add Single Patent Modal -->
+  <div class="modal fade" id="addPatentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow">
+        <form action="/patents/add" method="POST">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Add New Patent Entry</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label fw-bold small">Sr. No.</label>
+                <input type="number" name="sr_no" class="form-control form-control-sm" placeholder="Auto" value="<%= stats.total + 1 %>">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Employee Code (E-Code)</label>
+                <input type="text" name="employee_code" class="form-control form-control-sm" placeholder="e.g. E19025">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Faculty Name <span class="text-danger">*</span></label>
+                <input type="text" name="faculty_name" class="form-control form-control-sm" placeholder="e.g. Prabhat Kumar Ravi" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Assignee / Owner</label>
+                <input type="text" name="assignee" class="form-control form-control-sm" placeholder="e.g. Chandigarh University">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-bold small">Patent Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" placeholder="Enter complete patent invention title" required>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Application Number</label>
+                <input type="text" name="application_number" class="form-control form-control-sm" placeholder="e.g. 202611064615">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Patent Number (if granted)</label>
+                <input type="text" name="patent_number" class="form-control form-control-sm" placeholder="e.g. US1234567B2 or Ongoing">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Patent Office / Country</label>
+                <input type="text" name="country_office" class="form-control form-control-sm" placeholder="e.g. INDIA, UK, USA" value="INDIA">
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Filing Date</label>
+                <input type="text" name="filing_date" class="form-control form-control-sm" placeholder="YYYY-MM-DD or DD/MM/YYYY">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Published Date</label>
+                <input type="text" name="published_date" class="form-control form-control-sm" placeholder="DD/MM/YYYY or YYYY-MM-DD">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Grant Date / Issue Date</label>
+                <input type="text" name="grant_date" class="form-control form-control-sm" placeholder="Ongoing or Date">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Legal Status</label>
+                <select name="legal_status" class="form-select form-select-sm">
+                  <option value="Published">Published</option>
+                  <option value="Filed">Filed</option>
+                  <option value="Waiting for UCRD PATENT CELL Confirmation">Waiting for UCRD Confirmation</option>
+                  <option value="Published and Granted">Published and Granted</option>
+                  <option value="Granted">Granted</option>
+                  <option value="Ongoing">Ongoing</option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Inventor(s) Count / Details</label>
+                <input type="text" name="inventors" class="form-control form-control-sm" placeholder="e.g. 1 or names">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">IPC/CPC Classification</label>
+                <input type="text" name="ipc_classification" class="form-control form-control-sm" placeholder="e.g. IPC, Design patent" value="IPC">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Proof Link (Google Drive / Official Portal URL)</label>
+                <input type="url" name="proof_link" class="form-control form-control-sm" placeholder="https://drive.google.com/...">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-bold small">Abstract / Invention Summary</label>
+                <textarea name="abstract" class="form-control" rows="3" placeholder="Enter abstract or description of the patent"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-save me-1"></i>Save Patent Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Edit Single Patent Modal -->
+  <div class="modal fade" id="editPatentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow">
+        <form id="editPatentForm" method="POST">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title fw-bold"><i class="fas fa-edit me-2 text-warning"></i>Edit Patent Record</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label fw-bold small">Sr. No.</label>
+                <input type="number" name="sr_no" id="edit_sr_no" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Employee Code (E-Code)</label>
+                <input type="text" name="employee_code" id="edit_employee_code" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Faculty Name <span class="text-danger">*</span></label>
+                <input type="text" name="faculty_name" id="edit_faculty_name" class="form-control form-control-sm" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Assignee / Owner</label>
+                <input type="text" name="assignee" id="edit_assignee" class="form-control form-control-sm">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-bold small">Patent Title <span class="text-danger">*</span></label>
+                <input type="text" name="title" id="edit_title" class="form-control" required>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Application Number</label>
+                <input type="text" name="application_number" id="edit_application_number" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Patent Number</label>
+                <input type="text" name="patent_number" id="edit_patent_number" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Patent Office / Country</label>
+                <input type="text" name="country_office" id="edit_country_office" class="form-control form-control-sm">
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Filing Date</label>
+                <input type="text" name="filing_date" id="edit_filing_date" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Published Date</label>
+                <input type="text" name="published_date" id="edit_published_date" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Grant Date / Issue Date</label>
+                <input type="text" name="grant_date" id="edit_grant_date" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Legal Status</label>
+                <input type="text" name="legal_status" id="edit_legal_status" class="form-control form-control-sm" placeholder="Published, Filed, etc.">
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">Inventor(s)</label>
+                <input type="text" name="inventors" id="edit_inventors" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold small">IPC/CPC Classification</label>
+                <input type="text" name="ipc_classification" id="edit_ipc_classification" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Proof Link</label>
+                <input type="text" name="proof_link" id="edit_proof_link" class="form-control form-control-sm">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-bold small">Abstract / Summary</label>
+                <textarea name="abstract" id="edit_abstract" class="form-control" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-save me-1"></i>Update Patent Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Admin Login Modal -->
+  <div class="modal fade" id="adminLoginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0 shadow">
+        <form action="/admin/login" method="POST">
+          <input type="hidden" name="return_to" value="/patents">
+          <div class="modal-header bg-primary text-white">
+            <h6 class="modal-title fw-bold"><i class="fas fa-lock me-1"></i> Admin Authentication</h6>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-3">
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Admin Username</label>
+              <input type="text" name="username" class="form-control form-control-sm" required autofocus>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Admin Password</label>
+              <input type="password" name="password" class="form-control form-control-sm" required>
+            </div>
+          </div>
+          <div class="modal-footer bg-light py-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold">Sign In</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let currentStatusFilter = 'all';
+
+    function filterPatentsTable() {
+      const q = (document.getElementById('liveSearchPatents').value || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('.patent-row-item');
+      let visible = 0;
+
+      rows.forEach(row => {
+        const title = row.dataset.title || '';
+        const faculty = row.dataset.faculty || '';
+        const ecode = row.dataset.ecode || '';
+        const app = row.dataset.app || '';
+        const patno = row.dataset.patno || '';
+        const country = row.dataset.country || '';
+        const status = row.dataset.status || '';
+        const isPub = row.dataset.ispub === '1';
+
+        const matchesSearch = !q ||
+          title.includes(q) ||
+          faculty.includes(q) ||
+          ecode.includes(q) ||
+          app.includes(q) ||
+          patno.includes(q) ||
+          country.includes(q) ||
+          status.includes(q);
+
+        let matchesStatus = true;
+        if (currentStatusFilter === 'published') {
+          matchesStatus = isPub;
+        } else if (currentStatusFilter === 'filed') {
+          matchesStatus = !isPub;
+        } else if (currentStatusFilter === 'waiting') {
+          matchesStatus = status.includes('wait') || status.includes('confirm');
+        }
+
+        const show = matchesSearch && matchesStatus;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      const countEl = document.getElementById('visibleCountText');
+      if (countEl) countEl.textContent = visible;
+
+      const noRow = document.getElementById('noPatentsRow');
+      if (noRow) noRow.style.display = (visible === 0 && rows.length > 0) ? '' : 'none';
+
+      // Renumber visible serial index
+      let sNo = 1;
+      rows.forEach(r => {
+        if (r.style.display !== 'none') {
+          const sCol = r.querySelector('.serial-index-col');
+          if (sCol) sCol.textContent = sNo++;
+        }
+      });
+    }
+
+    function setPatentStatusFilter(status, btnEl) {
+      currentStatusFilter = status;
+      document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      filterPatentsTable();
+    }
+
+    function clearPatentSearch() {
+      document.getElementById('liveSearchPatents').value = '';
+      filterPatentsTable();
+    }
+
+    function resetAllPatentFilters() {
+      document.getElementById('liveSearchPatents').value = '';
+      currentStatusFilter = 'all';
+      document.querySelectorAll('.filter-pill-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+      filterPatentsTable();
+    }
+
+    function viewPatentAbstract(id) {
+      const abstractEl = document.getElementById('abstract_data_' + id);
+      const titleEl = document.getElementById('title_data_' + id);
+      if (abstractEl && titleEl) {
+        document.getElementById('abstractPatentTitleDisplay').textContent = titleEl.textContent;
+        document.getElementById('abstractModalBody').textContent = abstractEl.textContent;
+        const modal = new bootstrap.Modal(document.getElementById('abstractModal'));
+        modal.show();
+      }
+    }
+
+    // ── Bulk Selections ──
+    function updatePatentSelectionCount() {
+      const cbs = document.querySelectorAll('.patent-select-cb:checked');
+      const count = cbs.length;
+      const countSpan = document.getElementById('selectedPatentsCount');
+      const btnCountSpan = document.getElementById('deleteSelectedBtnCount');
+      const bar = document.getElementById('patentBulkBar');
+
+      if (countSpan) countSpan.textContent = count;
+      if (btnCountSpan) btnCountSpan.textContent = count;
+      if (bar) bar.style.display = count > 0 ? '' : 'none';
+
+      const allCbs = document.querySelectorAll('.patent-select-cb');
+      const selectAll = document.getElementById('selectAllPatents');
+      if (selectAll) selectAll.checked = allCbs.length > 0 && count === allCbs.length;
+    }
+
+    const selectAllTop = document.getElementById('selectAllPatents');
+    if (selectAllTop) {
+      selectAllTop.addEventListener('change', function() {
+        const rows = document.querySelectorAll('.patent-row-item');
+        rows.forEach(r => {
+          if (r.style.display !== 'none') {
+            const cb = r.querySelector('.patent-select-cb');
+            if (cb) cb.checked = selectAllTop.checked;
+          }
+        });
+        updatePatentSelectionCount();
+      });
+    }
+
+    function clearPatentSelections() {
+      document.querySelectorAll('.patent-select-cb').forEach(cb => cb.checked = false);
+      if (selectAllTop) selectAllTop.checked = false;
+      updatePatentSelectionCount();
+    }
+
+    function executeBulkDeletePatents() {
+      const checked = Array.from(document.querySelectorAll('.patent-select-cb:checked')).map(cb => cb.value);
+      if (checked.length === 0) return;
+      if (!confirm(`Are you sure you want to permanently delete ${checked.length} selected patent entries? This cannot be undone.`)) return;
+
+      document.getElementById('bulkDeletePatentsIdsInput').value = checked.join(',');
+      document.getElementById('bulkDeletePatentsForm').submit();
+    }
+
+    // ── Edit Patent Modal AJAX Loader ──
+    async function openEditPatentModal(id) {
+      try {
+        const res = await fetch('/api/patents/' + id);
+        const data = await res.json();
+        if (!data.ok || !data.patent) {
+          alert('Could not load patent details: ' + (data.error || 'Unknown error'));
+          return;
+        }
+        const p = data.patent;
+        document.getElementById('editPatentForm').action = '/patents/' + p.id + '/edit';
+        document.getElementById('edit_sr_no').value = p.sr_no || '';
+        document.getElementById('edit_employee_code').value = p.employee_code || '';
+        document.getElementById('edit_faculty_name').value = p.faculty_name || '';
+        document.getElementById('edit_title').value = p.title || '';
+        document.getElementById('edit_patent_number').value = p.patent_number || '';
+        document.getElementById('edit_application_number').value = p.application_number || '';
+        document.getElementById('edit_filing_date').value = p.filing_date || '';
+        document.getElementById('edit_published_date').value = p.published_date || '';
+        document.getElementById('edit_grant_date').value = p.grant_date || '';
+        document.getElementById('edit_inventors').value = p.inventors || '';
+        document.getElementById('edit_assignee').value = p.assignee || '';
+        document.getElementById('edit_country_office').value = p.country_office || '';
+        document.getElementById('edit_ipc_classification').value = p.ipc_classification || '';
+        document.getElementById('edit_abstract').value = p.abstract || '';
+        document.getElementById('edit_legal_status').value = p.legal_status || '';
+        document.getElementById('edit_proof_link').value = p.proof_link || '';
+
+        const modal = new bootstrap.Modal(document.getElementById('editPatentModal'));
+        modal.show();
+      } catch (err) {
+        alert('Network error loading patent: ' + err.message);
+      }
+    }
+
+    // ── Export Filtered Table ──
+    function exportFilteredPatentsTable() {
+      const q = encodeURIComponent(document.getElementById('liveSearchPatents').value.trim());
+      const status = encodeURIComponent(currentStatusFilter);
+      window.location.href = `/patents/download?filtered=1&search=${q}&status=${status}`;
+    }
+  </script>
+</body>
+</html>
