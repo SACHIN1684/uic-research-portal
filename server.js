@@ -924,7 +924,9 @@ app.post('/patents/upload', requireAdmin, upload.single('patents_file'), (req, r
     const mode = req.body.upload_mode || 'append';
     const result = db.importPatentsFromBuffer(req.file.path, mode);
     try { fs.unlinkSync(req.file.path); } catch (e) {}
-    res.redirect('/patents?uploaded=' + encodeURIComponent(result.importedCount) + '&mode=' + encodeURIComponent(mode));
+    res.redirect('/patents?uploaded=' + encodeURIComponent(result.importedCount) +
+      '&skipped=' + encodeURIComponent(result.skippedCount || 0) +
+      '&mode=' + encodeURIComponent(mode));
   } catch (err) {
     if (req.file && req.file.path) {
       try { fs.unlinkSync(req.file.path); } catch (e) {}

@@ -353,10 +353,23 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <% } %>
-    <% if (query.uploaded) { %>
+    <% if (typeof query.uploaded !== 'undefined') { %>
       <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-        <i class="fas fa-cloud-upload-alt me-2 fs-5 align-middle"></i>
-        <strong>Spreadsheet Uploaded!</strong> Successfully processed <strong><%= query.uploaded %></strong> patent records (<%= query.mode === 'replace' ? 'Table Replaced' : 'Appended' %>).
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <i class="fas fa-check-circle me-2 fs-5 align-middle text-success"></i>
+            <strong>Spreadsheet Processed!</strong>
+            <% if (Number(query.uploaded) > 0) { %>
+              Successfully added <strong><%= query.uploaded %></strong> new patent record(s).
+            <% } else { %>
+              No duplicate records added &mdash; all entries in the uploaded file already exist in the database. Existing data kept intact!
+            <% } %>
+            <% if (typeof query.skipped !== 'undefined' && Number(query.skipped) > 0) { %>
+              <span class="badge bg-secondary text-white ms-2 px-2 py-1"><i class="fas fa-filter me-1"></i><%= query.skipped %> duplicate entries skipped</span>
+            <% } %>
+          </div>
+          <span class="badge bg-primary px-3 py-2"><%= query.mode === 'replace' ? 'Mode: Full Replace' : 'Mode: Smart Sync (No Duplicates)' %></span>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <% } %>
@@ -684,16 +697,22 @@
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold">Upload Action Mode</label>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="upload_mode" id="modeAppend" value="append" checked>
-                <label class="form-check-label" for="modeAppend">
-                  <strong>Append to existing data</strong> (keeps existing entries and appends new ones)
+              <div class="form-check p-3 bg-light rounded-3 border mb-2">
+                <input class="form-check-input ms-0 me-2" type="radio" name="upload_mode" id="modeAppend" value="append" checked>
+                <label class="form-check-label ps-1" for="modeAppend">
+                  <strong class="text-primary"><i class="fas fa-shield-alt me-1"></i> Smart Sync &amp; Add New (Recommended)</strong>
+                  <div class="text-muted small mt-1">
+                    Automatically checks for duplicate entries using patent titles, application numbers, and faculty details. <strong>Only new records are added</strong>; all existing patent records are kept completely intact without creating duplicates.
+                  </div>
                 </label>
               </div>
-              <div class="form-check mt-2">
-                <input class="form-check-input" type="radio" name="upload_mode" id="modeReplace" value="replace">
-                <label class="form-check-label text-danger" for="modeReplace">
-                  <strong>Replace entire table</strong> (erases current table and imports only rows from file)
+              <div class="form-check p-3 bg-white rounded-3 border">
+                <input class="form-check-input ms-0 me-2" type="radio" name="upload_mode" id="modeReplace" value="replace">
+                <label class="form-check-label ps-1" for="modeReplace">
+                  <strong class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> Replace Entire Table</strong>
+                  <div class="text-muted small mt-1">
+                    Erases the current table and re-imports all records fresh from the uploaded spreadsheet.
+                  </div>
                 </label>
               </div>
             </div>

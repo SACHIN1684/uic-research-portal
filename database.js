@@ -3395,19 +3395,93 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
   if (colMap.legal_status === -1) colMap.legal_status = 14;
   if (colMap.proof_link === -1) colMap.proof_link = 15;
 
-  recordUndoState(`Upload Patents Excel (${mode === 'replace' ? 'Replace' : 'Append'})`);
+  recordUndoState(`Upload Patents Excel (${mode === 'replace' ? 'Replace' : 'Sync/Append'})`);
 
   if (mode === 'replace') {
     db.run('DELETE FROM patents');
   }
 
-  let maxSr = 0;
-  if (mode === 'append') {
-    const maxRow = queryOne('SELECT MAX(sr_no) as max_sr FROM patents');
-    maxSr = maxRow && maxRow.max_sr ? maxRow.max_sr : 0;
+  // Load existing records to detect duplicates
+  const existingPatents = mode === 'replace' ? [] : getAllPatents();
+
+  function cleanId(s) {
+    if (!s) return '';
+    const str = String(s).trim().toLowerCase();
+    if (['ongoing', 'pending', 'na', 'n/a', 'none', 'tbd', '-', '--', 'null', 'undefined'].includes(str)) return '';
+    return str.replace(/[^a-z0-9]/g, '');
   }
 
+  function cleanFaculty(s) {
+    if (!s) return '';
+    return String(s)
+      .toLowerCase()
+      .replace(/\b(dr|mr|mrs|ms|prof|er)\b\.?/gi, '')
+      .replace(/[^a-z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function normTitle(s) {
+    if (!s) return '';
+    return String(s).toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function findDuplicate(incoming, list) {
+    const inTitle = normTitle(incoming.title);
+    const inFaculty = cleanFaculty(incoming.faculty_name);
+    const inEcode = cleanId(incoming.employee_code);
+    const inAppNo = cleanId(incoming.application_number);
+    const inPatNo = cleanId(incoming.patent_number);
+
+    for (const ex of list) {
+      const exTitle = normTitle(ex.title);
+      const exFaculty = cleanFaculty(ex.faculty_name);
+      const exEcode = cleanId(ex.employee_code);
+      const exAppNo = cleanId(ex.application_number);
+      const exPatNo = cleanId(ex.patent_number);
+
+      // If both have different non-empty employee codes, they are distinct faculty records
+      if (inEcode && exEcode && inEcode !== exEcode) {
+        continue;
+      }
+
+      // Check faculty affiliation match
+      const facultyMatches = (inEcode && exEcode && inEcode === exEcode) ||
+        (inFaculty && exFaculty && (inFaculty === exFaculty || inFaculty.includes(exFaculty) || exFaculty.includes(inFaculty)));
+
+      // 1. App number match
+      if (inAppNo && exAppNo && inAppNo === exAppNo) {
+        if (facultyMatches || (inTitle && exTitle && inTitle === exTitle)) {
+          return ex;
+        }
+      }
+
+      // 2. Patent number match
+      if (inPatNo && exPatNo && inPatNo === exPatNo) {
+        if (facultyMatches || (inTitle && exTitle && inTitle === exTitle)) {
+          return ex;
+        }
+      }
+
+      // 3. Title match
+      if (inTitle && exTitle && inTitle === exTitle) {
+        if (facultyMatches || (!inFaculty && !exFaculty)) {
+          return ex;
+        }
+      }
+    }
+    return null;
+  }
+
+  let maxSr = 0;
+  const maxRow = queryOne('SELECT MAX(sr_no) as max_sr FROM patents');
+  maxSr = maxRow && maxRow.max_sr ? maxRow.max_sr : 0;
+
+  // In-memory list of active items to prevent duplicates even within the same uploaded file
+  const activeList = [...existingPatents];
   let importedCount = 0;
+  let skippedCount = 0;
+
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length === 0) continue;
@@ -3416,8 +3490,6 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
     const faculty = String(r[colMap.faculty_name] || '').trim();
     if (!title && !faculty) continue;
 
-    const rawSr = parseInt(r[colMap.sr_no], 10);
-    const srNo = !isNaN(rawSr) && rawSr > 0 ? (mode === 'replace' ? rawSr : (rawSr > maxSr ? rawSr : ++maxSr)) : ++maxSr;
     const ecode = String(r[colMap.employee_code] || '').trim();
     const patNum = String(r[colMap.patent_number] || '').trim();
     const appNum = String(r[colMap.application_number] || '').trim();
@@ -3431,6 +3503,34 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
     const abstract = String(r[colMap.abstract] || '').replace(/\r?\n/g, ' ').trim();
     const legalStatus = String(r[colMap.legal_status] || '').trim();
     const proofLink = String(r[colMap.proof_link] || '').trim();
+
+    const incomingObj = {
+      employee_code: ecode,
+      faculty_name: faculty,
+      title,
+      patent_number: patNum,
+      application_number: appNum,
+      filing_date: filingDate,
+      published_date: pubDate,
+      grant_date: grantDate,
+      inventors,
+      assignee,
+      country_office: country,
+      ipc_classification: ipc,
+      abstract,
+      legal_status: legalStatus,
+      proof_link: proofLink
+    };
+
+    // Check duplicate against existing + already processed rows
+    const duplicate = findDuplicate(incomingObj, activeList);
+    if (duplicate) {
+      skippedCount++;
+      continue;
+    }
+
+    const rawSr = parseInt(r[colMap.sr_no], 10);
+    const srNo = !isNaN(rawSr) && rawSr > maxSr ? rawSr : ++maxSr;
 
     db.run(
       `INSERT INTO patents (
@@ -3446,10 +3546,16 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
         abstract, legalStatus, proofLink
       ]
     );
+
+    const insertedRecord = {
+      ...incomingObj,
+      sr_no: srNo
+    };
+    activeList.push(insertedRecord);
     importedCount++;
   }
 
   saveDB();
   syncPatentsToDownloadExcel();
-  return { importedCount, mode };
+  return { importedCount, skippedCount, totalProcessed: rows.length - (headerIdx + 1), mode };
 }
