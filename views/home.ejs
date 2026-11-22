@@ -8,6 +8,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
+  <script src="/js/theme.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -573,6 +574,11 @@
                 <i class="fas fa-user-shield me-1"></i> Admin Login
               </button>
             <% } %>
+          </li>
+          <li class="nav-item ms-lg-1">
+            <button type="button" class="btn btn-sm rounded-pill theme-toggle-btn px-2 py-2" title="Toggle Light / Dark Theme" aria-label="Toggle Theme">
+              <i class="fas fa-moon theme-icon"></i>
+            </button>
           </li>
         </ul>
       </div>
@@ -2068,6 +2074,12 @@
         }
       });
     }
+
+    window.addEventListener('uicThemeChanged', function() {
+      if (typeof currentYear !== 'undefined' && typeof monthlyRosByYear !== 'undefined' && monthlyRosByYear[currentYear]) {
+        renderGrowthChartAndInsights(currentYear, monthlyRosByYear[currentYear]);
+      }
+    });
 
     // ── Star Rating Client-side Renderer ──
     function getStarRatingJs(ros) {

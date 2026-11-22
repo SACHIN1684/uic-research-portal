@@ -569,3 +569,350 @@ body {
   .form-actions { flex-direction: column-reverse; }
   .btn-cancel, .btn-submit { text-align: center; }
 }
+
+/* =========================================================
+   UIC Research Portal — DARK & LIGHT THEME STYLES
+   ========================================================= */
+
+/* ── Theme Switcher Buttons (Navbar & Floating) ── */
+.theme-toggle-btn {
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+  user-select: none;
+}
+.theme-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  color: #0284c7;
+}
+.theme-toggle-btn .theme-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.theme-toggle-btn:hover .theme-icon {
+  transform: rotate(20deg) scale(1.1);
+}
+
+/* Floating Action Theme Switcher Pill/Button */
+.floating-theme-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50% !important;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22) !important;
+}
+.floating-theme-btn:hover {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* ── DARK THEME SYSTEM VARIABLES & OVERRIDES ── */
+[data-bs-theme="dark"],
+[data-theme="dark"] {
+  --primary: #38bdf8;
+  --primary-light: #0284c7;
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
+  --bg: #090e17;
+  --card-bg: #111a2e;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #1e293b;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-hover: 0 10px 32px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+  background-color: #090e17 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Navbar Theme Toggle */
+[data-bs-theme="dark"] .theme-toggle-btn {
+  background: #111a2e;
+  border-color: #283548;
+  color: #f1f5f9;
+}
+[data-bs-theme="dark"] .theme-toggle-btn:hover {
+  background: #192742;
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+}
+[data-bs-theme="dark"] .floating-theme-btn {
+  background: #111a2e;
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65) !important;
+}
+
+/* ── Navigation & Headers in Dark Mode ── */
+[data-bs-theme="dark"] .portal-nav {
+  background: linear-gradient(135deg, #090e17 0%, #0f172a 100%) !important;
+  border-bottom: 3px solid #f59e0b !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6) !important;
+}
+[data-bs-theme="dark"] .cu-topbar {
+  background: #050811 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+[data-bs-theme="dark"] .home-navbar {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid #1e293b !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+[data-bs-theme="dark"] .home-navbar .nav-link,
+[data-bs-theme="dark"] .navbar .nav-link {
+  color: #e2e8f0 !important;
+}
+[data-bs-theme="dark"] .home-navbar .nav-link:hover,
+[data-bs-theme="dark"] .navbar .nav-link:hover {
+  color: #38bdf8 !important;
+}
+[data-bs-theme="dark"] .home-navbar .navbar-brand .text-dark,
+[data-bs-theme="dark"] .navbar-brand .text-dark {
+  color: #f8fafc !important;
+}
+
+/* Dropdown Menus in Dark Mode */
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: #111a2e !important;
+  border: 1px solid #283548 !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6) !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .dropdown-item {
+  color: #e2e8f0 !important;
+}
+[data-bs-theme="dark"] .dropdown-item:hover,
+[data-bs-theme="dark"] .dropdown-item:focus {
+  background-color: #1a2740 !important;
+  color: #38bdf8 !important;
+}
+[data-bs-theme="dark"] .dropdown-divider {
+  border-color: #1e293b !important;
+}
+
+/* ── Global Surfaces, Cards, and Elements ── */
+[data-bs-theme="dark"] .bg-white {
+  background-color: #111a2e !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .bg-light {
+  background-color: #0b1322 !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .text-dark {
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+[data-bs-theme="dark"] .border {
+  border-color: #1e293b !important;
+}
+[data-bs-theme="dark"] .border-top,
+[data-bs-theme="dark"] .border-bottom,
+[data-bs-theme="dark"] .border-start,
+[data-bs-theme="dark"] .border-end {
+  border-color: #1e293b !important;
+}
+
+/* Modals & Dialogs */
+[data-bs-theme="dark"] .modal-content {
+  background-color: #111a2e !important;
+  border: 1px solid #283548 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
+}
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-footer {
+  border-color: #1e293b !important;
+}
+[data-bs-theme="dark"] .modal-header.bg-light,
+[data-bs-theme="dark"] .modal-footer.bg-light {
+  background-color: #0b1322 !important;
+}
+[data-bs-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Form Controls & Inputs */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .search-input {
+  background-color: #0b1322 !important;
+  border-color: #283548 !important;
+  color: #f8fafc !important;
+}
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus,
+[data-bs-theme="dark"] .search-input:focus {
+  background-color: #0f1a2e !important;
+  border-color: #38bdf8 !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.22) !important;
+}
+[data-bs-theme="dark"] .form-control::placeholder,
+[data-bs-theme="dark"] .search-input::placeholder {
+  color: #64748b !important;
+}
+
+/* Tables (Publications, Patents, Conferences, Directory) */
+[data-bs-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  color: #f1f5f9 !important;
+  border-color: #1e293b !important;
+}
+[data-bs-theme="dark"] .table > :not(caption) > * > * {
+  border-bottom-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+[data-bs-theme="dark"] .table thead th,
+[data-bs-theme="dark"] .table-light th,
+[data-bs-theme="dark"] .detail-table th {
+  background-color: #0b1322 !important;
+  color: #94a3b8 !important;
+  border-bottom: 2px solid #283548 !important;
+}
+[data-bs-theme="dark"] .table tbody tr:hover td {
+  background-color: #192742 !important;
+  color: #ffffff !important;
+}
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: #0d1628 !important;
+}
+
+/* ── Faculty Cards & Role Styling in Dark Mode ── */
+[data-bs-theme="dark"] .faculty-card {
+  background-color: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+[data-bs-theme="dark"] .faculty-card:hover {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+  transform: translateY(-4px);
+}
+[data-bs-theme="dark"] .faculty-card .meta-chip,
+[data-bs-theme="dark"] .meta-chip {
+  background: #0b1322 !important;
+  color: #cbd5e1 !important;
+  border-color: #283548 !important;
+}
+
+/* Filter Bars & Filter Buttons */
+[data-bs-theme="dark"] .filter-bar {
+  background: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+[data-bs-theme="dark"] .filter-btn {
+  background: #0b1322 !important;
+  border-color: #283548 !important;
+  color: #cbd5e1 !important;
+}
+[data-bs-theme="dark"] .filter-btn:hover {
+  background: #192742 !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+[data-bs-theme="dark"] .filter-btn.active {
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* ── Home Page Showcase Blocks in Dark Mode ── */
+[data-bs-theme="dark"] #patents-showcase {
+  background-color: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5) !important;
+}
+[data-bs-theme="dark"] .patents-stat-card,
+[data-bs-theme="dark"] .stat-card,
+[data-bs-theme="dark"] .pub-stat-card {
+  background: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .patents-stat-card:hover,
+[data-bs-theme="dark"] .stat-card:hover {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Director & Heads Cards on Home Page */
+[data-bs-theme="dark"] .leader-card,
+[data-bs-theme="dark"] .coordinator-card {
+  background: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  color: #f1f5f9 !important;
+}
+
+/* Detail Profile Hero */
+[data-bs-theme="dark"] .profile-hero {
+  background: #111a2e !important;
+  border-color: #1e293b !important;
+}
+[data-bs-theme="dark"] .profile-photo {
+  border-color: #283548 !important;
+}
+
+/* Top Performer Card on Home Page */
+[data-bs-theme="dark"] .top-performer-card {
+  background: #0b1322 !important;
+  border-color: #283548 !important;
+}
+
+/* Accordion in Dark Mode */
+[data-bs-theme="dark"] .accordion-item {
+  background-color: #111a2e !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .accordion-button {
+  background-color: #111a2e !important;
+  color: #f1f5f9 !important;
+}
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+  background-color: #16243d !important;
+  color: #38bdf8 !important;
+}
+[data-bs-theme="dark"] .accordion-button::after {
+  filter: invert(1);
+}
+
+/* Badges adjustments */
+[data-bs-theme="dark"] .badge.bg-light,
+[data-bs-theme="dark"] .badge-light {
+  background-color: #0b1322 !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #283548 !important;
+}
+
+/* Footer in Dark Mode */
+[data-bs-theme="dark"] .portal-footer,
+[data-bs-theme="dark"] footer {
+  background-color: #050811 !important;
+  border-top: 1px solid #1e293b !important;
+}
+
