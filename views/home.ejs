@@ -438,6 +438,10 @@
           <i class="fas fa-certificate text-warning me-1"></i> Patents
         </a>
         <span class="d-none d-md-inline">&bull;</span>
+        <a href="/gallery" class="text-white text-decoration-none">
+          <i class="fas fa-images text-info me-1"></i> Photo Gallery
+        </a>
+        <span class="d-none d-md-inline">&bull;</span>
         <a href="/portal" class="text-white fw-bold text-decoration-none">
           <i class="fas fa-sign-in-alt me-1"></i> Enter Portal
         </a>
@@ -526,6 +530,16 @@
               <li>
                 <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="#top-performers">
                   <i class="fas fa-trophy text-warning me-2 fa-fw"></i> Top Performers
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="#top-researchers">
+                  <i class="fas fa-user-graduate text-info me-2 fa-fw"></i> Top Faculty Researchers
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 px-3 fw-semibold text-dark" href="/gallery">
+                  <i class="fas fa-camera-retro text-success me-2 fa-fw"></i> Photo Gallery &amp; Awards
                 </a>
               </li>
             </ul>
@@ -1129,7 +1143,133 @@
     </div>
   </section>
 
-  <!-- My Campus Section -->
+  <!-- Top UIC Department Faculty Researchers Showcase -->
+  <section id="top-researchers" class="py-5" style="background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);">
+    <div class="container">
+      <div class="section-title-wrap mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <span class="section-badge"><i class="fas fa-user-graduate me-1"></i> Research Faculty Laureates</span>
+          <a href="/portal" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3 py-1 shadow-sm">
+            <i class="fas fa-users me-1"></i> View All Faculty (<%= totalFaculty %>)
+          </a>
+        </div>
+        <h2 class="section-title display-font">Top Researchers &amp; Faculty Innovators of UIC</h2>
+        <p class="text-muted" style="max-width: 860px;">
+          Meet the vanguard of UIC's scientific and technological advancement &mdash; distinguished professors and mentors leading high-impact Scopus research, international citations, and landmark patent publications.
+        </p>
+      </div>
+
+      <!-- Quick Filter Pills: All, High ROS, Q1 Authors, Patent Innovators -->
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-4" id="topResearchersFilter">
+        <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-2 fw-semibold active top-res-filter" data-filter="all">
+          <i class="fas fa-star text-warning me-1"></i> All Top Researchers (<%= typeof topResearchers !== 'undefined' ? topResearchers.length : 8 %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold top-res-filter" data-filter="ros">
+          <i class="fas fa-bolt text-danger me-1"></i> High ROS Champions
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold top-res-filter" data-filter="q1">
+          <i class="fas fa-certificate text-success me-1"></i> Q1 Quartile Authors
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold top-res-filter" data-filter="patents">
+          <i class="fas fa-lightbulb text-warning me-1"></i> Patent Innovators
+        </button>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="row g-4" id="topResearchersGrid">
+        <% if (typeof topResearchers !== 'undefined' && topResearchers.length > 0) { %>
+          <% topResearchers.forEach((r, idx) => { %>
+            <div class="col-12 col-md-6 col-lg-3 top-res-item"
+                 data-ros="<%= r.ros %>"
+                 data-q1="<%= r.q1 || 0 %>"
+                 data-patents="<%= r.patent_count || 0 %>">
+              <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm top-researcher-card position-relative transition-all"
+                   style="background: #ffffff; border: 1px solid rgba(0,0,0,0.06);">
+                <!-- Top Rank Badge -->
+                <div class="position-absolute top-0 end-0 m-3" style="z-index: 2;">
+                  <span class="badge rounded-pill <%= idx === 0 ? 'bg-warning text-dark' : (idx < 3 ? 'bg-primary' : 'bg-secondary') %> fw-bold px-2 py-1 shadow-sm">
+                    <i class="fas <%= idx === 0 ? 'fa-crown text-danger' : (idx < 3 ? 'fa-medal text-warning' : 'fa-award') %> me-1"></i>#<%= idx + 1 %>
+                  </span>
+                </div>
+
+                <!-- Faculty Photo Section -->
+                <div class="pt-4 pb-3 text-center position-relative">
+                  <div class="d-inline-block position-relative">
+                    <% if (r.photo) { %>
+                      <img src="/uploads/<%= r.photo %>" alt="<%= r.name %>" class="rounded-circle shadow-sm" style="width: 110px; height: 110px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">
+                    <% } else { %>
+                      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm"
+                           style="width: 110px; height: 110px; font-size: 2.2rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: 4px solid #fff;">
+                        <%= r.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() %>
+                      </div>
+                    <% } %>
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-white" style="font-size: 0.65rem;" title="Active UIC Faculty">
+                      <i class="fas fa-check"></i>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Info Body -->
+                <div class="card-body p-3 pt-0 text-center d-flex flex-column">
+                  <h5 class="fw-bold mb-1 text-dark" style="font-size: 1.05rem;">
+                    <a href="/faculty/<%= r.id %>" class="text-dark text-decoration-none text-truncate d-block" title="<%= r.name %>">
+                      <%= r.name %>
+                    </a>
+                  </h5>
+                  <div class="text-muted small mb-2" style="font-size: 0.78rem;">
+                    <span class="badge bg-light text-dark font-monospace border me-1"><%= r.employee_code %></span>
+                    <%= r.designation || 'Assistant Professor' %> &bull; <span class="fw-semibold text-primary">UIC</span>
+                  </div>
+
+                  <!-- Research Domain Pill -->
+                  <div class="mb-3">
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-normal px-2 py-1 text-wrap" style="font-size: 0.72rem; line-height: 1.35;">
+                      <i class="fas fa-microscope me-1"></i><%= r.research_domain %>
+                    </span>
+                  </div>
+
+                  <!-- 3 Metric Pills -->
+                  <div class="row g-1 text-center mb-3 mt-auto">
+                    <div class="col-4">
+                      <div class="p-2 rounded-3 bg-light border">
+                        <div class="fw-bold text-danger" style="font-size: 1.05rem;"><%= r.ros.toFixed(2) %></div>
+                        <div class="text-muted" style="font-size: 0.65rem;">ROS Score</div>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-2 rounded-3 bg-light border">
+                        <div class="fw-bold text-primary" style="font-size: 1.05rem;"><%= r.total_pubs %></div>
+                        <div class="text-muted" style="font-size: 0.65rem;">Papers</div>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-2 rounded-3 bg-light border">
+                        <div class="fw-bold text-success" style="font-size: 1.05rem;"><%= r.q1 || 0 %></div>
+                        <div class="text-muted" style="font-size: 0.65rem;">Q1 Papers</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Star Rating Bar & Profile Link -->
+                  <div class="pt-2 border-top d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center text-warning small" style="font-size: 0.75rem;" title="<%= r.star_rating %> Star Research Rating">
+                      <% for(let s=1; s<=5; s++) { %>
+                        <i class="fas fa-star <%= s <= Math.floor(r.star_rating) ? 'text-warning' : (s - r.star_rating <= 0.5 ? 'fa-star-half-alt text-warning' : 'text-muted text-opacity-25') %>"></i>
+                      <% } %>
+                      <span class="text-muted ms-1 fw-bold" style="font-size: 0.7rem;"><%= r.star_rating.toFixed(1) %></span>
+                    </div>
+                    <a href="/faculty/<%= r.id %>" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.75rem;">
+                      Profile <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </section>
   <section id="campus" class="py-5 bg-white border-top">
     <div class="container">
       <div class="section-title-wrap">
@@ -1827,6 +1967,118 @@
       </div>
     </div>
   </section>
+
+  <!-- UIC Research Excellence Photo Gallery & Hall of Fame -->
+  <section id="gallery-showcase" class="py-5 bg-white border-top">
+    <div class="container">
+      <div class="section-title-wrap mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <span class="section-badge"><i class="fas fa-camera-retro me-1"></i> Research Hall of Fame</span>
+          <div class="d-flex gap-2">
+            <a href="/gallery" class="btn btn-primary btn-sm fw-bold rounded-pill px-4 py-2 shadow-sm">
+              <i class="fas fa-images me-1"></i> View Full Photo Gallery
+            </a>
+          </div>
+        </div>
+        <h2 class="section-title display-font">Photo Gallery &mdash; Awards, Honors &amp; Research Milestones</h2>
+        <p class="text-muted" style="max-width: 860px;">
+          Capturing inspiring moments of faculty felicitations, national research honors, IEEE keynote addresses, patent launch celebrations, and student hackathon triumphs across Chandigarh University.
+        </p>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-4" id="homeGalleryFilters">
+        <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-2 fw-semibold active gallery-filter-btn" data-category="all">
+          <i class="fas fa-layer-group me-1"></i> All Moments (<%= typeof galleryPhotos !== 'undefined' ? galleryPhotos.length : 8 %>)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold gallery-filter-btn" data-category="awards">
+          <i class="fas fa-award text-warning me-1"></i> Awards &amp; Felicitations
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold gallery-filter-btn" data-category="conferences">
+          <i class="fas fa-microphone-alt text-primary me-1"></i> Conferences &amp; Symposia
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold gallery-filter-btn" data-category="patents">
+          <i class="fas fa-lightbulb text-warning me-1"></i> Patents &amp; Innovations
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 fw-semibold gallery-filter-btn" data-category="hackathons">
+          <i class="fas fa-laptop-code text-success me-1"></i> Hackathons &amp; Labs
+        </button>
+      </div>
+
+      <!-- Gallery Grid -->
+      <div class="row g-4" id="homeGalleryGrid">
+        <% if (typeof galleryPhotos !== 'undefined' && galleryPhotos.length > 0) { %>
+          <% galleryPhotos.forEach((item, idx) => { %>
+            <div class="col-12 col-md-6 col-lg-3 gallery-item-col" data-category="<%= item.category %>">
+              <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm gallery-card position-relative" style="cursor: pointer;" onclick="openGalleryLightbox(<%= idx %>)">
+                <!-- Image Wrapper with Zoom Effect -->
+                <div class="gallery-img-wrap position-relative overflow-hidden" style="height: 200px;">
+                  <img src="<%= item.image_url %>" alt="<%= item.title %>" class="w-100 h-100 object-fit-cover gallery-img transition-all">
+                  <div class="gallery-overlay d-flex align-items-center justify-content-center position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-40 opacity-0 transition-all">
+                    <span class="btn btn-light btn-sm rounded-circle shadow p-2"><i class="fas fa-expand-alt text-dark"></i></span>
+                  </div>
+                  <!-- Category Badge -->
+                  <div class="position-absolute top-0 start-0 m-2">
+                    <% if (item.category === 'awards') { %>
+                      <span class="badge bg-warning text-dark fw-bold px-2 py-1 shadow-sm"><i class="fas fa-trophy me-1"></i>Award</span>
+                    <% } else if (item.category === 'conferences') { %>
+                      <span class="badge bg-primary fw-bold px-2 py-1 shadow-sm"><i class="fas fa-users me-1"></i>Conference</span>
+                    <% } else if (item.category === 'patents') { %>
+                      <span class="badge bg-success fw-bold px-2 py-1 shadow-sm"><i class="fas fa-certificate me-1"></i>Patent</span>
+                    <% } else { %>
+                      <span class="badge bg-info text-dark fw-bold px-2 py-1 shadow-sm"><i class="fas fa-code me-1"></i>Hackathon</span>
+                    <% } %>
+                  </div>
+                </div>
+                <!-- Card Body -->
+                <div class="card-body p-3 d-flex flex-column">
+                  <h6 class="fw-bold mb-1 text-dark line-clamp-2" style="font-size: 0.92rem; min-height: 2.4rem;">
+                    <%= item.title %>
+                  </h6>
+                  <div class="d-flex align-items-center gap-2 text-muted small mb-2" style="font-size: 0.74rem;">
+                    <span><i class="far fa-calendar-alt text-primary me-1"></i><%= item.event_date %></span>
+                    <span>&bull;</span>
+                    <span class="text-truncate"><i class="fas fa-map-marker-alt text-danger me-1"></i><%= item.venue %></span>
+                  </div>
+                  <p class="text-muted small mb-0 line-clamp-2" style="font-size: 0.76rem;">
+                    <%= item.description %>
+                  </p>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Lightbox Modal -->
+  <div class="modal fade" id="galleryLightboxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg bg-dark text-white">
+        <div class="position-relative">
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"></button>
+          <img id="lightboxImg" src="" alt="Gallery Preview" class="w-100 object-fit-contain" style="max-height: 520px; background: #000;">
+          <button type="button" class="btn btn-dark bg-opacity-50 text-white position-absolute top-50 start-0 translate-middle-y ms-2 rounded-circle" id="lightboxPrevBtn" style="width: 44px; height: 44px;">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button type="button" class="btn btn-dark bg-opacity-50 text-white position-absolute top-50 end-0 translate-middle-y me-2 rounded-circle" id="lightboxNextBtn" style="width: 44px; height: 44px;">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="modal-body p-4 bg-dark">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span id="lightboxCategory" class="badge bg-warning text-dark fw-bold"></span>
+            <span id="lightboxDate" class="small text-light text-opacity-75"></span>
+            <span class="text-light text-opacity-50">&bull;</span>
+            <span id="lightboxVenue" class="small text-light text-opacity-75"></span>
+          </div>
+          <h4 id="lightboxTitle" class="fw-bold mb-2 text-white"></h4>
+          <p id="lightboxDesc" class="text-light text-opacity-75 small mb-0"></p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modern Footer -->
   <footer class="cu-footer">
@@ -3045,6 +3297,98 @@
         }
       });
     }
+
+    // ── Top Researchers Filter Pills ──
+    const topResFilters = document.querySelectorAll('.top-res-filter');
+    const topResItems = document.querySelectorAll('.top-res-item');
+    topResFilters.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        topResFilters.forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.classList.toggle('btn-dark', b === btn);
+          b.classList.toggle('btn-outline-dark', b !== btn);
+        });
+
+        topResItems.forEach(item => {
+          const ros = parseFloat(item.dataset.ros) || 0;
+          const q1 = parseInt(item.dataset.q1, 10) || 0;
+          const patents = parseInt(item.dataset.patents, 10) || 0;
+
+          let match = true;
+          if (filter === 'ros') match = ros >= 1.5;
+          else if (filter === 'q1') match = q1 > 0;
+          else if (filter === 'patents') match = patents > 0;
+
+          item.style.display = match ? '' : 'none';
+        });
+      });
+    });
+
+    // ── Gallery Showcase Filter & Lightbox ──
+    const galleryItemsData = <%- JSON.stringify(typeof galleryPhotos !== 'undefined' ? galleryPhotos : []) %>;
+    let currentLightboxIdx = 0;
+    const lightboxModalEl = document.getElementById('galleryLightboxModal');
+    const lightboxModal = lightboxModalEl ? new bootstrap.Modal(lightboxModalEl) : null;
+
+    const galFilterBtns = document.querySelectorAll('.gallery-filter-btn');
+    const galCols = document.querySelectorAll('.gallery-item-col');
+    galFilterBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const cat = this.dataset.category;
+        galFilterBtns.forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.classList.toggle('btn-dark', b === btn);
+          b.classList.toggle('btn-outline-dark', b !== btn);
+        });
+
+        galCols.forEach(col => {
+          const itemCat = col.dataset.category;
+          col.style.display = (cat === 'all' || itemCat === cat) ? '' : 'none';
+        });
+      });
+    });
+
+    window.openGalleryLightbox = function(idx) {
+      if (!galleryItemsData || !galleryItemsData[idx]) return;
+      currentLightboxIdx = idx;
+      updateLightboxContent();
+      if (lightboxModal) lightboxModal.show();
+    };
+
+    function updateLightboxContent() {
+      const item = galleryItemsData[currentLightboxIdx];
+      if (!item) return;
+      document.getElementById('lightboxImg').src = item.image_url;
+      document.getElementById('lightboxTitle').textContent = item.title;
+      document.getElementById('lightboxCategory').textContent = (item.category || '').toUpperCase();
+      document.getElementById('lightboxDate').textContent = item.event_date || '';
+      document.getElementById('lightboxVenue').textContent = item.venue || '';
+      document.getElementById('lightboxDesc').textContent = item.description || '';
+    }
+
+    const prevBtn = document.getElementById('lightboxPrevBtn');
+    const nextBtn = document.getElementById('lightboxNextBtn');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (galleryItemsData.length === 0) return;
+        currentLightboxIdx = (currentLightboxIdx - 1 + galleryItemsData.length) % galleryItemsData.length;
+        updateLightboxContent();
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (galleryItemsData.length === 0) return;
+        currentLightboxIdx = (currentLightboxIdx + 1) % galleryItemsData.length;
+        updateLightboxContent();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!lightboxModalEl || !lightboxModalEl.classList.contains('show')) return;
+      if (e.key === 'ArrowLeft' && prevBtn) prevBtn.click();
+      if (e.key === 'ArrowRight' && nextBtn) nextBtn.click();
+    });
 
     // Auto-open Admin Login modal if requested via query param
     const urlParams = new URLSearchParams(window.location.search);

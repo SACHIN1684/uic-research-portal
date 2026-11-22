@@ -467,6 +467,9 @@ app.get('/', (req, res) => {
     const memberStats = db.getMemberBifurcationStats(faculty);
     const pendingDocCount = req.isAdmin ? db.getUnreadDocumentCount() : 0;
     const patentStats = db.getPatentStats();
+    const topResearchers = db.getTopResearchers(8);
+    const galleryPhotos = db.getAllGalleryPhotos();
+    const galleryStats = db.getGalleryStats();
 
     res.render('home', {
       totalFaculty,
@@ -486,6 +489,9 @@ app.get('/', (req, res) => {
       topPerformers,
       pendingDocCount,
       patentStats,
+      topResearchers,
+      galleryPhotos,
+      galleryStats,
       query: req.query
     });
   } catch (err) {
@@ -990,6 +996,63 @@ app.post('/patents/delete-multiple', requireAdmin, (req, res) => {
     res.redirect('/patents?deleted_multiple=' + count);
   } catch (err) {
     res.redirect('/patents?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// ── UIC Research Gallery & Hall of Fame ─────────────────────────────────────
+
+app.get('/gallery', (req, res) => {
+  try {
+    const category = req.query.category || 'all';
+    const photos = db.getAllGalleryPhotos(category);
+    const stats = db.getGalleryStats();
+    res.render('gallery', {
+      photos,
+      stats,
+      currentCategory: category,
+      query: req.query
+    });
+  } catch (err) {
+    res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// Admin Add Photo to Gallery
+app.post('/gallery/add', requireAdmin, upload.single('gallery_file'), (req, res) => {
+  try {
+    let imageUrl = '';
+    if (req.file) {
+      imageUrl = '/uploads/' + req.file.filename;
+    } else if (req.body.image_url) {
+      imageUrl = req.body.image_url.trim();
+    } else {
+      return res.redirect('/gallery?err=' + encodeURIComponent('Please upload an image or provide an image URL.'));
+    }
+
+    db.addGalleryPhoto({
+      title: req.body.title || 'UIC Research Milestone',
+      category: req.body.category || 'awards',
+      event_date: req.body.event_date || '',
+      venue: req.body.venue || '',
+      description: req.body.description || '',
+      image_url: imageUrl,
+      featured: req.body.featured ? 1 : 0
+    });
+
+    res.redirect('/gallery?added=1');
+  } catch (err) {
+    res.redirect('/gallery?err=' + encodeURIComponent(err.message));
+  }
+});
+
+// Admin Delete Gallery Photo
+app.post('/gallery/:id/delete', requireAdmin, (req, res) => {
+  try {
+    db.deleteGalleryPhoto(req.params.id);
+    const returnTo = req.body.return_to || '/gallery';
+    res.redirect(returnTo + (returnTo.includes('?') ? '&' : '?') + 'deleted=1');
+  } catch (err) {
+    res.redirect('/gallery?err=' + encodeURIComponent(err.message));
   }
 });
 

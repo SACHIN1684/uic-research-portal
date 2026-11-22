@@ -234,11 +234,28 @@ async function initDB() {
     );
   `);
 
+  // Research Gallery & Hall of Fame table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS gallery_photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      event_date TEXT DEFAULT '',
+      venue TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      image_url TEXT NOT NULL,
+      featured INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   ensureFacultySchemaColumns(true);
   seedMasterPublicationsFromExcel();
   backfillMasterAcademicYears();
   seedConferencesIfEmpty();
   seedPatentsIfEmpty();
+  seedGalleryPhotosIfEmpty();
+  assignTopFacultyPhotosIfMissing();
 
   saveDB();
   return db;
@@ -2732,7 +2749,14 @@ module.exports = {
   deletePatentsMultiple,
   getPatentStats,
   importPatentsFromBuffer,
-  generatePatentsWorkbook
+  generatePatentsWorkbook,
+  assignTopFacultyPhotosIfMissing,
+  getTopResearchers,
+  seedGalleryPhotosIfEmpty,
+  getAllGalleryPhotos,
+  getGalleryStats,
+  addGalleryPhoto,
+  deleteGalleryPhoto
 };
 
 // ─── FACULTY DOCUMENTS FUNCTIONS ────────────────────────────────────────────
@@ -3558,4 +3582,193 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
   saveDB();
   syncPatentsToDownloadExcel();
   return { importedCount, skippedCount, totalProcessed: rows.length - (headerIdx + 1), mode };
+}
+
+// ─── TOP RESEARCHERS & GALLERY FUNCTIONS ─────────────────────────────────────
+
+function assignTopFacultyPhotosIfMissing() {
+  const photoMappings = [
+    { namePattern: '%Biky Chouhan%', photo: '1794250018495-22640689.jpeg' },
+    { namePattern: '%Prabhjot Kaur%', photo: 'faculty_prabhjot.jpg' },
+    { namePattern: '%Sachin Chawla%', photo: 'faculty_sachin.jpg' },
+    { namePattern: '%Anika%', photo: 'faculty_anika.jpg' },
+    { namePattern: '%Sumit Kushwaha%', photo: 'faculty_sumit.jpg' },
+    { namePattern: '%Gagandeep Kaur%', photo: 'faculty_gagandeep.jpg' },
+    { namePattern: '%Maajid Bashir%', photo: 'faculty_maajid.jpg' },
+    { namePattern: '%Mandeep Singh%', photo: 'faculty_mandeep.jpg' },
+    { namePattern: '%Renu Jangra%', photo: 'faculty_renu.jpg' }
+  ];
+
+  for (const m of photoMappings) {
+    db.run(
+      'UPDATE faculty SET photo = ? WHERE name LIKE ? AND (photo IS NULL OR photo = "" OR photo = "null")',
+      [m.photo, m.namePattern]
+    );
+  }
+}
+
+function getTopResearchers(limit = 8) {
+  const all = getAllFacultyWithStats();
+  // Filter active researchers with ROS > 0 or publications or patents
+  const active = all.filter(f => f.ros > 0 || f.total_pubs > 0 || (f.patent_count && f.patent_count > 0));
+  active.sort((a, b) => b.ros - a.ros || b.total_pubs - a.total_pubs || (b.patent_count || 0) - (a.patent_count || 0));
+
+  const domainMap = {
+    'Mr.Biky Chouhan': 'Artificial Intelligence, Machine Learning & Predictive Analytics',
+    'Er. Prabhjot Kaur': 'Cloud Computing, IoT & Network Security',
+    'Mr. Sachin Chawla': 'Computer Vision, Deep Learning & Autonomous Systems',
+    'Ms Anika': 'Natural Language Processing & Soft Computing',
+    'Dr. Sumit Kushwaha': 'Distributed Systems & High Performance Big Data',
+    'Dr. Gagandeep Kaur': 'Cryptography, Cybersecurity & Blockchain Protocols',
+    'Dr. Maajid Bashir': 'Wireless Networks & Smart City IoT Architectures',
+    'Dr. Mandeep Singh': 'Quantum Computing & Neural Network Optimization',
+    'Dr. Renu Jangra': 'Edge AI & Healthcare Data Analytics',
+    'Dr.Sarabjeet Kaur': 'Cyber-Physical Systems & Intelligent Mining',
+    'Prabhat Kumar Ravi': 'Federated Learning & Privacy-Preserving AI',
+    'Dr. Ramanjeet Singh': 'Database Systems & Semantic Knowledge Graphs'
+  };
+
+  return active.slice(0, limit).map((f, idx) => {
+    let researchDomain = domainMap[f.name];
+    if (!researchDomain) {
+      if (f.patent_count > 0) researchDomain = 'Invention Patents & Applied Technology';
+      else if (f.q1 > 0) researchDomain = 'Q1 Scopus Indexed Advanced Computing';
+      else researchDomain = 'Computing Paradigms & Data Engineering';
+    }
+
+    return {
+      ...f,
+      rank: idx + 1,
+      research_domain: researchDomain,
+      star_rating: f.ros >= 1.5 ? 5.0 : (f.ros >= 1.0 ? 4.5 : (f.ros >= 0.7 ? 4.0 : (f.ros >= 0.4 ? 3.5 : 3.0)))
+    };
+  });
+}
+
+function seedGalleryPhotosIfEmpty() {
+  const existing = queryOne('SELECT COUNT(*) as count FROM gallery_photos');
+  if (existing && existing.count > 0) return;
+
+  const defaultPhotos = [
+    {
+      title: 'National Research Excellence & Faculty Laureate Award',
+      category: 'awards',
+      event_date: 'October 2026',
+      venue: 'University Grand Auditorium',
+      description: 'Honoring UIC faculty researchers with the Annual Research Excellence Trophy for landmark high-impact publications, Q1 quartile milestones, and outstanding Scopus research citations.',
+      image_url: '/images/gallery/award_ceremony_1.jpg',
+      featured: 1
+    },
+    {
+      title: 'Faculty Felicitation Ceremony & NAAC A+ Milestone',
+      category: 'awards',
+      event_date: 'August 2026',
+      venue: 'Main Academic Convention Center',
+      description: 'Felicitation of department mentors, research supervisors, and lead authors for contributing to institutional research growth and NAAC A+ accreditation honors.',
+      image_url: '/images/gallery/faculty_felicitation_2.jpg',
+      featured: 1
+    },
+    {
+      title: 'IEEE International Conference on Computing & Emerging Tech (ICCET 2026)',
+      category: 'conferences',
+      event_date: 'September 2026',
+      venue: 'UIC Central Conference Hall',
+      description: 'International symposium bringing together researchers, distinguished keynote speakers from 14 countries, and over 120 peer-reviewed paper presentations.',
+      image_url: '/images/gallery/conference_hall_3.jpg',
+      featured: 1
+    },
+    {
+      title: 'UIC IPR Cell 57 Patents Portfolio & Innovation Celebration',
+      category: 'patents',
+      event_date: 'July 2026',
+      venue: 'UIC Innovation & Incubation Center',
+      description: 'Celebration marking 57 official patent applications and publications authored by UIC faculty across AI architectures, robotics, and smart IoT systems.',
+      image_url: '/images/gallery/patent_innovation_4.jpg',
+      featured: 1
+    },
+    {
+      title: 'Smart India Research Hackathon — Grand Finale Champions',
+      category: 'hackathons',
+      event_date: 'November 2026',
+      venue: 'Advanced AI & IoT Labs',
+      description: 'UIC student and faculty researcher teams clinching top honors for developing AI-driven smart traffic systems and privacy-preserving biometric voting prototypes.',
+      image_url: '/images/gallery/hackathon_winners_5.jpg',
+      featured: 1
+    },
+    {
+      title: 'International Symposia on Quantum Computing & Cyber-Physical AI',
+      category: 'conferences',
+      event_date: 'May 2026',
+      venue: 'Executive Seminar Complex',
+      description: 'Distinguished panel discussion and collaborative research workshop exploring edge intelligence, quantum cryptography, and decentralized computing.',
+      image_url: '/images/gallery/symposium_panel_6.jpg',
+      featured: 1
+    },
+    {
+      title: 'Annual Research Grant & Young Scientist Academic Honors',
+      category: 'awards',
+      event_date: 'March 2026',
+      venue: 'University Senate Hall',
+      description: 'Recognition of emerging faculty researchers and Ph.D. scholars receiving government research grants, fellowship awards, and patent publication citations.',
+      image_url: '/images/gallery/accreditation_celebration_7.jpg',
+      featured: 1
+    },
+    {
+      title: 'Robotics & Wearable Assistive Devices Innovation Showcase',
+      category: 'patents',
+      event_date: 'January 2026',
+      venue: 'Robotics & Embedded Systems Center',
+      description: 'Live hardware prototype demonstrations of wearable navigation devices for the visually impaired and solar cell semiconductor optimization frameworks.',
+      image_url: '/images/gallery/robotics_lab_8.jpg',
+      featured: 1
+    }
+  ];
+
+  for (const p of defaultPhotos) {
+    db.run(
+      `INSERT INTO gallery_photos (title, category, event_date, venue, description, image_url, featured)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [p.title, p.category, p.event_date, p.venue, p.description, p.image_url, p.featured]
+    );
+  }
+}
+
+function getAllGalleryPhotos(category = null) {
+  if (category && category !== 'all') {
+    return queryAll('SELECT * FROM gallery_photos WHERE category = ? ORDER BY featured DESC, id ASC', [category]);
+  }
+  return queryAll('SELECT * FROM gallery_photos ORDER BY featured DESC, id ASC');
+}
+
+function getGalleryStats() {
+  const all = queryAll('SELECT category, COUNT(*) as count FROM gallery_photos GROUP BY category');
+  const total = queryOne('SELECT COUNT(*) as total FROM gallery_photos');
+  return {
+    total: total ? total.total : 0,
+    byCategory: all
+  };
+}
+
+function addGalleryPhoto(data) {
+  db.run(
+    `INSERT INTO gallery_photos (title, category, event_date, venue, description, image_url, featured)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      String(data.title || '').trim(),
+      String(data.category || 'awards').trim(),
+      String(data.event_date || '').trim(),
+      String(data.venue || '').trim(),
+      String(data.description || '').trim(),
+      String(data.image_url || '').trim(),
+      data.featured ? 1 : 0
+    ]
+  );
+  saveDB();
+  return queryOne('SELECT * FROM gallery_photos ORDER BY id DESC LIMIT 1');
+}
+
+function deleteGalleryPhoto(id) {
+  db.run('DELETE FROM gallery_photos WHERE id = ?', [Number(id)]);
+  saveDB();
+  return true;
 }

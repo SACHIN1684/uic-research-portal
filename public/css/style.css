@@ -916,3 +916,80 @@ body {
   border-top: 1px solid #1e293b !important;
 }
 
+/* ── Top Researchers & Gallery Showcase Components ── */
+.top-researcher-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.top-researcher-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12) !important;
+  border-color: #3b82f6 !important;
+}
+
+.gallery-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.gallery-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14) !important;
+}
+.gallery-img-wrap {
+  overflow: hidden;
+  position: relative;
+}
+.gallery-img {
+  transition: transform 0.4s ease;
+}
+.gallery-card:hover .gallery-img {
+  transform: scale(1.08);
+}
+.gallery-card:hover .gallery-overlay {
+  opacity: 1 !important;
+}
+
+/* Dark Mode Overrides for Top Researchers & Gallery */
+[data-bs-theme="dark"] #top-researchers {
+  background: linear-gradient(180deg, #090e17 0%, #0d1527 100%) !important;
+}
+[data-bs-theme="dark"] #gallery-showcase {
+  background-color: #090e17 !important;
+  border-top-color: #1e293b !important;
+}
+[data-bs-theme="dark"] .top-researcher-card {
+  background-color: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+[data-bs-theme="dark"] .top-researcher-card:hover {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+}
+[data-bs-theme="dark"] .gallery-card {
+  background-color: #111a2e !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+[data-bs-theme="dark"] .gallery-card:hover {
+  border-color: #f59e0b !important;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.7) !important;
+}
+[data-bs-theme="dark"] .top-res-filter.btn-outline-dark,
+[data-bs-theme="dark"] .gallery-filter-btn.btn-outline-dark {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+[data-bs-theme="dark"] .top-res-filter.btn-outline-dark:hover,
+[data-bs-theme="dark"] .gallery-filter-btn.btn-outline-dark:hover {
+  background-color: #1e293b !important;
+  color: #38bdf8 !important;
+}
+[data-bs-theme="dark"] .top-res-filter.btn-dark.active,
+[data-bs-theme="dark"] .gallery-filter-btn.btn-dark.active {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+
