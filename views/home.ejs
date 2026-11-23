@@ -1149,9 +1149,16 @@
       <div class="section-title-wrap mb-4">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
           <span class="section-badge"><i class="fas fa-user-graduate me-1"></i> Research Faculty Laureates</span>
-          <a href="/portal" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3 py-1 shadow-sm">
-            <i class="fas fa-users me-1"></i> View All Faculty (<%= totalFaculty %>)
-          </a>
+          <div class="d-flex align-items-center gap-2">
+            <% if (isAdmin) { %>
+              <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 py-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#editFacultyPhotoModal" onclick="openFacultyPhotoModal()">
+                <i class="fas fa-camera me-1"></i> Admin: Upload Researcher Photo &amp; Details
+              </button>
+            <% } %>
+            <a href="/portal" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3 py-1 shadow-sm">
+              <i class="fas fa-users me-1"></i> View All Faculty (<%= totalFaculty %>)
+            </a>
+          </div>
         </div>
         <h2 class="section-title display-font">Top Researchers &amp; Faculty Innovators of UIC</h2>
         <p class="text-muted" style="max-width: 860px;">
@@ -1193,7 +1200,7 @@
                 </div>
 
                 <!-- Faculty Photo Section -->
-                <div class="pt-4 pb-3 text-center position-relative">
+                <div class="pt-4 pb-2 text-center position-relative">
                   <div class="d-inline-block position-relative">
                     <% if (r.photo) { %>
                       <img src="/uploads/<%= r.photo %>" alt="<%= r.name %>" class="rounded-circle shadow-sm" style="width: 110px; height: 110px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">
@@ -1206,7 +1213,28 @@
                     <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-white" style="font-size: 0.65rem;" title="Active UIC Faculty">
                       <i class="fas fa-check"></i>
                     </span>
+                    <% if (isAdmin) { %>
+                      <button type="button" class="btn btn-warning btn-sm rounded-circle position-absolute top-0 start-0 shadow-sm edit-photo-trigger-btn"
+                              style="width: 32px; height: 32px; padding: 0; line-height: 32px; z-index: 3;"
+                              data-id="<%= r.id %>"
+                              data-name="<%= r.name %>"
+                              data-code="<%= r.employee_code %>"
+                              data-designation="<%= r.designation || '' %>"
+                              data-domain="<%= r.research_domain || '' %>"
+                              data-caption="<%= r.photo_caption || '' %>"
+                              data-photo="<%= r.photo || '' %>"
+                              title="Admin: Edit Photo & Picture Details">
+                        <i class="fas fa-camera text-dark" style="font-size: 0.85rem;"></i>
+                      </button>
+                    <% } %>
                   </div>
+                  <% if (r.photo_caption) { %>
+                    <div class="mt-2 px-3">
+                      <div class="p-1 px-2 rounded-2 bg-light border text-muted small" style="font-size: 0.72rem; line-height: 1.3;" title="Photo Details / Caption">
+                        <i class="fas fa-quote-left text-warning me-1"></i><%= r.photo_caption %>
+                      </div>
+                    </div>
+                  <% } %>
                 </div>
 
                 <!-- Info Body -->
@@ -2146,6 +2174,7 @@
     <%- JSON.stringify(allYearsTopPerformers) %>
   </script>
   <script>
+  window.IS_ADMIN = <%= isAdmin ? 'true' : 'false' %>;
   document.addEventListener('DOMContentLoaded', () => {
     const allYearsData = JSON.parse(document.getElementById('allYearsDataJson').textContent);
     const splitDeptData = JSON.parse(document.getElementById('splitDeptDataJson').textContent);
@@ -2605,10 +2634,17 @@
                           </span>
                         </div>
                         <h3 class="fw-bold mb-1 text-white">${esc(winner.name)}</h3>
-                        <div class="text-light opacity-75 small mb-3">
+                        <div class="text-light opacity-75 small mb-2">
                           <span class="badge bg-light text-dark font-monospace me-2">${esc(winner.employee_code)}</span>
                           ${esc(winner.designation || 'Department Researcher')} &bull; ${esc(winner.department || 'UIC')}
                         </div>
+                        ${winner.photo_caption ? `
+                          <div class="mb-3">
+                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1" style="font-size: 0.78rem; font-weight: 500;">
+                              <i class="fas fa-camera me-1"></i>${esc(winner.photo_caption)}
+                            </span>
+                          </div>
+                        ` : ''}
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                           <div class="px-3 py-2 rounded-3" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
                             <div class="text-warning fw-bold fs-4">${winner.ros.toFixed(2)}</div>
@@ -2622,9 +2658,23 @@
                             <div class="d-flex align-items-center gap-1">${renderStarsJs(winner.ros, true)}</div>
                             <div class="small opacity-75" style="font-size:0.72rem;">5-Star Research Rating</div>
                           </div>
-                          <a href="/faculty/${winner.id}" class="btn btn-warning fw-bold px-4 py-2 text-dark shadow ms-auto">
-                            <i class="fas fa-user-circle me-1"></i>View Full Profile
-                          </a>
+                          <div class="ms-auto d-flex align-items-center gap-2">
+                            ${window.IS_ADMIN ? `
+                              <button type="button" class="btn btn-sm btn-outline-warning fw-semibold px-3 py-2 edit-photo-trigger-btn"
+                                      data-id="${winner.id}"
+                                      data-name="${esc(winner.name)}"
+                                      data-code="${esc(winner.employee_code)}"
+                                      data-designation="${esc(winner.designation || '')}"
+                                      data-domain="${esc(winner.research_domain || '')}"
+                                      data-caption="${esc(winner.photo_caption || '')}"
+                                      data-photo="${esc(winner.photo || '')}">
+                                <i class="fas fa-camera me-1"></i>Edit Picture
+                              </button>
+                            ` : ''}
+                            <a href="/faculty/${winner.id}" class="btn btn-warning fw-bold px-4 py-2 text-dark shadow">
+                              <i class="fas fa-user-circle me-1"></i>View Full Profile
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3390,6 +3440,122 @@
       if (e.key === 'ArrowRight' && nextBtn) nextBtn.click();
     });
 
+    // Admin Edit Photo & Picture Details Modal Handler
+    const editPhotoModalEl = document.getElementById('editFacultyPhotoModal');
+    const editPhotoModal = editPhotoModalEl ? new bootstrap.Modal(editPhotoModalEl) : null;
+    const photoForm = document.getElementById('editFacultyPhotoForm');
+    const photoFacultySelect = document.getElementById('modal_faculty_select');
+    const photoPreviewImg = document.getElementById('modal_photo_preview');
+    const photoInitialsDiv = document.getElementById('modal_photo_initials');
+    const photoFacultyName = document.getElementById('modal_faculty_name');
+    const photoFacultySub = document.getElementById('modal_faculty_sub');
+    const photoCaptionInput = document.getElementById('modal_photo_caption');
+    const photoDomainInput = document.getElementById('modal_research_domain');
+    const photoDesignationInput = document.getElementById('modal_designation');
+    const photoFileInput = document.getElementById('modal_photo_file');
+    const photoRemoveCheck = document.getElementById('modal_remove_photo');
+    const photoReturnToInput = document.getElementById('modal_return_to');
+
+    function updatePhotoModalFromData(data) {
+      if (!photoForm) return;
+      const id = data.id || '';
+      photoForm.action = `/faculty/${id}/photo`;
+      if (photoFacultySelect) photoFacultySelect.value = id;
+      if (photoFacultyName) photoFacultyName.textContent = data.name || 'Selected Faculty';
+      if (photoFacultySub) photoFacultySub.innerHTML = `Code: <strong>${data.code || '—'}</strong> &bull; Department: UIC`;
+      if (photoCaptionInput) photoCaptionInput.value = data.caption || '';
+      if (photoDomainInput) photoDomainInput.value = data.domain || '';
+      if (photoDesignationInput) photoDesignationInput.value = data.designation || '';
+      if (photoFileInput) photoFileInput.value = '';
+      if (photoRemoveCheck) photoRemoveCheck.checked = false;
+      if (photoReturnToInput) photoReturnToInput.value = window.location.pathname + window.location.search;
+
+      if (data.photo && data.photo.trim()) {
+        if (photoPreviewImg) {
+          photoPreviewImg.src = `/uploads/${data.photo.trim()}`;
+          photoPreviewImg.classList.remove('d-none');
+        }
+        if (photoInitialsDiv) photoInitialsDiv.classList.add('d-none');
+      } else {
+        if (photoPreviewImg) photoPreviewImg.classList.add('d-none');
+        if (photoInitialsDiv) {
+          photoInitialsDiv.classList.remove('d-none');
+          photoInitialsDiv.classList.add('d-flex');
+          photoInitialsDiv.textContent = (data.name || 'F').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        }
+      }
+    }
+
+    window.openFacultyPhotoModal = function(facultyId = null) {
+      if (!editPhotoModal) return;
+      if (facultyId && photoFacultySelect) {
+        photoFacultySelect.value = facultyId;
+        const opt = photoFacultySelect.options[photoFacultySelect.selectedIndex];
+        if (opt) {
+          updatePhotoModalFromData({
+            id: opt.value,
+            name: opt.dataset.name,
+            code: opt.dataset.code,
+            designation: opt.dataset.designation,
+            domain: opt.dataset.domain,
+            caption: opt.dataset.caption,
+            photo: opt.dataset.photo
+          });
+        }
+      } else if (photoFacultySelect && photoFacultySelect.options.length > 1) {
+        if (!photoFacultySelect.value) {
+          photoFacultySelect.selectedIndex = 1;
+        }
+        const opt = photoFacultySelect.options[photoFacultySelect.selectedIndex];
+        if (opt) {
+          updatePhotoModalFromData({
+            id: opt.value,
+            name: opt.dataset.name,
+            code: opt.dataset.code,
+            designation: opt.dataset.designation,
+            domain: opt.dataset.domain,
+            caption: opt.dataset.caption,
+            photo: opt.dataset.photo
+          });
+        }
+      }
+      editPhotoModal.show();
+    };
+
+    if (photoFacultySelect) {
+      photoFacultySelect.addEventListener('change', () => {
+        const opt = photoFacultySelect.options[photoFacultySelect.selectedIndex];
+        if (!opt || !opt.value) return;
+        updatePhotoModalFromData({
+          id: opt.value,
+          name: opt.dataset.name,
+          code: opt.dataset.code,
+          designation: opt.dataset.designation,
+          domain: opt.dataset.domain,
+          caption: opt.dataset.caption,
+          photo: opt.dataset.photo
+        });
+      });
+    }
+
+    // Delegated click handler for any .edit-photo-trigger-btn on page
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.edit-photo-trigger-btn');
+      if (!btn) return;
+      e.preventDefault();
+      const data = {
+        id: btn.dataset.id,
+        name: btn.dataset.name,
+        code: btn.dataset.code,
+        designation: btn.dataset.designation,
+        domain: btn.dataset.domain,
+        caption: btn.dataset.caption,
+        photo: btn.dataset.photo
+      };
+      updatePhotoModalFromData(data);
+      if (editPhotoModal) editPhotoModal.show();
+    });
+
     // Auto-open Admin Login modal if requested via query param
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin_login_required') === '1' || urlParams.get('login_err')) {
@@ -3487,6 +3653,132 @@
   </div>
 
   <% if (isAdmin) { %>
+  <!-- Admin: Edit Faculty Photo & Picture Details Modal -->
+  <div class="modal fade" id="editFacultyPhotoModal" tabindex="-1" aria-labelledby="editFacultyPhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header text-white px-4 py-3" style="background: linear-gradient(135deg, #1e3a8a, #0f172a);">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-warning bg-opacity-25 p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+              <i class="fas fa-camera text-warning fs-5"></i>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-white mb-0" id="editFacultyPhotoModalLabel">Admin: Upload Researcher Photo &amp; Details</h5>
+              <small class="text-white-50" style="font-size: 0.78rem;">Manage faculty profile photo, picture context/caption, and research domain</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <form id="editFacultyPhotoForm" method="POST" enctype="multipart/form-data" action="/faculty/0/photo">
+          <input type="hidden" name="return_to" id="modal_return_to" value="/">
+          <div class="modal-body p-4">
+            <!-- Select Faculty dropdown -->
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-secondary">
+                <i class="fas fa-user-graduate me-1 text-primary"></i> Select Faculty / Researcher
+              </label>
+              <select class="form-select" id="modal_faculty_select">
+                <option value="">-- Choose Faculty Member --</option>
+                <% if (typeof allFaculty !== 'undefined' && allFaculty && allFaculty.length > 0) { %>
+                  <% allFaculty.forEach(f => { %>
+                    <option value="<%= f.id %>"
+                            data-name="<%= f.name %>"
+                            data-code="<%= f.employee_code %>"
+                            data-designation="<%= f.designation || '' %>"
+                            data-domain="<%= f.research_domain || '' %>"
+                            data-caption="<%= f.photo_caption || '' %>"
+                            data-photo="<%= f.photo || '' %>">
+                      <%= f.name %> (<%= f.employee_code %>) &bull; <%= f.designation || 'Faculty' %>
+                    </option>
+                  <% }) %>
+                <% } else if (typeof topResearchers !== 'undefined' && topResearchers && topResearchers.length > 0) { %>
+                  <% topResearchers.forEach(f => { %>
+                    <option value="<%= f.id %>"
+                            data-name="<%= f.name %>"
+                            data-code="<%= f.employee_code %>"
+                            data-designation="<%= f.designation || '' %>"
+                            data-domain="<%= f.research_domain || '' %>"
+                            data-caption="<%= f.photo_caption || '' %>"
+                            data-photo="<%= f.photo || '' %>">
+                      <%= f.name %> (<%= f.employee_code %>) &bull; <%= f.designation || 'Faculty' %>
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+            </div>
+
+            <div class="row g-3 align-items-center mb-3 p-3 rounded-3 bg-light border">
+              <!-- Current Photo Preview -->
+              <div class="col-auto text-center">
+                <div id="modal_photo_preview_wrap" class="position-relative d-inline-block">
+                  <img id="modal_photo_preview" src="/uploads/faculty_prabhjot.jpg" alt="Preview" class="rounded-circle border border-3 border-primary shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
+                  <div id="modal_photo_initials" class="rounded-circle d-none align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 80px; height: 80px; font-size: 1.8rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6);">
+                    BC
+                  </div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fw-bold text-dark fs-5" id="modal_faculty_name">Selected Researcher</div>
+                <div class="text-muted small" id="modal_faculty_sub">Code: — &bull; Department: UIC</div>
+              </div>
+            </div>
+
+            <!-- File Upload -->
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-secondary">
+                <i class="fas fa-upload me-1 text-primary"></i> Upload New Photo File
+              </label>
+              <input type="file" class="form-control" name="photo_file" id="modal_photo_file" accept="image/jpeg,image/png,image/webp,image/gif">
+              <div class="form-text" style="font-size: 0.76rem;">Accepted formats: JPG, PNG, WEBP. Square portrait headshot is recommended.</div>
+            </div>
+
+            <!-- Details About Picture / Photo Caption -->
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-secondary">
+                <i class="fas fa-comment-alt me-1 text-warning"></i> Details About Picture / Photo Caption
+              </label>
+              <textarea class="form-control" name="photo_caption" id="modal_photo_caption" rows="2" placeholder="e.g., Annual Research Champion & Best Researcher Award at International Computing Conclave"></textarea>
+              <div class="form-text" style="font-size: 0.76rem;">This description will be highlighted under or alongside the researcher's photo across the portal.</div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Research Domain / Specialization -->
+              <div class="col-md-7">
+                <label class="form-label fw-bold small text-secondary">
+                  <i class="fas fa-microscope me-1 text-info"></i> Research Domain / Specialization
+                </label>
+                <input type="text" class="form-control" name="research_domain" id="modal_research_domain" placeholder="e.g., Artificial Intelligence, Machine Learning & Predictive Analytics">
+              </div>
+              <!-- Designation -->
+              <div class="col-md-5">
+                <label class="form-label fw-bold small text-secondary">
+                  <i class="fas fa-id-badge me-1 text-success"></i> Academic Designation
+                </label>
+                <input type="text" class="form-control" name="designation" id="modal_designation" placeholder="e.g., Assistant Professor">
+              </div>
+            </div>
+
+            <!-- Remove Photo Checkbox -->
+            <div class="form-check p-2 rounded-2 bg-light border">
+              <input class="form-check-input ms-1 me-2" type="checkbox" name="remove_photo" value="1" id="modal_remove_photo">
+              <label class="form-check-label small fw-semibold text-danger" for="modal_remove_photo">
+                <i class="fas fa-trash-alt me-1"></i> Remove current photo (revert to initials avatar)
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-footer bg-light px-4 py-3">
+            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+              <i class="fas fa-save me-1"></i> Save Picture &amp; Details
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Admin Settings Modal (Change Username & Password) -->
   <div class="modal fade" id="adminSettingsModal" tabindex="-1" aria-labelledby="adminSettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

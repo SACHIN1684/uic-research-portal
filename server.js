@@ -472,6 +472,7 @@ app.get('/', (req, res) => {
     const galleryStats = db.getGalleryStats();
 
     res.render('home', {
+      allFaculty: faculty,
       totalFaculty,
       memberStats,
       totalPubs,
@@ -2237,6 +2238,50 @@ app.post('/faculty/:id/delete', requireAdmin, (req, res) => {
     res.redirect('/portal?deleted=1');
   } catch (err) {
     res.status(500).send('Server error: ' + err.message);
+  }
+});
+
+// API endpoint to fetch single faculty record for modal pre-filling
+app.get('/api/faculty/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const faculty = db.getFacultyById(id);
+    if (!faculty) return res.status(404).json({ ok: false, error: 'Faculty not found' });
+    res.json({ ok: true, faculty });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin endpoint to upload/change faculty photo and write photo caption / research details
+app.post('/faculty/:id/photo', requireAdmin, upload.single('photo_file'), (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const faculty = db.getFacultyById(id);
+    if (!faculty) return res.status(404).send('Faculty record not found');
+
+    const returnTo = req.body.return_to || `/faculty/${id}`;
+    let newPhoto = undefined;
+
+    if (req.body.remove_photo === '1' || req.body.remove_photo === 'true') {
+      newPhoto = null;
+    } else if (req.file) {
+      newPhoto = req.file.filename;
+    } else if (req.body.photo_url && String(req.body.photo_url).trim()) {
+      newPhoto = String(req.body.photo_url).trim();
+    }
+
+    db.updateFacultyPhotoAndDetails(id, {
+      photo: newPhoto,
+      photo_caption: req.body.photo_caption,
+      research_domain: req.body.research_domain,
+      designation: req.body.designation
+    });
+
+    const sep = returnTo.includes('?') ? '&' : '?';
+    res.redirect(`${returnTo}${sep}photo_saved=1`);
+  } catch (err) {
+    res.status(500).send('Error updating photo and details: ' + err.message);
   }
 });
 

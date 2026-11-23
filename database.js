@@ -329,6 +329,16 @@ function ensureFacultySchemaColumns(backfillTypes = false) {
     db.run("ALTER TABLE faculty ADD COLUMN visibility TEXT DEFAULT 'public'");
     db.run("UPDATE faculty SET visibility = 'public' WHERE visibility IS NULL OR TRIM(visibility) = ''");
   }
+
+  const hasPhotoCaption = facCols.some(c => c.name === 'photo_caption');
+  if (!hasPhotoCaption) {
+    db.run("ALTER TABLE faculty ADD COLUMN photo_caption TEXT DEFAULT ''");
+  }
+
+  const hasResearchDomain = facCols.some(c => c.name === 'research_domain');
+  if (!hasResearchDomain) {
+    db.run("ALTER TABLE faculty ADD COLUMN research_domain TEXT DEFAULT ''");
+  }
 }
 
 function captureSnapshot(label) {
@@ -1687,6 +1697,8 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPub
         department: f.department || '',
         member_type: f.member_type || 'Faculty',
         photo: f.photo || null,
+        photo_caption: f.photo_caption || '',
+        research_domain: f.research_domain || '',
         pubs: []
       });
     }
@@ -1704,6 +1716,8 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPub
       department: entry.department,
       member_type: entry.member_type,
       photo: entry.photo,
+      photo_caption: entry.photo_caption,
+      research_domain: entry.research_domain,
       total_pubs: entry.pubs.length,
       ros: totalRos,
       ...qStats
@@ -1745,7 +1759,7 @@ function buildRankedPerformers(pubsSubset, facultyMap, limit = 25, mode = getPub
 
 function getTopPerformersByYear(year = 2026, limit = 25, mode = getPubCountingMode()) {
   const y = parseInt(year, 10) || 2026;
-  const facultyList = queryAll('SELECT id, name, employee_code, designation, department, photo FROM faculty');
+  const facultyList = queryAll('SELECT id, name, employee_code, designation, department, photo, photo_caption, research_domain FROM faculty');
   const facultyMap = new Map(facultyList.map(f => [f.id, f]));
 
   const allPubs = queryAll('SELECT id, faculty_id, title, eid, pub_type, ros, quartile, month FROM publications');
@@ -2751,6 +2765,7 @@ module.exports = {
   importPatentsFromBuffer,
   generatePatentsWorkbook,
   assignTopFacultyPhotosIfMissing,
+  updateFacultyPhotoAndDetails,
   getTopResearchers,
   seedGalleryPhotosIfEmpty,
   getAllGalleryPhotos,
@@ -3588,23 +3603,52 @@ function importPatentsFromBuffer(fileInput, mode = 'append') {
 
 function assignTopFacultyPhotosIfMissing() {
   const photoMappings = [
-    { namePattern: '%Biky Chouhan%', photo: '1794250018495-22640689.jpeg' },
-    { namePattern: '%Prabhjot Kaur%', photo: 'faculty_prabhjot.jpg' },
-    { namePattern: '%Sachin Chawla%', photo: 'faculty_sachin.jpg' },
-    { namePattern: '%Anika%', photo: 'faculty_anika.jpg' },
-    { namePattern: '%Sumit Kushwaha%', photo: 'faculty_sumit.jpg' },
-    { namePattern: '%Gagandeep Kaur%', photo: 'faculty_gagandeep.jpg' },
-    { namePattern: '%Maajid Bashir%', photo: 'faculty_maajid.jpg' },
-    { namePattern: '%Mandeep Singh%', photo: 'faculty_mandeep.jpg' },
-    { namePattern: '%Renu Jangra%', photo: 'faculty_renu.jpg' }
+    { namePattern: '%Biky Chouhan%', photo: '1794250018495-22640689.jpeg', caption: 'Annual Research Champion & Best Researcher Award', domain: 'Artificial Intelligence, Machine Learning & Predictive Analytics' },
+    { namePattern: '%Prabhjot Kaur%', photo: 'faculty_prabhjot.jpg', caption: 'High-Impact Cloud & IoT Security Research Laureate', domain: 'Cloud Computing, IoT & Network Security' },
+    { namePattern: '%Sachin Chawla%', photo: 'faculty_sachin.jpg', caption: 'Autonomous Vision & Deep Learning Lab Mentor', domain: 'Computer Vision, Deep Learning & Autonomous Systems' },
+    { namePattern: '%Anika%', photo: 'faculty_anika.jpg', caption: 'Natural Language Processing & AI Innovation Honor', domain: 'Natural Language Processing & Soft Computing' },
+    { namePattern: '%Sumit Kushwaha%', photo: 'faculty_sumit.jpg', caption: 'Distributed Systems & Big Data Architecture Fellow', domain: 'Distributed Systems & High Performance Big Data' },
+    { namePattern: '%Gagandeep Kaur%', photo: 'faculty_gagandeep.jpg', caption: 'Blockchain Protocols & Cyber Defense Keynote Speaker', domain: 'Cryptography, Cybersecurity & Blockchain Protocols' },
+    { namePattern: '%Maajid Bashir%', photo: 'faculty_maajid.jpg', caption: 'Smart City IoT Architect & Wireless Networks Researcher', domain: 'Wireless Networks & Smart City IoT Architectures' },
+    { namePattern: '%Mandeep Singh%', photo: 'faculty_mandeep.jpg', caption: 'Quantum Optimization & Neural Network Research Mentor', domain: 'Quantum Computing & Neural Network Optimization' },
+    { namePattern: '%Renu Jangra%', photo: 'faculty_renu.jpg', caption: 'Edge Computing & Healthcare AI Publications Awardee', domain: 'Edge AI & Healthcare Data Analytics' }
   ];
 
   for (const m of photoMappings) {
     db.run(
-      'UPDATE faculty SET photo = ? WHERE name LIKE ? AND (photo IS NULL OR photo = "" OR photo = "null")',
-      [m.photo, m.namePattern]
+      `UPDATE faculty
+       SET photo = COALESCE(NULLIF(photo, ''), ?),
+           photo_caption = CASE WHEN photo_caption IS NULL OR photo_caption = '' THEN ? ELSE photo_caption END,
+           research_domain = CASE WHEN research_domain IS NULL OR research_domain = '' THEN ? ELSE research_domain END
+       WHERE name LIKE ?`,
+      [m.photo, m.caption, m.domain, m.namePattern]
     );
   }
+}
+
+function updateFacultyPhotoAndDetails(id, data = {}) {
+  const facId = Number(id);
+  const existing = queryOne('SELECT * FROM faculty WHERE id = ?', [facId]);
+  if (!existing) throw new Error('Faculty record not found');
+
+  recordUndoState(`Update Photo & Details for ${existing.name}`);
+
+  let newPhoto = existing.photo;
+  if (data.photo !== undefined) {
+    newPhoto = data.photo;
+  }
+  const photoCaption = data.photo_caption !== undefined ? String(data.photo_caption || '').trim() : (existing.photo_caption || '');
+  const researchDomain = data.research_domain !== undefined ? String(data.research_domain || '').trim() : (existing.research_domain || '');
+  const designation = data.designation !== undefined ? String(data.designation || '').trim() : (existing.designation || '');
+
+  db.run(
+    `UPDATE faculty
+     SET photo = ?, photo_caption = ?, research_domain = ?, designation = ?
+     WHERE id = ?`,
+    [newPhoto, photoCaption, researchDomain, designation, facId]
+  );
+  saveDB();
+  return getFacultyById(facId);
 }
 
 function getTopResearchers(limit = 8) {
@@ -3629,7 +3673,7 @@ function getTopResearchers(limit = 8) {
   };
 
   return active.slice(0, limit).map((f, idx) => {
-    let researchDomain = domainMap[f.name];
+    let researchDomain = (f.research_domain && f.research_domain.trim()) || domainMap[f.name];
     if (!researchDomain) {
       if (f.patent_count > 0) researchDomain = 'Invention Patents & Applied Technology';
       else if (f.q1 > 0) researchDomain = 'Q1 Scopus Indexed Advanced Computing';
@@ -3640,6 +3684,7 @@ function getTopResearchers(limit = 8) {
       ...f,
       rank: idx + 1,
       research_domain: researchDomain,
+      photo_caption: f.photo_caption || '',
       star_rating: f.ros >= 1.5 ? 5.0 : (f.ros >= 1.0 ? 4.5 : (f.ros >= 0.7 ? 4.0 : (f.ros >= 0.4 ? 3.5 : 3.0)))
     };
   });
